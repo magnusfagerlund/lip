@@ -92,28 +92,23 @@ A Package Store could either be file based or web based. A store has a fixed URL
         "tables": [
             {
                 "name": "test",
-                "sv": "Test",
-                "en_us": "Test",
+                "localname": 
+                [
+                    {"sv": "Test"},
+                    {"en_us": "Test"}
+                ]
+            },
                 "fields": [
                     {
                         "name": "title",
-                        "sv": "Titel",
-                        "en_us": "Title"
-                    },
-                    {
-                        "name": "origin",
-                        "sv": "Tillhörighet",
-                        "en_us": "Origin"
-                    },
-                    {
-                        "name": "order",
-                        "sv": "Plats i listan",
-                        "en_us": "Order"
-                    },
-                    {
-                        "name": "mouseover",
-                        "sv": "Utökad beskrivning",
-                        "en_us": "Mouse over message"
+                        "type": "text"
+                        "attributes": {
+                            "length": 256,
+                            "localname": 
+                            [
+                                {"sv": "Titel"}
+                                {"en_us": "Title"}
+                            ]    
                     }
                 ]
             }
