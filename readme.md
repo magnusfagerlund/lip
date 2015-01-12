@@ -96,12 +96,11 @@ A Package Store could either be file based or web based. A store has a fixed URL
                 [
                     {"sv": "Test"},
                     {"en_us": "Test"}
-                ]
-            },
+                ],
                 "fields": [
                     {
                         "name": "title",
-                        "type": "text"
+                        "type": "text",
                         "attributes": {
                             "length": 256,
                             "localname": 
@@ -109,6 +108,7 @@ A Package Store could either be file based or web based. A store has a fixed URL
                                 {"sv": "Titel"}
                                 {"en_us": "Title"}
                             ]    
+                        }
                     }
                 ]
             }
