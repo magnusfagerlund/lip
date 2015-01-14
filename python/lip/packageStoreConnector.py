@@ -1,9 +1,4 @@
 from enum import Enum
-class StoreType(Enum):
-    web = 1
-    file = 2
-
-
 import requests
 from .package import Package
 
@@ -44,7 +39,7 @@ class PackageStoreConnector():
         @return: A Package class object containing all package data
         """
 
-        if self.store_type == StoreType.web:
+        if self.store_type == self.StoreType.web:
             return self._fetch_from_web_store(package_name)
         else:
             return self._fetch_from_file_store(package_name)
@@ -64,7 +59,7 @@ class PackageStoreConnector():
         r = requests.get(self.store_path + package_name + "/")
 
         if r.ok:
-            return (r.json())
+            return Package(r.json())
         else:
             return None
 
@@ -83,7 +78,7 @@ class PackageStoreConnector():
 
         return None
 
-    def _parse_store_url(self) -> StoreType:
+    def _parse_store_url(self) -> self.StoreType:
         """
         Helper function to parse to supplied path to the store to decide which type of store we are dealing with
 
@@ -92,6 +87,10 @@ class PackageStoreConnector():
         @return: A Enum to keep track of which store we are dealing with
         """
         if self.store_path[:4] == "http":
-            return StoreType.web
+            return self.StoreType.web
         else:
-            return StoreType.file
+            return self.StoreType.file
+
+    class StoreType(Enum):
+        web = 1
+        file = 2
