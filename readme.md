@@ -101,13 +101,12 @@ A Package Store could either be file based or web based. A store has a fixed URL
                     {
                         "name": "title",
                         "type": "text",
+                        "localname": {
+                            {"sv": "Titel"},
+                            {"en_us": "Title"}
+                        } 
                         "attributes": {
-                            "length": 256,
-                            "localname": 
-                            [
-                                {"sv": "Titel"}
-                                {"en_us": "Title"}
-                            ]    
+                            "length": 256
                         }
                     }
                 ]
