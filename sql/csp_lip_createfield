@@ -1,0 +1,46 @@
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+-- Written by: Fredrik Eriksson
+-- Created: 2015-04-16
+
+ALTER PROCEDURE [dbo].[csp_lip_createfield]
+	@@tablename NVARCHAR(64)
+	, @@fieldname NVARCHAR(64)
+	, @@localnamesv NVARCHAR(512) = N''
+	, @@localnameenus NVARCHAR(512) = N''
+	, @@type NVARCHAR(64) = N''
+	, @@defaultvalue NVARCHAR(64) = N''
+AS
+BEGIN
+
+	-- FLAG_EXTERNALACCESS --
+
+	DECLARE	@return_value INT
+		, @idfield INT
+		, @localname INT
+		, @idcategory INT
+		, @idstring INT
+
+	SET @return_value = null
+	SET @localname = null
+	SET @idcategory = null
+	SET @idstring = null
+
+
+	EXEC	@return_value = [dbo].[lsp_addfield]
+			@@table = @@tablename,
+			@@name = @@fieldname,
+			@@fieldtype = 13,					--Ja/Nej-fält
+			@@defaultvalue = @@defaultvalue OUTPUT,
+			@@idfield = @idfield OUTPUT,
+			@@localname = @localname OUTPUT,
+			@@idcategory = @idcategory OUTPUT
+			
+			
+	UPDATE [string] SET sv = @@localnamesv, en_us = @@localnameenus WHERE [idstring] = @localname
+	
+	EXEC lsp_refreshldc
+
+END
