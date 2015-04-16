@@ -1,5 +1,6 @@
 Attribute VB_Name = "lip"
 
+
 Private Const BaseURL As String = "http://limebootstrap.lundalogik.com"
 Private Const ApiURL As String = "/api/apps/"
 Private IndentLenght As String
@@ -256,7 +257,7 @@ End Sub
 Private Sub InstallFieldsAndTables(oJSON As Object)
 
     Dim Table As Object
-    Dim Field As Object
+    Dim field As Object
     Dim oClass As LDE.Class
     Debug.Print "Adding fields and tables..."
     IncreaseIndent
@@ -265,20 +266,21 @@ Private Sub InstallFieldsAndTables(oJSON As Object)
             Debug.Print Indent + "Table '" + Table.Item("name") + "' requirement is met"
             Set oClass = Database.Classes(Table.Item("name"))
             IncreaseIndent
-            For Each Field In Table.Item("fields")
-                If oClass.Fields.Exists(Field.Item("Name")) Then
+            For Each field In Table.Item("fields")
+                If oClass.Fields.Exists(field.Item("Name")) Then
                     
                 Else
-                    Debug.Print Indent + "Add field: " + Field.Item("name")
+                    Debug.Print Indent + "Add field: " + field.Item("name")
+                    Call AddField(Table.Item("name"), field)
                 End If
-            Next Field
+            Next field
             DecreaseIndent
         Else
             Debug.Print Indent + "Table '" + Table.Item("name") + "' needs to be created with fields:"
             IncreaseIndent
-            For Each Field In Table.Item("fields")
-                Debug.Print Indent + Field.Item("Name")
-            Next Field
+            For Each field In Table.Item("fields")
+                Debug.Print Indent + field.Item("Name")
+            Next field
             DecreaseIndent
         End If
 
@@ -286,6 +288,23 @@ Private Sub InstallFieldsAndTables(oJSON As Object)
     Next Table
     DecreaseIndent
 
+End Sub
+
+Private Sub AddField(tableName As String, field As Object)
+    Dim oProc As LDE.Procedure
+    Set oProc = Database.Procedures("csp_lip_createField")
+    oProc.Parameters("@@tablename").InputValue = tableName
+    oProc.Parameters("@@fieldname").InputValue = field.Item("name")
+    If field.Exists("localname") Then
+        oProc.Parameters("@@localnamesv").InputValue = field.Item("localname").Item("sv")
+        oProc.Parameters("@@localnameenus").InputValue = field.Item("localname").Item("en_us")
+    End If
+    oProc.Parameters("@@type").InputValue = field.Item("type")
+    If field.Exists("attributes") Then
+        oProc.Parameters("@@defaultvalue").InputValue = field.Item("attributes").Item("defaultvalue")
+    End If
+    
+    Call oProc.Execute(False)
 End Sub
 
 
