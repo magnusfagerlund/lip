@@ -72,7 +72,7 @@ A Package Store could either be file based or web based. A store has a fixed URL
                 "owner": "checklist",
                 "context": "title",
                 "sv": "test",
-                "en_us": "test",
+                "en-us": "test",
                 "no": "test",
                 "fi": "test"
             }
