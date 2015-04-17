@@ -18,29 +18,39 @@ BEGIN
 	-- FLAG_EXTERNALACCESS --
 
 	DECLARE	@return_value INT
-		, @idfield INT
-		, @localname INT
-		, @idcategory INT
-		, @idstring INT
+	DECLARE @idfield INT
+	DECLARE @idstringlocalname INT
+	DECLARE @idcategory INT
+	DECLARE @idstring INT
+	DECLARE @idfieldtype INT
 
 	SET @return_value = null
-	SET @localname = null
+	SET @idstringlocalname = null
 	SET @idcategory = null
 	SET @idstring = null
 
+	-- Get field type
+	SELECT @idfieldtype = idfieldtype
+	FROM fieldtype
+	WHERE name = @@type
 
-	EXEC	@return_value = [dbo].[lsp_addfield]
-			@@table = @@tablename,
-			@@name = @@fieldname,
-			@@fieldtype = 13,					--Ja/Nej-fält
-			@@defaultvalue = @@defaultvalue OUTPUT,
-			@@idfield = @idfield OUTPUT,
-			@@localname = @localname OUTPUT,
-			@@idcategory = @idcategory OUTPUT
+	EXEC @return_value = [dbo].[lsp_addfield]
+		@@table = @@tablename,
+		@@name = @@fieldname,
+		@@fieldtype = @idfieldtype,
+		@@defaultvalue = @@defaultvalue OUTPUT,
+		@@idfield = @idfield OUTPUT,
+		@@localname = @idstringlocalname OUTPUT,
+		@@idcategory = @idcategory OUTPUT
 			
 			
-	UPDATE [string] SET sv = @@localnamesv, en_us = @@localnameenus WHERE [idstring] = @localname
+	UPDATE [string]
+	SET sv = @@localnamesv
+		, en_us = @@localnameenus
+	WHERE [idstring] = @idstringlocalname
 	
+	
+	-- Refresh ldc to make sure field is visible in LIME later on
 	EXEC lsp_refreshldc
 
 END
