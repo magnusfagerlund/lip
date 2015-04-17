@@ -92,19 +92,54 @@ A Package Store could either be file based or web based. A store has a fixed URL
         "tables": [
             {
                 "name": "test",
-                "localname": 
-                [
-                    {"sv": "Test"},
-                    {"en_us": "Test"}
-                ],
+                "descriptive":"[test].[title]"
+                "localname_singular": 
+                {
+                    "sv": "Test",
+                    "en_us": "Test"
+                },
+                "localname_plural": 
+                {
+                    "sv": "Test",
+                    "en_us": "Test"
+                },
+                "attributes": {
+                    "invisible": "no",
+                    "actionpad":"lbs.html",
+                    "policy":"policy_database_name"
+                },
                 "fields": [
                     {
                         "name": "title",
                         "type": "text",
                         "localname": {
-                            {"sv": "Titel"},
-                            {"en_us": "Title"}
-                        } 
+                            "sv": "Titel",
+                            "en-us": "Title"
+                        }, 
+                        "attributes": {
+                            "length": 256
+                        }
+                    },
+                    {
+                        "name": "industry",
+                        "type": "option",
+                        "localname": {
+                            "sv": "Titel",
+                            "en-us": "Title"
+                        },
+                        "options":[
+                            {
+                                "key":"science",
+                                "sv":"Vetenskap",
+                                "en-us": "Science"
+                            },
+                            {
+                                "key":"steel",
+                                "sv":"Stål",
+                                "en-us": "Steel",
+                                "default":True
+                            }
+                        ],
                         "attributes": {
                             "length": 256
                         }
