@@ -96,12 +96,12 @@ A Package Store could either be file based or web based. A store has a fixed URL
                 "localname_singular": 
                 {
                     "sv": "Test",
-                    "en_us": "Test"
+                    "en-us": "Test"
                 },
                 "localname_plural": 
                 {
                     "sv": "Test",
-                    "en_us": "Test"
+                    "en-us": "Test"
                 },
                 "attributes": {
                     "invisible": "no",
