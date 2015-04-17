@@ -233,7 +233,7 @@ Private Sub InstallLocalize(oJSON As Object)
             Localize.Item("owner"), _
             Localize.Item("context"), _
             "", _
-            Localize.Item("en_us"), _
+            Localize.Item("en-us"), _
             Localize.Item("sv"), _
             Localize.Item("no"), _
             Localize.Item("fi") _
@@ -256,48 +256,70 @@ End Sub
 
 Private Sub InstallFieldsAndTables(oJSON As Object)
 
-    Dim Table As Object
+    Dim table As Object
     Dim field As Object
     Dim oClass As LDE.Class
     Debug.Print "Adding fields and tables..."
     IncreaseIndent
-    For Each Table In oJSON
-        If Database.Classes.Exists(Table.Item("name")) Then
-            Debug.Print Indent + "Table '" + Table.Item("name") + "' requirement is met"
-            Set oClass = Database.Classes(Table.Item("name"))
-            IncreaseIndent
-            For Each field In Table.Item("fields")
-                If oClass.Fields.Exists(field.Item("Name")) Then
-                    
-                Else
-                    Debug.Print Indent + "Add field: " + field.Item("name")
-                    Call AddField(Table.Item("name"), field)
-                End If
-            Next field
-            DecreaseIndent
+    ' Create tables
+    For Each table In oJSON
+        If Database.Classes.Exists(table.Item("name")) Then
+            Debug.Print Indent + "Table '" + table.Item("name") + "' requirement is met"
         Else
-            Debug.Print Indent + "Table '" + Table.Item("name") + "' needs to be created with fields:"
-            IncreaseIndent
-            For Each field In Table.Item("fields")
-                Debug.Print Indent + field.Item("Name")
-            Next field
-            DecreaseIndent
+            Debug.Print Indent + "Table '" + table.Item("name") + "' needs to be created."
+            Call AddTable(table)
         End If
-
-
-    Next Table
+    Next table
+    
+    ' Create fields
+    For Each table In oJSON
+        If Database.Classes.Exists(table.Item("name")) Then
+            Set oClass = Database.Classes(table.Item("name"))
+        End If
+        IncreaseIndent
+        For Each field In table.Item("fields")
+            If oClass Is Nothing Then
+                Debug.Print Indent + "Add field: " + field.Item("name")
+                Call AddField(table.Item("name"), field)
+            ElseIf oClass.Fields.Exists(field.Item("Name")) Then
+                Debug.Print Indent + "Field: " + field.Item("name") + " requirement is met"
+            Else
+                Debug.Print Indent + "Add field: " + field.Item("name")
+                Call AddField(table.Item("name"), field)
+            End If
+        Next field
+        DecreaseIndent
+    Next table
     DecreaseIndent
 
 End Sub
 
+Private Sub AddTable(table As Object)
+    Dim oProc As LDE.Procedure
+    Set oProc = Database.Procedures("csp_lip_createtable")
+    oProc.Parameters("@@tablename").InputValue = table.Item("name")
+    If table.Exists("localname_singular") Then   '##TODO: Rebuild into for each loop
+        oProc.Parameters("@@localnamesingularsv").InputValue = table.Item("localname_singular").Item("sv")
+        oProc.Parameters("@@localnamesingularenus").InputValue = table.Item("localname_singular").Item("en-us")
+    End If
+    If table.Exists("localname_plural") Then   '##TODO: Rebuild into for each loop
+        oProc.Parameters("@@localnamepluralsv").InputValue = table.Item("localname_plural").Item("sv")
+        oProc.Parameters("@@localnamepluralenus").InputValue = table.Item("localname_plural").Item("en-us")
+    End If
+    
+    '##TODO: Loop over "attributes"
+    
+    Call oProc.Execute(False)
+End Sub
+
 Private Sub AddField(tableName As String, field As Object)
     Dim oProc As LDE.Procedure
-    Set oProc = Database.Procedures("csp_lip_createField")
+    Set oProc = Database.Procedures("csp_lip_createfield")
     oProc.Parameters("@@tablename").InputValue = tableName
     oProc.Parameters("@@fieldname").InputValue = field.Item("name")
-    If field.Exists("localname") Then
+    If field.Exists("localname") Then   '##TODO: Rebuild into for each loop
         oProc.Parameters("@@localnamesv").InputValue = field.Item("localname").Item("sv")
-        oProc.Parameters("@@localnameenus").InputValue = field.Item("localname").Item("en_us")
+        oProc.Parameters("@@localnameenus").InputValue = field.Item("localname").Item("en-us")
     End If
     oProc.Parameters("@@type").InputValue = field.Item("type")
     If field.Exists("attributes") Then
@@ -529,7 +551,7 @@ Private Function AddOrCheckLocalize(sOwner As String, sCode As String, sDescript
         oRec.Value("code") = sCode
         oRec.Value("context") = sDescription
         oRec.Value("sv") = sSV
-        oRec.Value("en_us") = sEN_US
+        oRec.Value("en-us") = sEN_US
         oRec.Value("no") = sNO
         oRec.Value("fi") = sFI
         Call oRec.Update
@@ -540,7 +562,7 @@ Private Function AddOrCheckLocalize(sOwner As String, sCode As String, sDescript
         oRecs(1).Value("code") = sCode
         oRecs(1).Value("context") = sDescription
         oRecs(1).Value("sv") = sSV
-        oRecs(1).Value("en_us") = sEN_US
+        oRecs(1).Value("en-us") = sEN_US
         oRecs(1).Value("no") = sNO
         oRecs(1).Value("fi") = sFI
         Call oRecs.Update
