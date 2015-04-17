@@ -12,37 +12,39 @@ ALTER PROCEDURE [dbo].[csp_lip_createfield]
 	, @@localnameenus NVARCHAR(512) = N''
 	, @@type NVARCHAR(64) = N''
 	, @@defaultvalue NVARCHAR(64) = N''
+	, @@idfield INT OUTPUT
 AS
 BEGIN
 
 	-- FLAG_EXTERNALACCESS --
 
 	DECLARE	@return_value INT
-	DECLARE @idfield INT
 	DECLARE @idstringlocalname INT
 	DECLARE @idcategory INT
 	DECLARE @idstring INT
 	DECLARE @idfieldtype INT
 
-	SET @return_value = null
-	SET @idstringlocalname = null
-	SET @idcategory = null
-	SET @idstring = null
+	SET @return_value = NULL
+	SET @@idfield = NULL
+	SET @idstringlocalname = NULL
+	SET @idcategory = NULL
+	SET @idstring = NULL
 
 	-- Get field type
 	SELECT @idfieldtype = idfieldtype
 	FROM fieldtype
 	WHERE name = @@type
+		AND active = 1
+		AND creatable = 1
 
 	EXEC @return_value = [dbo].[lsp_addfield]
 		@@table = @@tablename,
 		@@name = @@fieldname,
 		@@fieldtype = @idfieldtype,
 		@@defaultvalue = @@defaultvalue OUTPUT,
-		@@idfield = @idfield OUTPUT,
+		@@idfield = @@idfield OUTPUT,
 		@@localname = @idstringlocalname OUTPUT,
 		@@idcategory = @idcategory OUTPUT
-			
 			
 	UPDATE [string]
 	SET sv = @@localnamesv
@@ -52,5 +54,5 @@ BEGIN
 	
 	-- Refresh ldc to make sure field is visible in LIME later on
 	EXEC lsp_refreshldc
-
+	
 END
