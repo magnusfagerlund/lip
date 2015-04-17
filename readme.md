@@ -92,7 +92,7 @@ A Package Store could either be file based or web based. A store has a fixed URL
         "tables": [
             {
                 "name": "test",
-                "descriptive":"[test].[title]"
+                "descriptive":"[test].[title]",
                 "localname_singular": 
                 {
                     "sv": "Test",
@@ -137,7 +137,7 @@ A Package Store could either be file based or web based. A store has a fixed URL
                                 "key":"steel",
                                 "sv":"Stål",
                                 "en-us": "Steel",
-                                "default":True
+                                "default":true
                             }
                         ],
                         "attributes": {
