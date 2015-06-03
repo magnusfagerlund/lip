@@ -5,7 +5,16 @@ LIP is a package management tool for LIME Pro. A package can currently contain d
 LIP is inspired from Pythons PIP and Nodes NPM but adapted for LIME Pro.
 
 ##Using LIP
-The current implementation is written in VBA and is used in the immediate window in LIME Pro's VBA-editor. Import the `vba/lip.bas`-file to get started.
+The current implementation is written in VBA and is used in the immediate window in LIME Pro's VBA-editor.
+
+###Get started
+Before you can start installing packages, you need to install LIP to your LIME Pro database. Download the zip-file, which includes all necessary files to get started, and follow these steps:
+
+1. Add the SQL-procedures to your database
+2. Run `EXEC lsp_refreshldc` on your database
+3. Import the `vba/lip.bas`-file to your VBA. Compile and save.
+
+The first time you install a package, some necessary VBA-modules will automatically be installed.
 
 ###Install a package 
 To install a package simply run
