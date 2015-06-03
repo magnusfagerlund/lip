@@ -531,7 +531,7 @@ Private Sub InstallLIP()
     Call CreateANewPackageFile
     Call WriteToPackageFile("vba_json", 1)
 
-    Debug.Print "Install of VIP complete!"
+    Debug.Print "Install of LIP complete!"
 
 End Sub
 
