@@ -399,7 +399,8 @@ Private Function addModule(PackageName As String, ModuleName As String, RelPath 
     'Debug.Print "'Microsoft Visual Basic for Applications Extensibility 5.4' missing. Please add the reference (Tools>References)"
     Set VBComps = Application.VBE.ActiveVBProject.VBComponents
     If ComponentExists(ModuleName, VBComps) = True Then
-        Call VBComps.Remove(VBComps.Item(ModuleName))
+        VBComps.Item(ModuleName).Name = ModuleName & "OLD"
+        Call VBComps.Remove(VBComps.Item(ModuleName & "OLD"))
     End If
     Path = WebFolder + "apps\" + PackageName + "\" + RelPath
  
