@@ -5,7 +5,7 @@ GO
 -- Written by: Fredrik Eriksson
 -- Created: 2015-04-16
 
-ALTER PROCEDURE [dbo].[csp_lip_createfield]
+CREATE PROCEDURE [dbo].[csp_lip_createfield]
 	@@tablename NVARCHAR(64)
 	, @@fieldname NVARCHAR(64)
 	, @@localnamesv NVARCHAR(512) = N''
