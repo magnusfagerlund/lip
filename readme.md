@@ -1,11 +1,11 @@
 #LIP - Package Management for LIME Pro
 
-LIP is a package management tool for LIME Pro. A package can currently contain decelerations for fields and tables, VBA modules, localizations, LIME Bootstrap Apps and SQL-procedures. LIP downloads and installs packages from Package Stores. A Package Store is any valid source which serves correct JSON-files and package.zip files. Currently  the LIME Bootstrap AppStore is the only available Package Store.
+LIP is a package management tool for LIME Pro. A package can currently contain declarations for fields and tables, VBA modules, localizations, LIME Bootstrap Apps and SQL-procedures. LIP downloads and installs packages from Package Stores. A Package Store is any valid source which serves correct JSON-files and package.zip files. Currently the LIME Bootstrap AppStore is the only available Package Store.
 
-LIP is inspired from Pythons PIP and Nodes NPM but adapted for LIME Pro
+LIP is inspired from Pythons PIP and Nodes NPM but adapted for LIME Pro.
 
 ##Using LIP
-The current implementation is written i VBA and is used in the intermediate window in LIME Pros VBA-editor. Simply import the `vba/lip.bas`-file to get started
+The current implementation is written in VBA and is used in the immediate window in LIME Pro's VBA-editor. Import the `vba/lip.bas`-file to get started.
 
 ###Install a package 
 To install a package simply run
