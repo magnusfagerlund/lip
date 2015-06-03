@@ -10,11 +10,11 @@ The current implementation is written in VBA and is used in the immediate window
 ###Get started
 Before you can start installing packages, you need to install LIP to your LIME Pro database. Download the zip-file, which includes all necessary files to get started, and follow these steps:
 
-1. Add the SQL-procedures to your database
-2. Run `EXEC lsp_refreshldc` on your database
+1. Add the SQL-procedures to your database by running the SQL-scripts (Important! Make sure you run the scripts on your database and NOT the master-database)
+2. Run `exec lsp_refreshldc` on your database
 3. Import the `vba/lip.bas`-file to your VBA. Compile and save.
 
-The first time you install a package, some necessary VBA-modules will automatically be installed.
+The first time you install a package, all necessary VBA-modules will automatically be installed.
 
 ###Install a package 
 To install a package simply run
