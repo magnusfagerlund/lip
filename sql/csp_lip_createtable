@@ -1,7 +1,7 @@
 -- Written by: Fredrik Eriksson
 -- Created: 2015-04-17
 
-ALTER PROCEDURE [dbo].[csp_lip_createtable]
+CREATE PROCEDURE [dbo].[csp_lip_createtable]
 	@@tablename NVARCHAR(64)
 	, @@localnamesingularsv NVARCHAR(512) = N''
 	, @@localnamesingularenus NVARCHAR(512) = N''
