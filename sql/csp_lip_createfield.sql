@@ -10,6 +10,9 @@ CREATE PROCEDURE [dbo].[csp_lip_createfield]
 	, @@fieldname NVARCHAR(64)
 	, @@localnamesv NVARCHAR(512) = N''
 	, @@localnameenus NVARCHAR(512) = N''
+	, @@localnameno NVARCHAR(512) = N''
+	, @@localnameda NVARCHAR(512) = N''
+	, @@localnamefi NVARCHAR(512) = N''
 	, @@type NVARCHAR(64) = N''
 	, @@defaultvalue NVARCHAR(64) = N''
 	, @@idfield INT OUTPUT
@@ -45,10 +48,19 @@ BEGIN
 		@@idfield = @@idfield OUTPUT,
 		@@localname = @idstringlocalname OUTPUT,
 		@@idcategory = @idcategory OUTPUT
+		
+	-- Check if all localnames has been set. Otherwise, replace with localname en_us
+	SELECT @@localnamesv = CASE @@localnamesv WHEN '' THEN @@localnameenus ELSE @@localnamesv END
+	SELECT @@localnameno = CASE @@localnameno WHEN '' THEN @@localnameenus ELSE @@localnameno END
+	SELECT @@localnameda = CASE @@localnameda WHEN '' THEN @@localnameenus ELSE @@localnameda END
+	SELECT @@localnamefi = CASE @@localnamefi WHEN '' THEN @@localnameenus ELSE @@localnamefi END
 			
 	UPDATE [string]
 	SET sv = @@localnamesv
 		, en_us = @@localnameenus
+		, no = @@localnameno
+		, da = @@localnameda
+		, fi = @@localnamefi
 	WHERE [idstring] = @idstringlocalname
 	
 	
