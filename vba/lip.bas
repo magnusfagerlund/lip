@@ -391,20 +391,22 @@ Private Sub InstallVBAComponents(PackageName As String, VBAModules As Object)
 End Sub
 
 Private Function addModule(PackageName As String, ModuleName As String, RelPath As String)
-
-    Dim VBComps As Object
-    Dim Path As String
     
-    'Set VBComps = CreateObject("VBIDE.VBComponents")
-    'Debug.Print "'Microsoft Visual Basic for Applications Extensibility 5.4' missing. Please add the reference (Tools>References)"
-    Set VBComps = Application.VBE.ActiveVBProject.VBComponents
-    If ComponentExists(ModuleName, VBComps) = True Then
-        VBComps.Item(ModuleName).Name = ModuleName & "OLD"
-        Call VBComps.Remove(VBComps.Item(ModuleName & "OLD"))
+    If ModuleName <> "" Then
+        Dim VBComps As Object
+        Dim Path As String
+        
+        'Set VBComps = CreateObject("VBIDE.VBComponents")
+        'Debug.Print "'Microsoft Visual Basic for Applications Extensibility 5.4' missing. Please add the reference (Tools>References)"
+        Set VBComps = Application.VBE.ActiveVBProject.VBComponents
+        If ComponentExists(ModuleName, VBComps) = True Then
+            VBComps.Item(ModuleName).Name = ModuleName & "OLD"
+            Call VBComps.Remove(VBComps.Item(ModuleName & "OLD"))
+        End If
+        Path = WebFolder + "apps\" + PackageName + "\" + RelPath
+     
+        Call Application.VBE.ActiveVBProject.VBComponents.Import(Path)
     End If
-    Path = WebFolder + "apps\" + PackageName + "\" + RelPath
- 
-    Call Application.VBE.ActiveVBProject.VBComponents.Import(Path)
     
 End Function
 
