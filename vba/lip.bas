@@ -392,7 +392,7 @@ End Sub
 
 Private Function addModule(PackageName As String, ModuleName As String, RelPath As String)
     
-    If ModuleName <> "" Then
+    If PackageName <> "" And ModuleName <> "" Then
         Dim VBComps As Object
         Dim Path As String
         
