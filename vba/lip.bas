@@ -1,13 +1,16 @@
 Attribute VB_Name = "lip"
 
-
 Private Const BaseURL As String = "http://limebootstrap.lundalogik.com"
 Private Const ApiURL As String = "/api/apps/"
+
+Private Const BaseURLApps As String = "http://limebootstrap.lundalogik.com"
+Private Const ApiURLApps As String = "/api/apps/"
+
 Private IndentLenght As String
 Private Indent As String
 
 Public Sub Upgrade(Optional PackageName As String, Optional Path As String)
-On Error GoTo Errorhandler:
+On Error GoTo ErrorHandler:
     If PackageName = "" Then
         'Upgrade all packages
         Call InstallFromPackageFile
@@ -16,14 +19,82 @@ On Error GoTo Errorhandler:
         Call InstallPackage(PackageName, , True)
     End If
 Exit Sub
-Errorhandler:
+ErrorHandler:
     Call UI.ShowError("lip.Upgrade")
 End Sub
 
-Public Sub InstallPackage(Optional PackageName As String, Optional Path As String, Optional Upgrade As Boolean)
-On Error GoTo Errorhandler
+Public Sub InstallPackage(PackageName As String, Optional Path As String, Optional Upgrade As Boolean)
+On Error GoTo ErrorHandler
     Dim Package As Object
     Dim PackageVersion As Double
+
+    'If path wasn't provided, use standard package store
+    If Path = "" Then
+        Path = BaseURL + ApiURL
+    End If
+
+    IndentLenght = "  "
+    
+    'Check if first use ever
+    If Dir(WebFolder + "package.json") = "" Then
+        Debug.Print "No package.json found, assuming fresh install"
+        Call InstallLIP
+    End If
+    
+    PackageName = LCase(PackageName)
+    
+    Debug.Print "====== LIP Install: " + PackageName + " ======"
+    
+    Debug.Print "Looking for package: '" + PackageName + "'"
+    Set Package = SearchForPackageOnStores(PackageName, Path)
+    If Package Is Nothing Then
+        Exit Sub
+    Else
+        Debug.Print PackageName + " " + Format(PackageVersion, "0.0") + " package found."
+        Set Package = Package.Item("info")
+    End If
+    
+    'Parse result from store
+    PackageVersion = findNewestVersion(Package.Item("versions"))
+    
+    'Check if package already exsists
+    If Not Upgrade Then
+        If CheckForLocalInstalledPackage(PackageName, PackageVersion) = True Then
+            Exit Sub
+        End If
+    End If
+    
+    'Install dependecies
+    If Package.Exists("dependencies") Then
+        IncreaseIndent
+        Call InstallDependencies(Package, Path)
+        DecreaseIndent
+    End If
+    
+    'Download and unzip
+    Debug.Print "Downloading '" + PackageName + "' files..."
+    Call DownloadFile(PackageName, Path)
+    Call Unzip(PackageName)
+    Debug.Print "Download complete!"
+   
+    Call InstallPackageComponents(PackageName, PackageVersion, Package)
+    
+    Debug.Print "==================================="
+    
+Exit Sub
+ErrorHandler:
+    Call UI.ShowError("lip.InstallPackage")
+End Sub
+
+Public Sub InstallApp(PackageName As String, Optional Path As String, Optional Upgrade As Boolean)
+On Error GoTo ErrorHandler
+    Dim Package As Object
+    Dim PackageVersion As Double
+    
+    'If path wasn't provided, use standard appstore
+    If Path = "" Then
+        Path = BaseURLApps + ApiURLApps
+    End If
     
     IndentLenght = "  "
     
@@ -49,7 +120,7 @@ On Error GoTo Errorhandler
     'Parse result from store
     PackageVersion = findNewestVersion(Package.Item("versions"))
     
-    'Check of package already exsists
+    'Check if package already exsists
     If Not Upgrade Then
         If CheckForLocalInstalledPackage(PackageName, PackageVersion) = True Then
             Exit Sub
@@ -57,73 +128,99 @@ On Error GoTo Errorhandler
     End If
     
     'Install dependecies
-    
     If Package.Exists("dependencies") Then
         IncreaseIndent
-        Call InstallDependencies(Package)
+        Call InstallDependencies(Package, Path)
         DecreaseIndent
     End If
+    
+    'Download and unzip
+    Debug.Print "Downloading '" + PackageName + "' files..."
+    Call DownloadFile(PackageName, Path)
+    Call Unzip(PackageName)
+    Debug.Print "Download complete!"
    
     Call InstallPackageComponents(PackageName, PackageVersion, Package)
     
     Debug.Print "==================================="
     
 Exit Sub
-Errorhandler:
-    Call UI.ShowError("lip.InstallPackage")
-End Sub
-
-Public Sub InstallApp(Optional Path As String)
-On Error GoTo Errorhandler
-'    IndentLenght = "  "
-'
-'    'Check if first use ever
-'    If Dir(WebFolder + "package.json") = "" Then
-'        Debug.Print "No package.json found, assuming fresh install"
-'        Call InstallLIP
-'    End If
-    
-    Debug.Print ("Not implemented")
-Exit Sub
-Errorhandler:
+ErrorHandler:
     Call UI.ShowError("lip.InstallApp")
 End Sub
 
+'Please note: no version handling when installing from zip-file
+'StorePath is used for installing dependencies
+Public Sub InstallFromZip(ZipPath As String, Optional StorePath As String)
+On Error GoTo ErrorHandler
 
-Public Sub InstallFromZip(Path As String)
-On Error GoTo Errorhandler
+    'If store path wasn't provided, use standard store
+    If StorePath = "" Then
+        StorePath = BaseURL + ApiURL
+    End If
 
-'    'TODO:
-'    'Check if valid path
-'
-'    'Check if first use ever
-'    If Dir(WebFolder + "package.json") = "" Then
-'        Debug.Print "No package.json found, assuming fresh install"
-'        Call InstallLIP
-'    End If
-'
-'    PackageName = LCase(PackageName)
-'
-'    Debug.Print "====== LIP Install: " + PackageName + " ======"
+    'Check if valid path
+    If VBA.Right(ZipPath, 4) = ".zip" Then
+        If VBA.Dir(ZipPath) <> "" Then
+            'Check if first use ever
+            If Dir(WebFolder + "package.json") = "" Then
+                Debug.Print "No package.json found, assuming fresh install"
+                Call InstallLIP
+            End If
+            
+'           Copy file to actionpads\apps
+            Dim PackageName As String
+            Dim strArray() As String
+            strArray = VBA.Split(ZipPath, "\")
+            PackageName = VBA.Split(strArray(UBound(strArray)), ".")(0)
+            Debug.Print "====== LIP Install: " + PackageName + " ======"
+            Debug.Print "Copying and unzipping file"
+            Call VBA.FileCopy(ZipPath, ThisApplication.WebFolder & "apps\" & PackageName & ".zip")
+            
+'           Unzip file
+            Call Unzip(PackageName) 'Filename without fileextension as parameter
+            
+            'Get package information from json-file
+            Dim Package As Object
+            Dim sJSON As String
+            Dim sLine As String
+            
+            Open ThisApplication.WebFolder & "apps\" & PackageName & "\" & "app.json" For Input As #1
+            
+            Do Until EOF(1)
+                Line Input #1, sLine
+                sJSON = sJSON & sLine
+            Loop
+            
+            Close #1
+            
+            Set Package = JSON.parse(sJSON)
+            
+            'Install dependencies
+            If Package.Exists("dependencies") Then
+                IncreaseIndent
+                Call InstallDependencies(Package, StorePath)
+                DecreaseIndent
+            End If
+            
+            Call InstallPackageComponents(PackageName, 1, Package)
     
-    'TODO:
-    'Implement installation of zip-fil
-    'Copy file to actionpads/apps
-    'Unzip file
-    'Install dependencies
-    'Install package
-    
-    Debug.Print ("Not implemented")
-    
-'    Debug.Print "==================================="
+            Debug.Print "==================================="
+        Else
+            Debug.Print ("Couldn't find file.")
+        End If
+    Else
+        Debug.Print ("Path must end with .zip")
+    End If
+
 
 Exit Sub
-Errorhandler:
+ErrorHandler:
     Call UI.ShowError("lip.InstallFromZip")
 End Sub
 
 Public Sub InstallFromPackageFile()
-On Error GoTo Errorhandler
+On Error GoTo ErrorHandler
     Dim LocalPackages As Object
     Dim LocalPackageName As Variant
     
@@ -136,18 +233,14 @@ On Error GoTo Errorhandler
         Call InstallPackage(CStr(LocalPackageName), , True)
     Next LocalPackageName
 Exit Sub
-Errorhandler:
+ErrorHandler:
     Call UI.ShowError("lip.InstallFromPackageFile")
 End Sub
 
 
 Private Sub InstallPackageComponents(PackageName As String, PackageVersion As Double, Package)
-On Error GoTo Errorhandler
-    'Download and unzip
-    Debug.Print "Downloading '" + PackageName + "' files..."
-    Call DownloadFile(PackageName)
-    Call Unzip(PackageName)
-    Debug.Print "Download complete!"
+On Error GoTo ErrorHandler
+
     
     'Install localizations
     If Package.Item("install").Exists("localize") = True Then
@@ -182,14 +275,12 @@ On Error GoTo Errorhandler
     
     Debug.Print Indent + "Installation of " + PackageName + " done!"
 Exit Sub
-Errorhandler:
+ErrorHandler:
     Call UI.ShowError("lip.InstallPackageComponents")
 End Sub
 
-
-
-Private Sub InstallDependencies(Package As Object)
-On Error GoTo Errorhandler
+Private Sub InstallDependencies(Package As Object, Path As String)
+On Error GoTo ErrorHandler
     Dim DependecyName As Variant
     Dim LocalPackage As Object
     Debug.Print Indent + "Dependencies found! Installing..."
@@ -198,44 +289,51 @@ On Error GoTo Errorhandler
         Set LocalPackage = FindPackageLocally(CStr(DepedencyName))
         If LocalPackage Is Nothing Then
             Debug.Print Indent + "Installing dependency: " + CStr(DependecyName)
-            Call InstallPackage(CStr(DepedencyName))
+            Call InstallPackage(CStr(DepedencyName), Path)
         ElseIf Val(LocalPackage.Item(PackageName)) < Val(Package.Item("dependencies").Item(PackageName)) Then
-            Call InstallPackage(CStr(DepedencyName), , True)
+            Call InstallPackage(CStr(DepedencyName), Path, True)
         Else
         End If
     Next DepedencyName
     DecreaseIndent
 Exit Sub
-Errorhandler:
+ErrorHandler:
     Call UI.ShowError("lip.InstallDependencies")
 End Sub
 
-Private Function SearchForPackageOnStores(PackageName As String, Optional Path As String) As Object
-On Error GoTo Errorhandler
+Private Function SearchForPackageOnStores(PackageName As String, Path As String) As Object
+On Error GoTo ErrorHandler
     Dim sJSON As String
     Dim oJSON As Object
     
-    sJSON = getJSON(BaseURL + ApiURL + PackageName + "/")
+    sJSON = getJSON(Path + PackageName + "/")
     Set oJSON = parseJSON(sJSON)
-    If Not oJSON.Item("error") = "" Then
-        Debug.Print PackageName + " package not found!"
-        Set SearchForPackageOnStores = Nothing
-        Exit Function
-    End If
-    If oJSON.Item("info").Item("install") Is Nothing Then
-        Debug.Print "Package has no valid install instructions!"
+    
+    If Not oJSON Is Nothing Then
+        If Not oJSON.Item("error") = "" Then
+            Debug.Print PackageName + " package not found!"
+            Set SearchForPackageOnStores = Nothing
+            Exit Function
+        End If
+        If oJSON.Item("info").Item("install") Is Nothing Then
+            Debug.Print "Package has no valid install instructions!"
+            Set SearchForPackageOnStores = Nothing
+            Exit Function
+        End If
+    Else
+        Debug.Print ("Could not find package or store.")
         Set SearchForPackageOnStores = Nothing
         Exit Function
     End If
     Set SearchForPackageOnStores = oJSON
 Exit Function
-Errorhandler:
+ErrorHandler:
     Set SearchForPackageOnStores = Nothing
     Call UI.ShowError("lip.SearchForPackageOnStores")
 End Function
 
 Private Function CheckForLocalInstalledPackage(PackageName As String, PackageVersion As Double) As Boolean
-On Error GoTo Errorhandler
+On Error GoTo ErrorHandler
     Dim LocalPackages As Object
     Dim LocalPackage As Object
     Dim LocalPackageVersion As Double
@@ -264,12 +362,12 @@ On Error GoTo Errorhandler
     End If
     CheckForLocalInstalledPackage = False
 Exit Function
-Errorhandler:
+ErrorHandler:
     Call UI.ShowError("lip.CheckForLocalInstalledPackages")
 End Function
 
 Private Function getJSON(sURL As String) As String
-On Error GoTo Errorhandler
+On Error GoTo ErrorHandler
     Dim qs As String
     qs = CStr(Rnd() * 1000000#)
     Dim oXHTTP As Object
@@ -279,23 +377,23 @@ On Error GoTo Errorhandler
     oXHTTP.Send
     getJSON = oXHTTP.responseText
 Exit Function
-Errorhandler:
+ErrorHandler:
     getJSON = ""
 End Function
 
 Private Function parseJSON(sJSON As String) As Object
-On Error GoTo Errorhandler
+On Error GoTo ErrorHandler
     Dim oJSON As Object
     Set oJSON = JSON.parse(sJSON)
     Set parseJSON = oJSON
 Exit Function
-Errorhandler:
+ErrorHandler:
     Set parseJSON = Nothing
     Call UI.ShowError("lip.parseJSON")
 End Function
 
 Private Function findNewestVersion(oVersions As Object) As Double
-On Error GoTo Errorhandler
+On Error GoTo ErrorHandler
     Dim NewestVersion As Double
     Dim Version As Object
     NewestVersion = -1
@@ -307,13 +405,13 @@ On Error GoTo Errorhandler
     Next Version
     findNewestVersion = NewestVersion
 Exit Function
-Errorhandler:
+ErrorHandler:
     findNewestVersion = -1
     Call UI.ShowError("lip.findNewestVersion")
 End Function
 
 Private Sub InstallLocalize(oJSON As Object)
-On Error GoTo Errorhandler
+On Error GoTo ErrorHandler
     Dim Localize As Object
         
     For Each Localize In oJSON
@@ -328,12 +426,12 @@ On Error GoTo Errorhandler
         )
     Next Localize
 Exit Sub
-Errorhandler:
+ErrorHandler:
     Call UI.ShowError("lip.InstallLocalize")
 End Sub
 
 Private Sub InstallSQL(oJSON As Object)
-On Error GoTo Errorhandler
+On Error GoTo ErrorHandler
     Dim Sql As Object
     Debug.Print Indent + "Installing SQL..."
     IncreaseIndent
@@ -342,13 +440,13 @@ On Error GoTo Errorhandler
     Next Sql
     DecreaseIndent
 Exit Sub
-Errorhandler:
+ErrorHandler:
     Call UI.ShowError("lip.InstallSQL")
 End Sub
 
 
 Private Sub InstallFieldsAndTables(oJSON As Object)
-On Error GoTo Errorhandler
+On Error GoTo ErrorHandler
     Dim table As Object
     Dim field As Object
     Dim oClass As LDE.Class
@@ -385,12 +483,12 @@ On Error GoTo Errorhandler
     Next table
     DecreaseIndent
 Exit Sub
-Errorhandler:
+ErrorHandler:
     Call UI.ShowError("lip.InstallFieldsAndTables")
 End Sub
 
 Private Sub AddTable(table As Object)
-On Error GoTo Errorhandler
+On Error GoTo ErrorHandler
     Dim oProc As LDE.Procedure
     Set oProc = Database.Procedures("csp_lip_createtable")
     oProc.Parameters("@@tablename").InputValue = table.Item("name")
@@ -407,12 +505,12 @@ On Error GoTo Errorhandler
     
     Call oProc.Execute(False)
     Exit Sub
-Errorhandler:
+ErrorHandler:
     Call UI.ShowError("lip.AddTable")
 End Sub
 
 Private Sub AddField(tableName As String, field As Object)
-On Error GoTo Errorhandler
+On Error GoTo ErrorHandler
     Dim oProc As LDE.Procedure
     Set oProc = Database.Procedures("csp_lip_createfield")
     oProc.Parameters("@@tablename").InputValue = tableName
@@ -428,17 +526,17 @@ On Error GoTo Errorhandler
     
     Call oProc.Execute(False)
     Exit Sub
-Errorhandler:
+ErrorHandler:
     Call UI.ShowError("lip.AddField")
 End Sub
 
 
-Private Sub DownloadFile(PackageName As String)
-On Error GoTo Errorhandler
+Private Sub DownloadFile(PackageName As String, Path As String)
+On Error GoTo ErrorHandler
     Dim qs As String
     qs = CStr(Rnd() * 1000000#)
     Dim downloadURL As String
-    downloadURL = BaseURL + ApiURL + PackageName + "/download/"
+    downloadURL = Path + PackageName + "/download/"
     
     Dim WinHttpReq As Object
     Set WinHttpReq = CreateObject("Microsoft.XMLHTTP")
@@ -455,12 +553,12 @@ On Error GoTo Errorhandler
         oStream.Close
     End If
     Exit Sub
-Errorhandler:
+ErrorHandler:
     Call UI.ShowError("lip.DownloadFile")
 End Sub
 
 Private Sub Unzip(PackageName)
-On Error GoTo Errorhandler
+On Error GoTo ErrorHandler
     Dim FSO As Object
     Dim oApp As Object
     Dim Fname As Variant
@@ -483,13 +581,17 @@ On Error GoTo Errorhandler
     
     Set oApp = CreateObject("Shell.Application")
     oApp.Namespace(FileNameFolder).CopyHere oApp.Namespace(Fname).Items
+    
+    'Delete zip-file
+    FSO.DeleteFile Fname, True
+    
     Exit Sub
-Errorhandler:
+ErrorHandler:
     Call UI.ShowError("lip.Unzip")
 End Sub
 
 Private Sub InstallVBAComponents(PackageName As String, VBAModules As Object)
-On Error GoTo Errorhandler
+On Error GoTo ErrorHandler
     Dim VBAModule As Object
     IncreaseIndent
     For Each VBAModule In VBAModules
@@ -498,12 +600,12 @@ On Error GoTo Errorhandler
     Next VBAModule
     DecreaseIndent
     Exit Sub
-Errorhandler:
+ErrorHandler:
     Call UI.ShowError("lip.InstallVBAComponents")
 End Sub
 
 Private Sub addModule(PackageName As String, ModuleName As String, RelPath As String)
-On Error GoTo Errorhandler
+On Error GoTo ErrorHandler
     If PackageName <> "" And ModuleName <> "" Then
         Dim VBComps As Object
         Dim Path As String
@@ -512,7 +614,7 @@ On Error GoTo Errorhandler
         'Debug.Print "'Microsoft Visual Basic for Applications Extensibility 5.4' missing. Please add the reference (Tools>References)"
         Set VBComps = Application.VBE.ActiveVBProject.VBComponents
         If ComponentExists(ModuleName, VBComps) = True Then
-            VBComps.Item(ModuleName).Name = ModuleName & "OLD"
+            VBComps.Item(ModuleName).name = ModuleName & "OLD"
             Call VBComps.Remove(VBComps.Item(ModuleName & "OLD"))
         End If
         Path = WebFolder + "apps\" + PackageName + "\" + RelPath
@@ -520,17 +622,17 @@ On Error GoTo Errorhandler
         Call Application.VBE.ActiveVBProject.VBComponents.Import(Path)
     End If
     Exit Sub
-Errorhandler:
+ErrorHandler:
     Call UI.ShowError("lip.addModule")
 End Sub
 
 Private Function ComponentExists(ComponentName As String, VBComps As Object) As Boolean
-On Error GoTo Errorhandler
+On Error GoTo ErrorHandler
     Dim VBComp As Object
     
     'Set VBComp = CreateObject("VBIDE.VBComponent")
     For Each VBComp In VBComps
-        If VBComp.Name = ComponentName Then
+        If VBComp.name = ComponentName Then
              ComponentExists = True
              Exit Function
         End If
@@ -539,12 +641,12 @@ On Error GoTo Errorhandler
     ComponentExists = False
     
     Exit Function
-Errorhandler:
+ErrorHandler:
     Call UI.ShowError("lip.ComponentExists")
 End Function
 
 Private Sub WriteToPackageFile(PackageName, Version)
-On Error GoTo Errorhandler
+On Error GoTo ErrorHandler
     Dim oJSON As Object
     Dim Line As Variant
     Set oJSON = ReadPackageFile
@@ -558,12 +660,12 @@ On Error GoTo Errorhandler
     Next Line
     a.Close
     Exit Sub
-Errorhandler:
+ErrorHandler:
     Call UI.ShowError("lip.WriteToPackageFile")
 End Sub
 
 Private Function PrettyPrintJSON(JSON As String) As String
-On Error GoTo Errorhandler
+On Error GoTo ErrorHandler
     Dim i As Integer
     Dim Indent As String
     Dim PrettyJSON As String
@@ -605,13 +707,13 @@ On Error GoTo Errorhandler
     PrettyPrintJSON = PrettyJSON
     
     Exit Function
-Errorhandler:
+ErrorHandler:
     PrettyPrintJSON = ""
     Call UI.ShowError("lip.PrettyPrintJSON")
 End Function
 
 Private Function ReadPackageFile() As Object
-On Error GoTo Errorhandler
+On Error GoTo ErrorHandler
     Dim sJSON As String
     Dim oJSON As Object
     sJSON = getJSON(WebFolder + "package.json") '"package.json")
@@ -626,13 +728,13 @@ On Error GoTo Errorhandler
     Set ReadPackageFile = oJSON
     
     Exit Function
-Errorhandler:
+ErrorHandler:
     Set ReadPackageFile = Nothing
     Call UI.ShowError("lip.ReadPackageFile")
 End Function
 
 Private Function FindPackageLocally(PackageName As String) As Object
-On Error GoTo Errorhandler
+On Error GoTo ErrorHandler
     Dim InstalledPackages As Object
     Dim Package As Object
     Dim ReturnDict As New Scripting.Dictionary
@@ -644,13 +746,13 @@ On Error GoTo Errorhandler
         End If
     Set FindPackageLocally = Nothing
     Exit Function
-Errorhandler:
+ErrorHandler:
     Set FindPackageLocally = Nothing
     Call UI.ShowError("lip.FindPackageLocally")
 End Function
 
 Private Sub CreateANewPackageFile()
-On Error GoTo Errorhandler
+On Error GoTo ErrorHandler
     Set fs = CreateObject("Scripting.FileSystemObject")
     Set a = fs.CreateTextFile(WebFolder + "package.json", True)
     a.WriteLine "{"
@@ -658,14 +760,14 @@ On Error GoTo Errorhandler
     a.WriteLine "}"
     a.Close
     Exit Sub
-Errorhandler:
+ErrorHandler:
     Call UI.ShowError("lip.CreateNewPackageFile")
 End Sub
 
 Private Sub InstallLIP()
-On Error GoTo Errorhandler
+On Error GoTo ErrorHandler
     Debug.Print "Installing JSON-lib..."
-    Call DownloadFile("vba_json")
+    Call DownloadFile("vba_json", BaseURL + ApiURL)
     Call Unzip("vba_json")
     Call addModule("vba_json", "JSON", "JSON.bas")
     Call addModule("vba_json", "cStringBuilder", "cStringBuilder.cls")
@@ -676,12 +778,12 @@ On Error GoTo Errorhandler
 
     Debug.Print "Install of LIP complete!"
     Exit Sub
-Errorhandler:
+ErrorHandler:
     Call UI.ShowError("lip.InstallLIP")
 End Sub
 
 Private Function AddOrCheckLocalize(sOwner As String, sCode As String, sDescription As String, sEN_US As String, sSV As String, sNO As String, sFI As String) As Boolean
-On Error GoTo Errorhandler
+On Error GoTo ErrorHandler
     Dim oFilter As New LDE.Filter
     Dim oRecs As New LDE.Records
     
@@ -720,25 +822,24 @@ On Error GoTo Errorhandler
     Set Localize.dicLookup = Nothing
     AddOrCheckLocalize = True
     Exit Function
-Errorhandler:
+ErrorHandler:
     Debug.Print ("Error while validating or adding Localize")
     AddOrCheckLocalize = False
 End Function
 
 Private Sub IncreaseIndent()
-On Error GoTo Errorhandler
+On Error GoTo ErrorHandler
     Indent = Indent + IndentLenght
     Exit Sub
-Errorhandler:
+ErrorHandler:
     Call UI.ShowError("lip.IncreaseIndent")
 End Sub
 
 Private Sub DecreaseIndent()
-On Error GoTo Errorhandler
+On Error GoTo ErrorHandler
     Indent = Left(Indent, Len(Indent) - Len(IndentLenght))
     Exit Sub
-Errorhandler:
+ErrorHandler:
     Call UI.ShowError("lip.DecreaseIndent")
 End Sub
-
 
