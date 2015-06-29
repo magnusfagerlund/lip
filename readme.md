@@ -17,19 +17,24 @@ Before you can start installing packages, you need to install LIP to your LIME P
 The first time you install a package, all necessary VBA-modules will automatically be installed.
 
 ###Install a package 
-To install a package simply run
+To install a package, simply type your command in the Immediate-window of the VBA. There are four different installation methods:
 
-`lip.Install "ExamplePackage"`
+`lip.InstallPackage("Packagename")`
+Standard installation of package. If you want to use another package store, provide the path to your store as a second argument.
 
-###Install all dependencies for a LIME Pro solution
-All installed packages are kept tracked of inside the `package.json`-file in the ActionPad folder. If you transfer this file to a new LIME Pro database you can use this file to conduct a brand new install. Just type
+`lip.InstallApp("Appname")`
+Installation of a Bootstrap App. If you want to use another app store, provide the path to your store as a second argument.
 
-`lip.Install`
+`lip.InstallFromZip("SearchPathToZipFile")`
+Install a package from a zip-file, provide the searchpath as an argument.
+
+`lip.InstallFromPackageFile`
+All installed packages are kept tracked of inside the `package.json`-file in the ActionPad folder. If you transfer this file to a new LIME Pro database you can use this file to conduct a brand new install by typing the command above.
 
 ###Update a package
 If a package already exist and should be updated or reinstalled you must explicitly use the update command 
 
-`lip.Update "ExamplePackage"`
+`lip.UpgradePackage("ExamplePackage")` or `lip.UpgradeApp("AppName")` for apps
 
 ###Remove a package
 __Not yet implemented!__
