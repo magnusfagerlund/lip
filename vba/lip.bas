@@ -9,7 +9,7 @@ Private Const ApiURLApps As String = "/api/apps/"
 Private IndentLenght As String
 Private Indent As String
 
-Public Sub Upgrade(Optional PackageName As String, Optional Path As String)
+Public Sub UpgradePackage(Optional PackageName As String, Optional Path As String)
 On Error GoTo ErrorHandler:
     If PackageName = "" Then
         'Upgrade all packages
@@ -20,7 +20,21 @@ On Error GoTo ErrorHandler:
     End If
 Exit Sub
 ErrorHandler:
-    Call UI.ShowError("lip.Upgrade")
+    Call UI.ShowError("lip.UpgradePackage")
+End Sub
+
+Public Sub UpgradeApp(Optional PackageName As String, Optional Path As String)
+On Error GoTo ErrorHandler:
+    If PackageName = "" Then
+        'Upgrade all packages
+        Call InstallFromPackageFile
+    Else
+        'Upgrade specific package
+        Call InstallApp(PackageName, , True)
+    End If
+Exit Sub
+ErrorHandler:
+    Call UI.ShowError("lip.UpgradeApp")
 End Sub
 
 Public Sub InstallPackage(PackageName As String, Optional Path As String, Optional Upgrade As Boolean)
@@ -344,17 +358,17 @@ On Error GoTo ErrorHandler
     If Not LocalPackage Is Nothing Then
         LocalPackageVersion = Val(LocalPackage.Item(PackageName))
         If PackageVersion = LocalPackageVersion Then
-            Debug.Print "Current version of" + PackageName + " is already installed, please use lip.upgrade to reinstall package"
+            Debug.Print "Current version of" + PackageName + " is already installed, please use the upgrade command to reinstall package"
             Debug.Print "==================================="
             CheckForLocalInstalledPackage = True
             Exit Function
         ElseIf PackageVersion < LocalPackageVersion Then
-            Debug.Print "Package " + PackageName + " is already installed, please use lip.upgrade to upgrade package from " + Format(PackageVersion, "0.0") + " -> " + Format(LocalPackageVersion, "0.0")
+            Debug.Print "Package " + PackageName + " is already installed, please use the upgrade command to upgrade package from " + Format(PackageVersion, "0.0") + " -> " + Format(LocalPackageVersion, "0.0")
             Debug.Print "==================================="
             CheckForLocalInstalledPackage = True
             Exit Function
         Else
-            Debug.Print "A newer version of " + PackageName + " is already installed. Remote: " + Format(PackageVersion, "0.0") + " ,Local: " + Format(LocalPackageVersion, "0.0") + " .Please use vip.upgrade to reinstall package"
+            Debug.Print "A newer version of " + PackageName + " is already installed. Remote: " + Format(PackageVersion, "0.0") + " ,Local: " + Format(LocalPackageVersion, "0.0") + " .Please use the upgrade command to reinstall package"
             Debug.Print "==================================="
             CheckForLocalInstalledPackage = True
             Exit Function
