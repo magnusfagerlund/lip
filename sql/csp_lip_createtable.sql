@@ -3,10 +3,16 @@
 
 CREATE PROCEDURE [dbo].[csp_lip_createtable]
 	@@tablename NVARCHAR(64)
-	, @@localnamesingularsv NVARCHAR(512) = N''
-	, @@localnamesingularenus NVARCHAR(512) = N''
-	, @@localnamepluralsv NVARCHAR(512) = N''
-	, @@localnamepluralenus NVARCHAR(512) = N''
+	, @@localnamesingularenus NVARCHAR(512)
+	, @@localnamesingularsv NVARCHAR(512) = @@localnamesingularenus
+	, @@localnamesingularno NVARCHAR(512) = @@localnamesingularenus
+	, @@localnamesingularda NVARCHAR(512) = @@localnamesingularenus
+	, @@localnamesingularfi NVARCHAR(512) = @@localnamesingularenus
+	, @@localnamepluralenus NVARCHAR(512)
+	, @@localnamepluralsv NVARCHAR(512) = @@localnamepluralenus
+	, @@localnamepluralno NVARCHAR(512) = @@localnamepluralenus
+	, @@localnamepluralda NVARCHAR(512) = @@localnamepluralenus
+	, @@localnamepluralfi NVARCHAR(512) = @@localnamepluralenus
 	, @@idtable INT OUTPUT
 AS
 BEGIN
@@ -37,6 +43,9 @@ BEGIN
 	UPDATE [string]
 	SET en_us = @@localnamesingularenus
 		, sv = @@localnamesingularsv
+		, [no] = @@localnamesingularno
+		, da = @@localnamesingularda
+		, fi = @@localnamesingularfi
 	WHERE [idstring] = @idstringlocalname
 
 	-- Set local name plural
@@ -51,6 +60,21 @@ BEGIN
 		@@idstring = @idstring
 		, @@lang = N'en_us'
 		, @@string = @@localnamepluralenus
+		
+	EXEC dbo.lsp_setstring
+		@@idstring = @idstring
+		, @@lang = N'no'
+		, @@string = @@localnamepluralno
+		
+	EXEC dbo.lsp_setstring
+		@@idstring = @idstring
+		, @@lang = N'da'
+		, @@string = @@localnamepluralda
+		
+	EXEC dbo.lsp_setstring
+		@@idstring = @idstring
+		, @@lang = N'fi'
+		, @@string = @@localnamepluralfi
 
 	EXEC lsp_addattributedata
 		@@owner	= N'table',
