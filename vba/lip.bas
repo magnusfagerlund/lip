@@ -189,7 +189,11 @@ On Error GoTo ErrorHandler
             PackageName = VBA.Split(strArray(UBound(strArray)), ".")(0)
             Debug.Print "====== LIP Install: " + PackageName + " ======"
             Debug.Print "Copying and unzipping file"
-            Call VBA.FileCopy(ZipPath, ThisApplication.WebFolder & "apps\" & PackageName & ".zip")
+            
+            'Copy zip-file to the apps-folder if it's not already there
+            If ZipPath <> ThisApplication.WebFolder & "apps\" & PackageName & ".zip" Then
+                Call VBA.FileCopy(ZipPath, ThisApplication.WebFolder & "apps\" & PackageName & ".zip")
+            End If
             
 '           Unzip file
             Call Unzip(PackageName) 'Filename without fileextension as parameter
@@ -200,6 +204,7 @@ On Error GoTo ErrorHandler
             Dim sLine As String
             
             Open ThisApplication.WebFolder & "apps\" & PackageName & "\" & "app.json" For Input As #1
+            'TODO: Catch if app.json is missing
             
             Do Until EOF(1)
                 Line Input #1, sLine
@@ -482,17 +487,19 @@ On Error GoTo ErrorHandler
             Set oClass = Database.Classes(table.Item("name"))
         End If
         IncreaseIndent
-        For Each field In table.Item("fields")
-            If oClass Is Nothing Then
-                Debug.Print Indent + "Add field: " + field.Item("name")
-                Call AddField(table.Item("name"), field)
-            ElseIf oClass.Fields.Exists(field.Item("Name")) Then
-                Debug.Print Indent + "Field: " + field.Item("name") + " requirement is met"
-            Else
-                Debug.Print Indent + "Add field: " + field.Item("name")
-                Call AddField(table.Item("name"), field)
-            End If
-        Next field
+        If table.Exists("fields") Then
+            For Each field In table.Item("fields")
+                If oClass Is Nothing Then
+                    Debug.Print Indent + "Add field: " + field.Item("name")
+                    Call AddField(table.Item("name"), field)
+                ElseIf oClass.Fields.Exists(field.Item("Name")) Then
+                    Debug.Print Indent + "Field: " + field.Item("name") + " requirement is met"
+                Else
+                    Debug.Print Indent + "Add field: " + field.Item("name")
+                    Call AddField(table.Item("name"), field)
+                End If
+            Next field
+        End If
         DecreaseIndent
     Next table
     DecreaseIndent
@@ -532,14 +539,31 @@ On Error GoTo ErrorHandler
     If field.Exists("localname") Then   '##TODO: Rebuild into for each loop
         oProc.Parameters("@@localnamesv").InputValue = field.Item("localname").Item("sv")
         oProc.Parameters("@@localnameenus").InputValue = field.Item("localname").Item("en-us")
+        oProc.Parameters("@@localnameno").InputValue = field.Item("localname").Item("no")
+        oProc.Parameters("@@localnameda").InputValue = field.Item("localname").Item("da")
+        oProc.Parameters("@@localnamefi").InputValue = field.Item("localname").Item("fi")
     End If
+    
     oProc.Parameters("@@type").InputValue = field.Item("type")
     If field.Exists("attributes") Then
         oProc.Parameters("@@defaultvalue").InputValue = field.Item("attributes").Item("defaultvalue")
+        oProc.Parameters("@@limedefaultvalue").InputValue = field.Item("attributes").Item("limedefaultvalue")
+        oProc.Parameters("@@limereadonly").InputValue = field.Item("attributes").Item("limereadonly")
+        oProc.Parameters("@@invisible").InputValue = field.Item("attributes").Item("invisible")
+        oProc.Parameters("@@required").InputValue = field.Item("attributes").Item("required")
     End If
     
     Call oProc.Execute(False)
+    
+    If IsNull(oProc.Parameters("@@idfield").OutputValue) Then
+        Debug.Print ("Field """ & field.Item("name") & """ couldn't be created.")
+    ElseIf oProc.Parameters("@@idfield").OutputValue = -1 Then
+        Debug.Print ("Field """ & field.Item("name") & """ already exists. Verify that properties for the field are correct.")
+    Else
+        Debug.Print ("Field """ & field.Item("name") & """ created.")
+    End If
     Exit Sub
+    
 ErrorHandler:
     Call UI.ShowError("lip.AddField")
 End Sub
@@ -628,7 +652,7 @@ On Error GoTo ErrorHandler
         'Debug.Print "'Microsoft Visual Basic for Applications Extensibility 5.4' missing. Please add the reference (Tools>References)"
         Set VBComps = Application.VBE.ActiveVBProject.VBComponents
         If ComponentExists(ModuleName, VBComps) = True Then
-            VBComps.Item(ModuleName).name = ModuleName & "OLD"
+            VBComps.Item(ModuleName).Name = ModuleName & "OLD"
             Call VBComps.Remove(VBComps.Item(ModuleName & "OLD"))
         End If
         Path = WebFolder + "apps\" + PackageName + "\" + RelPath
@@ -646,7 +670,7 @@ On Error GoTo ErrorHandler
     
     'Set VBComp = CreateObject("VBIDE.VBComponent")
     For Each VBComp In VBComps
-        If VBComp.name = ComponentName Then
+        If VBComp.Name = ComponentName Then
              ComponentExists = True
              Exit Function
         End If
