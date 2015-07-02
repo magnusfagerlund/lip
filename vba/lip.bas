@@ -533,6 +533,7 @@ End Sub
 Private Sub AddField(tableName As String, field As Object)
 On Error GoTo ErrorHandler
     Dim oProc As LDE.Procedure
+    Dim errorMessage As String
     Set oProc = Database.Procedures("csp_lip_createfield")
     oProc.Parameters("@@tablename").InputValue = tableName
     oProc.Parameters("@@fieldname").InputValue = field.Item("name")
@@ -551,14 +552,17 @@ On Error GoTo ErrorHandler
         oProc.Parameters("@@limereadonly").InputValue = field.Item("attributes").Item("limereadonly")
         oProc.Parameters("@@invisible").InputValue = field.Item("attributes").Item("invisible")
         oProc.Parameters("@@required").InputValue = field.Item("attributes").Item("required")
+        oProc.Parameters("@@width").InputValue = field.Item("attributes").Item("width")
+        oProc.Parameters("@@height").InputValue = field.Item("attributes").Item("height")
     End If
     
     Call oProc.Execute(False)
     
-    If IsNull(oProc.Parameters("@@idfield").OutputValue) Then
-        Debug.Print ("Field """ & field.Item("name") & """ couldn't be created.")
-    ElseIf oProc.Parameters("@@idfield").OutputValue = -1 Then
-        Debug.Print ("Field """ & field.Item("name") & """ already exists. Verify that properties for the field are correct.")
+    errorMessage = oProc.Parameters("@@errorMessage").OutputValue
+    
+    'If errormessage is set, something went wrong
+    If errorMessage <> "" Then
+        Debug.Print (errorMessage)
     Else
         Debug.Print ("Field """ & field.Item("name") & """ created.")
     End If
@@ -567,7 +571,6 @@ On Error GoTo ErrorHandler
 ErrorHandler:
     Call UI.ShowError("lip.AddField")
 End Sub
-
 
 Private Sub DownloadFile(PackageName As String, Path As String)
 On Error GoTo ErrorHandler
