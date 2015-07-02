@@ -19,6 +19,9 @@ CREATE PROCEDURE [dbo].[csp_lip_createfield]
 	, @@limereadonly INT = 0
 	, @@invisible INT = 0
 	, @@required INT = 0
+	, @@width INT = NULL
+	, @@height INT = NULL
+	, @@errorMessage NVARCHAR(512) OUTPUT
 	, @@idfield INT OUTPUT
 AS
 BEGIN
@@ -37,54 +40,82 @@ BEGIN
 	SET @idstringlocalname = NULL
 	SET @idcategory = NULL
 	SET @idstring = NULL
+	SET @@errorMessage = N''
 	
 	--Check if field already exists
 	EXEC lsp_getfield @@table = @@tablename, @@name = @@fieldname, @@count = @count OUTPUT
 	
 	IF  @count> 0 --Fieldname already exists
 	BEGIN
-		--Set idfield to -1 to notify that field already exists
-		SET @@idfield = -1
+		SET @@errorMessage = N'Field ''' + @@fieldname + N''' already exists. Verify that properties for the field are correct.'
 	END
 	ELSE --Field doesn't exist
 	BEGIN
-	-- Get field type
-	SELECT @idfieldtype = idfieldtype
-	FROM fieldtype
-	WHERE name = @@type
-		AND active = 1
-		AND creatable = 1
+		-- Get field type
+		SELECT @idfieldtype = idfieldtype
+		FROM fieldtype
+		WHERE name = @@type
+			AND active = 1
+			AND creatable = 1
 
-	EXEC @return_value = [dbo].[lsp_addfield]
-		@@table = @@tablename,
-		@@name = @@fieldname,
-		@@fieldtype = @idfieldtype,
-		@@defaultvalue = @@defaultvalue OUTPUT,
-		@@idfield = @@idfield OUTPUT,
-		@@localname = @idstringlocalname OUTPUT,
-		@@idcategory = @idcategory OUTPUT
+		EXEC @return_value = [dbo].[lsp_addfield]
+			@@table = @@tablename,
+			@@name = @@fieldname,
+			@@fieldtype = @idfieldtype,
+			@@defaultvalue = @@defaultvalue OUTPUT,
+			@@idfield = @@idfield OUTPUT,
+			@@localname = @idstringlocalname OUTPUT,
+			@@idcategory = @idcategory OUTPUT
 			
-	UPDATE [string]
-	SET sv = @@localnamesv
-		, en_us = @@localnameenus
-		, no = @@localnameno
-		, da = @@localnameda
-		, fi = @@localnamefi
-	WHERE [idstring] = @idstringlocalname
-	
-	--Set limereadonly attribute
-	EXEC [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'limereadonly', @@valueint = @@limereadonly
-	
-	--Set Default value (interpreted by LIME)
-	EXEC lsp_setattributevalue @@owner = N'field', @@idrecord = @@idfield, @@name = N'limedefaultvalue', @@value = @@limedefaultvalue	-- Default Value (interpreted by LIME Pro) 
-	
-	--Set invisible/visible
-	EXEC lsp_setattributevalue @@owner = N'field', @@idrecord = @@idfield, @@name = N'invisible', @@valueint = @@invisible
-	
-	EXEC [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'required', @@valueint = @@required
-	
-	-- Refresh ldc to make sure field is visible in LIME later on
-	EXEC lsp_refreshldc
-	
+		--If return value is not 0, something went wrong and the field wasn't created
+		IF @return_value <> 0
+		BEGIN
+			SET @@errorMessage = N'Field ''' + @@fieldname + N''' couldn''t be created'
+		END
+		ELSE
+		BEGIN
+			SET @return_value = 0
+			UPDATE [string]
+			SET sv = @@localnamesv
+				, en_us = @@localnameenus
+				, no = @@localnameno
+				, da = @@localnameda
+				, fi = @@localnamefi
+			WHERE [idstring] = @idstringlocalname
+			
+			--Set limereadonly attribute
+			EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'limereadonly', @@valueint = @@limereadonly
+			
+			--Set Default value (interpreted by LIME)
+			EXEC @return_value = [dbo].[lsp_setattributevalue] @@owner = N'field', @@idrecord = @@idfield, @@name = N'limedefaultvalue', @@value = @@limedefaultvalue	-- Default Value (interpreted by LIME Pro) 
+			
+			--Set invisible/visible
+			EXEC @return_value = [dbo].[lsp_setattributevalue] @@owner = N'field', @@idrecord = @@idfield, @@name = N'invisible', @@valueint = @@invisible
+			
+			--Set required attribute
+			EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'required', @@valueint = @@required
+			
+			--Set width
+			IF @@width IS NOT NULL
+			BEGIN
+				EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'width', @@valueint = @@width
+			END
+			
+			--Set height
+			IF @@height IS NOT NULL
+			BEGIN
+				EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'height', @@valueint = @@height
+			END
+			
+			-- Refresh ldc to make sure field is visible in LIME later on
+			EXEC lsp_refreshldc
+			
+			--If return value is not 0, something went wrong while setting field attributes
+			IF @return_value <> 0
+			BEGIN
+				SET @@errorMessage = N'Something went wrong while setting attributes for field ''' + @@fieldname + N'''. Please check that field properties are correct.'
+			END
+			
+		END
 	END	
 END
