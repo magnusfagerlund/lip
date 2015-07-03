@@ -532,45 +532,67 @@ End Sub
 
 Private Sub AddField(tableName As String, field As Object)
 On Error GoTo ErrorHandler
-    Dim oProc As LDE.Procedure
+    Dim oProc As New LDE.Procedure
     Dim errorMessage As String
+    Dim fieldLocalnames As String
+    Dim separatorLocalnames As String
+    errorMessage = ""
+    fieldLocalnames = ""
+    separatorLocalnames = ""
     Set oProc = Database.Procedures("csp_lip_createfield")
-    oProc.Parameters("@@tablename").InputValue = tableName
-    oProc.Parameters("@@fieldname").InputValue = field.Item("name")
-    If field.Exists("localname") Then   '##TODO: Rebuild into for each loop
-        oProc.Parameters("@@localnamesv").InputValue = field.Item("localname").Item("sv")
-        oProc.Parameters("@@localnameenus").InputValue = field.Item("localname").Item("en-us")
-        oProc.Parameters("@@localnameno").InputValue = field.Item("localname").Item("no")
-        oProc.Parameters("@@localnameda").InputValue = field.Item("localname").Item("da")
-        oProc.Parameters("@@localnamefi").InputValue = field.Item("localname").Item("fi")
-    End If
     
-    oProc.Parameters("@@type").InputValue = field.Item("type")
-    If field.Exists("attributes") Then
-        oProc.Parameters("@@defaultvalue").InputValue = field.Item("attributes").Item("defaultvalue")
-        oProc.Parameters("@@limedefaultvalue").InputValue = field.Item("attributes").Item("limedefaultvalue")
-        oProc.Parameters("@@limereadonly").InputValue = field.Item("attributes").Item("limereadonly")
-        oProc.Parameters("@@invisible").InputValue = field.Item("attributes").Item("invisible")
-        oProc.Parameters("@@required").InputValue = field.Item("attributes").Item("required")
-        oProc.Parameters("@@width").InputValue = field.Item("attributes").Item("width")
-        oProc.Parameters("@@height").InputValue = field.Item("attributes").Item("height")
-    End If
-    
-    Call oProc.Execute(False)
-    
-    errorMessage = oProc.Parameters("@@errorMessage").OutputValue
-    
-    'If errormessage is set, something went wrong
-    If errorMessage <> "" Then
-        Debug.Print (errorMessage)
+    If Not oProc Is Nothing Then
+        oProc.Parameters("@@tablename").InputValue = tableName
+        oProc.Parameters("@@fieldname").InputValue = field.Item("name")
+        
+        'Add localnames
+        If field.Exists("localname") Then
+            For Each oitem In field.Item("localname")
+                If oitem <> "" Then
+                    fieldLocalnames = fieldLocalnames + VBA.Trim(oitem) + ":" + VBA.Trim(field.Item("localname").Item(oitem)) + ";"
+                End If
+            Next
+            oProc.Parameters("@@localname").InputValue = fieldLocalnames
+        End If
+        
+        'Add attributes
+        If field.Exists("attributes") Then
+            For Each oitem In field.Item("attributes")
+                If oitem <> "" Then
+                    oProc.Parameters("@@" & oitem).InputValue = field.Item("attributes").Item(oitem)
+                End If
+            Next
+        End If
+        
+        'Add separator
+        If field.Exists("separator") Then
+            For Each oitem In field.Item("separator")
+                separatorLocalnames = separatorLocalnames + VBA.Trim(oitem) + ":" + VBA.Trim(field.Item("separator").Item(oitem)) + ";"
+            Next
+            oProc.Parameters("@@separator").InputValue = separatorLocalnames
+        End If
+        
+        Call oProc.Execute(False)
+        
+        errorMessage = oProc.Parameters("@@errorMessage").OutputValue
+        
+        'If errormessage is set, something went wrong
+        If errorMessage <> "" Then
+            Debug.Print (errorMessage)
+        Else
+            Debug.Print ("Field """ & field.Item("name") & """ created.")
+        End If
     Else
-        Debug.Print ("Field """ & field.Item("name") & """ created.")
+        Call Lime.MessageBox("Couldn't find SQL-procedure 'csp_lip_createfield'. Please make sure this procedure exists in the database and restart LDC.")
     End If
-    Exit Sub
+    Set oProc = Nothing
     
+    Exit Sub
 ErrorHandler:
+    Set oProc = Nothing
     Call UI.ShowError("lip.AddField")
 End Sub
+
 
 Private Sub DownloadFile(PackageName As String, Path As String)
 On Error GoTo ErrorHandler
@@ -655,7 +677,7 @@ On Error GoTo ErrorHandler
         'Debug.Print "'Microsoft Visual Basic for Applications Extensibility 5.4' missing. Please add the reference (Tools>References)"
         Set VBComps = Application.VBE.ActiveVBProject.VBComponents
         If ComponentExists(ModuleName, VBComps) = True Then
-            VBComps.Item(ModuleName).Name = ModuleName & "OLD"
+            VBComps.Item(ModuleName).name = ModuleName & "OLD"
             Call VBComps.Remove(VBComps.Item(ModuleName & "OLD"))
         End If
         Path = WebFolder + "apps\" + PackageName + "\" + RelPath
@@ -673,7 +695,7 @@ On Error GoTo ErrorHandler
     
     'Set VBComp = CreateObject("VBIDE.VBComponent")
     For Each VBComp In VBComps
-        If VBComp.Name = ComponentName Then
+        If VBComp.name = ComponentName Then
              ComponentExists = True
              Exit Function
         End If
