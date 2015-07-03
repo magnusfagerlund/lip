@@ -8,11 +8,8 @@ GO
 CREATE PROCEDURE [dbo].[csp_lip_createfield]
 	@@tablename NVARCHAR(64)
 	, @@fieldname NVARCHAR(64)
-	, @@localnameenus NVARCHAR(512)
-	, @@localnamesv NVARCHAR(512) = @@localnameenus
-	, @@localnameno NVARCHAR(512) = @@localnameenus
-	, @@localnameda NVARCHAR(512) = @@localnameenus
-	, @@localnamefi NVARCHAR(512) = @@localnameenus
+	, @@localname NVARCHAR(2048)
+	, @@separator NVARCHAR(2048) = N''
 	, @@type NVARCHAR(64)
 	, @@defaultvalue NVARCHAR(64) = N''
 	, @@limedefaultvalue NVARCHAR(64) = N''
@@ -21,6 +18,9 @@ CREATE PROCEDURE [dbo].[csp_lip_createfield]
 	, @@required INT = 0
 	, @@width INT = NULL
 	, @@height INT = NULL
+	, @@length INT = NULL
+	, @@fieldorder INT = 0 -- Default value 0 means it will be put last
+	, @@isnullable INT = 0
 	, @@errorMessage NVARCHAR(512) OUTPUT
 	, @@idfield INT OUTPUT
 AS
@@ -34,6 +34,12 @@ BEGIN
 	DECLARE @idstring INT
 	DECLARE @idfieldtype INT
 	DECLARE @count INT
+	DECLARE @sql NVARCHAR(300)
+	DECLARE @currentPosition INT
+	DECLARE @nextOccurance	 INT
+	DECLARE @currentString NVARCHAR(256)
+	DECLARE @currentLanguage NVARCHAR(8)
+	DECLARE @currentLocalize NVARCHAR(256)
 
 	SET @return_value = NULL
 	SET @@idfield = NULL
@@ -41,13 +47,14 @@ BEGIN
 	SET @idcategory = NULL
 	SET @idstring = NULL
 	SET @@errorMessage = N''
+	SET @sql = N''
 	
 	--Check if field already exists
 	EXEC lsp_getfield @@table = @@tablename, @@name = @@fieldname, @@count = @count OUTPUT
 	
-	IF  @count> 0 --Fieldname already exists
+	IF  @count > 0 --Fieldname already exists
 	BEGIN
-		SET @@errorMessage = N'Field ''' + @@fieldname + N''' already exists. Verify that properties for the field are correct.'
+		SET @@errorMessage = N'Field ''' + @@fieldname + N''' already exists. Please verify that properties for the field are correct.'
 	END
 	ELSE --Field doesn't exist
 	BEGIN
@@ -59,13 +66,15 @@ BEGIN
 			AND creatable = 1
 
 		EXEC @return_value = [dbo].[lsp_addfield]
-			@@table = @@tablename,
-			@@name = @@fieldname,
-			@@fieldtype = @idfieldtype,
-			@@defaultvalue = @@defaultvalue OUTPUT,
-			@@idfield = @@idfield OUTPUT,
-			@@localname = @idstringlocalname OUTPUT,
-			@@idcategory = @idcategory OUTPUT
+			@@table = @@tablename
+			,@@name = @@fieldname
+			,@@fieldtype = @idfieldtype
+			,@@length = @@length
+			,@@isnullable = @@isnullable
+			,@@defaultvalue = @@defaultvalue OUTPUT
+			,@@idfield = @@idfield OUTPUT
+			,@@localname = @idstringlocalname OUTPUT
+			,@@idcategory = @idcategory OUTPUT
 			
 		--If return value is not 0, something went wrong and the field wasn't created
 		IF @return_value <> 0
@@ -75,13 +84,34 @@ BEGIN
 		ELSE
 		BEGIN
 			SET @return_value = 0
-			UPDATE [string]
-			SET sv = @@localnamesv
-				, en_us = @@localnameenus
-				, no = @@localnameno
-				, da = @@localnameda
-				, fi = @@localnamefi
-			WHERE [idstring] = @idstringlocalname
+
+			--Make sure @@localname ends with ; in order to avoid infinite loop
+			IF RIGHT(@@localname, 1) <> N';'
+			BEGIN
+				SET @@localname=@@localname + N';'
+			END
+			
+			SET @currentPosition = 0
+			--Loop through localnames
+			WHILE @currentPosition <= LEN(@@localname) AND @return_value = 0
+			BEGIN
+				SET @nextOccurance = CHARINDEX(';', @@localname, @currentPosition)
+				IF @nextOccurance <> 0
+				BEGIN
+					SET @sql = N''
+					SET @currentString = SUBSTRING(@@localname, @currentPosition, @nextOccurance - @currentPosition)
+					SET @currentLanguage=SUBSTRING(@currentString,0,CHARINDEX(':', @currentString))
+					SET @currentLocalize=SUBSTRING(@currentString,CHARINDEX(':', @currentString)+1,LEN(@currentString)-CHARINDEX(':', @currentString))
+					
+					--Set local names for field
+					SET @sql = N'UPDATE [string] 
+					SET [' + @currentLanguage + N'] = ''' + @currentLocalize + N''''
+					+ N' WHERE [idstring] = ' + CONVERT(NVARCHAR(12),@idstringlocalname)
+					EXEC sp_executesql @sql
+					
+					SET @currentPosition = @nextOccurance+1
+				END
+			END	
 			
 			--Set limereadonly attribute
 			EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'limereadonly', @@valueint = @@limereadonly
@@ -106,6 +136,49 @@ BEGIN
 			BEGIN
 				EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'height', @@valueint = @@height
 			END
+			
+			--Set fieldorder, if not provided we use default value 0 which means it will be put last
+			EXEC @return_value = [dbo].[lsp_setfieldorder] @@idfield = @@idfield, @@fieldorder = @@fieldorder
+			
+			--Create separator
+			IF @@separator <> N''
+			BEGIN
+				SET @idstring = -1
+				EXEC @return_value = [dbo].[lsp_setattributevalue] @@owner = N'field'
+							, @@idrecord = @@idfield
+							, @@name = 'separator'
+							, @@value = 1
+				EXEC @return_value = [dbo].[lsp_setattributevalue] @@owner = N'field'
+											, @@idrecord = @@idfield
+											, @@name = N'separatorlocalname'
+											, @@value = @idstring output
+											
+				--Make sure @@localname ends with ; in order to avoid infinite loop
+				IF RIGHT(@@separator, 1) <> N';'
+				BEGIN
+					SET @@separator=@@separator + N';'
+				END
+				
+				SET @currentPosition = 0
+				
+				--Loop through localnames
+				WHILE @currentPosition <= LEN(@@separator) AND @return_value = 0
+				BEGIN
+					SET @nextOccurance = CHARINDEX(';', @@separator, @currentPosition)
+					IF @nextOccurance <> 0
+					BEGIN
+						SET @currentString = SUBSTRING(@@separator, @currentPosition, @nextOccurance - @currentPosition)
+						SET @currentLanguage=SUBSTRING(@currentString,0,CHARINDEX(':', @currentString))
+						SET @currentLocalize=SUBSTRING(@currentString,CHARINDEX(':', @currentString)+1,LEN(@currentString)-CHARINDEX(':', @currentString))
+						EXEC @return_value = [dbo].[lsp_setattributevalue] @@owner = N'string'
+										, @@idrecord = @idstring
+										, @@name = @currentLanguage
+										, @@value = @currentLocalize
+						SET @currentPosition = @nextOccurance+1
+					END
+				END								
+			END
+			--End of creating separator
 			
 			-- Refresh ldc to make sure field is visible in LIME later on
 			EXEC lsp_refreshldc
