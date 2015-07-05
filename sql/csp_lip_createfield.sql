@@ -81,6 +81,9 @@ BEGIN
 			,@@localname = @idstringlocalname OUTPUT
 			,@@idcategory = @idcategory OUTPUT
 			
+		-- Refresh ldc to make sure field is visible in LIME later on
+		EXEC lsp_refreshldc
+			
 		--If return value is not 0, something went wrong and the field wasn't created
 		IF @return_value <> 0
 		BEGIN
@@ -200,7 +203,6 @@ BEGIN
 			END
 			--End of creating separator
 			
-			-- Refresh ldc to make sure field is visible in LIME later on
 			EXEC lsp_refreshldc
 			
 			--If return value is not 0, something went wrong while setting field attributes
