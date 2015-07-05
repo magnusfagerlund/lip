@@ -1,18 +1,11 @@
--- Written by: Fredrik Eriksson
+-- Written by: Fredrik Eriksson, Jonny Springare
 -- Created: 2015-04-17
 
 CREATE PROCEDURE [dbo].[csp_lip_createtable]
 	@@tablename NVARCHAR(64)
-	, @@localnamesingularenus NVARCHAR(512)
-	, @@localnamesingularsv NVARCHAR(512) = @@localnamesingularenus
-	, @@localnamesingularno NVARCHAR(512) = @@localnamesingularenus
-	, @@localnamesingularda NVARCHAR(512) = @@localnamesingularenus
-	, @@localnamesingularfi NVARCHAR(512) = @@localnamesingularenus
-	, @@localnamepluralenus NVARCHAR(512)
-	, @@localnamepluralsv NVARCHAR(512) = @@localnamepluralenus
-	, @@localnamepluralno NVARCHAR(512) = @@localnamepluralenus
-	, @@localnamepluralda NVARCHAR(512) = @@localnamepluralenus
-	, @@localnamepluralfi NVARCHAR(512) = @@localnamepluralenus
+	, @@localname_singular NVARCHAR(MAX)
+	, @@localname_plural NVARCHAR(MAX)
+	, @@errorMessage NVARCHAR(512) OUTPUT
 	, @@idtable INT OUTPUT
 AS
 BEGIN
@@ -24,65 +17,128 @@ BEGIN
 	DECLARE	@idstring INT
 	DECLARE	@transid UNIQUEIDENTIFIER
 	DECLARE	@descriptive INT
-		
+	DECLARE @sql NVARCHAR(300)
+	DECLARE @currentPosition INT
+	DECLARE @nextOccurance	 INT
+	DECLARE @currentString NVARCHAR(256)
+	DECLARE @currentLanguage NVARCHAR(8)
+	DECLARE @currentLocalize NVARCHAR(256)
+	DECLARE @isFirstLocalize BIT
+	
+	SET @return_value =  NULL
 	SET @idstringlocalname = NULL
 	SET @idstring = NULL
 	SET @@idtable = NULL
 	SET @transid = NEWID()
 	SET @descriptive = NULL
+	SET @sql = N''
+	SET @isFirstLocalize = 1
+	SET @@errorMessage = N''
 	
-	EXEC [dbo].[lsp_addtable]
+	EXEC @return_value = [dbo].[lsp_addtable]
 		@@name = @@tablename
 		, @@idtable = @@idtable OUTPUT
 		, @@localname = @idstringlocalname OUTPUT
 		, @@descriptive = @descriptive OUTPUT
 		, @@transactionid = @transid
 		, @@user = 1
-
-	-- Set local name
-	UPDATE [string]
-	SET en_us = @@localnamesingularenus
-		, sv = @@localnamesingularsv
-		, [no] = @@localnamesingularno
-		, da = @@localnamesingularda
-		, fi = @@localnamesingularfi
-	WHERE [idstring] = @idstringlocalname
-
-	-- Set local name plural
-	SET @idstring = NULL
-	EXEC dbo.lsp_addstring
-		@@idcategory = 17
-		, @@string = @@localnamepluralsv
-		, @@lang = 'sv'
-		, @@idstring = @idstring OUTPUT
-
-	EXEC dbo.lsp_setstring
-		@@idstring = @idstring
-		, @@lang = N'en_us'
-		, @@string = @@localnamepluralenus
 		
-	EXEC dbo.lsp_setstring
-		@@idstring = @idstring
-		, @@lang = N'no'
-		, @@string = @@localnamepluralno
-		
-	EXEC dbo.lsp_setstring
-		@@idstring = @idstring
-		, @@lang = N'da'
-		, @@string = @@localnamepluralda
-		
-	EXEC dbo.lsp_setstring
-		@@idstring = @idstring
-		, @@lang = N'fi'
-		, @@string = @@localnamepluralfi
-
-	EXEC lsp_addattributedata
-		@@owner	= N'table',
-		@@idrecord = @@idtable,
-		@@idrecord2 = NULL,
-		@@name = N'localnameplural',
-		@@value	=  @idstring
-	
 	-- Refresh ldc to make sure table is visible in LIME later on
 	EXEC lsp_refreshldc
+
+	--If return value is not 0, something went wrong and the field wasn't created
+	IF @return_value <> 0
+	BEGIN
+		SET @@errorMessage = N'Table ''' + @@tablename + N''' couldn''t be created'
+	END
+	ELSE
+	BEGIN
+
+		--Set localnames singular
+		--Make sure @@localname_singular ends with ; in order to avoid infinite loop
+		IF RIGHT(@@localname_singular, 1) <> N';'
+		BEGIN
+			SET @@localname_singular=@@localname_singular + N';'
+		END
+		
+		SET @currentPosition = 0
+		--Loop through localnames
+		WHILE @currentPosition <= LEN(@@localname_singular) AND @return_value = 0
+		BEGIN
+			SET @nextOccurance = CHARINDEX(';', @@localname_singular, @currentPosition)
+			IF @nextOccurance <> 0
+			BEGIN
+				SET @sql = N''
+				SET @currentString = SUBSTRING(@@localname_singular, @currentPosition, @nextOccurance - @currentPosition)
+				SET @currentLanguage=SUBSTRING(@currentString,0,CHARINDEX(':', @currentString))
+				SET @currentLocalize=SUBSTRING(@currentString,CHARINDEX(':', @currentString)+1,LEN(@currentString)-CHARINDEX(':', @currentString))
+				
+				--Set local names for field
+				SET @sql = N'UPDATE [string] 
+				SET [' + @currentLanguage + N'] = ''' + @currentLocalize + N''''
+				+ N' WHERE [idstring] = ' + CONVERT(NVARCHAR(12),@idstringlocalname)
+				EXEC sp_executesql @sql
+				
+				SET @currentPosition = @nextOccurance+1
+			END
+		END
+		--End localnames singular
+		
+		--Set localnames plural
+		--Make sure @@localname_plural ends with ; in order to avoid infinite loop
+		SET @currentPosition=0
+		IF RIGHT(@@localname_plural, 1) <> N';'
+		BEGIN
+			SET @@localname_plural=@@localname_plural + N';'
+		END
+		
+		SET @currentPosition = 0
+		--Loop through localnames
+		WHILE @currentPosition <= LEN(@@localname_plural) AND @return_value = 0
+		BEGIN
+			SET @nextOccurance = CHARINDEX(';', @@localname_plural, @currentPosition)
+			IF @nextOccurance <> 0
+			BEGIN
+				SET @currentString = SUBSTRING(@@localname_plural, @currentPosition, @nextOccurance - @currentPosition)
+				SET @currentLanguage=SUBSTRING(@currentString,0,CHARINDEX(':', @currentString))
+				SET @currentLocalize=SUBSTRING(@currentString,CHARINDEX(':', @currentString)+1,LEN(@currentString)-CHARINDEX(':', @currentString))
+				
+				IF @isFirstLocalize = 1
+				BEGIN
+					EXEC @return_value = [dbo].[lsp_addstring]
+						@@idcategory = 17
+						, @@string = @currentLocalize
+						, @@lang = @currentLanguage
+						, @@idstring = @idstring OUTPUT
+					SET @isFirstLocalize = 0
+				END
+				ELSE
+				BEGIN
+					EXEC @return_value = dbo.lsp_setstring
+						@@idstring = @idstring
+						, @@lang = @currentLanguage
+						, @@string = @currentLocalize
+				END
+				
+				SET @currentPosition = @nextOccurance+1
+			END
+		END
+		--End localnames plural
+
+		EXEC @return_value = lsp_addattributedata
+			@@owner	= N'table',
+			@@idrecord = @@idtable,
+			@@idrecord2 = NULL,
+			@@name = N'localnameplural',
+			@@value	=  @idstring
+		
+		EXEC lsp_refreshldc
+		
+		--If return value is not 0, something went wrong while setting table attributes
+		IF @return_value <> 0
+		BEGIN
+			SET @@errorMessage = N'Something went wrong while setting attributes for table ''' + @@tablename + N'''. Please check that table properties are correct.'
+		END
+		
+	END
 END
