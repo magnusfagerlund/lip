@@ -2,23 +2,28 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
--- Written by: Fredrik Eriksson
+-- Written by: Fredrik Eriksson, Jonny Springare
 -- Created: 2015-04-16
 
 CREATE PROCEDURE [dbo].[csp_lip_createfield]
 	@@tablename NVARCHAR(64)
 	, @@fieldname NVARCHAR(64)
-	, @@localname NVARCHAR(2048)
-	, @@separator NVARCHAR(2048) = N''
+	, @@localname NVARCHAR(MAX)
+	, @@separator NVARCHAR(MAX) = N''
 	, @@type NVARCHAR(64)
 	, @@defaultvalue NVARCHAR(64) = N''
 	, @@limedefaultvalue NVARCHAR(64) = N''
 	, @@limereadonly INT = 0
 	, @@invisible INT = 0
 	, @@required INT = 0
+	, @@limerequiredforedit INT = 0
 	, @@width INT = NULL
 	, @@height INT = NULL
 	, @@length INT = NULL
+	, @@newline INT = 2 -- Default value 2 means Fixed width
+	, @@sql NVARCHAR(MAX) = N''
+	, @@onsqlupdate NVARCHAR(MAX) = N''
+	, @@onsqlinsert NVARCHAR(MAX) = N''
 	, @@fieldorder INT = 0 -- Default value 0 means it will be put last
 	, @@isnullable INT = 0
 	, @@errorMessage NVARCHAR(512) OUTPUT
@@ -125,6 +130,9 @@ BEGIN
 			--Set required attribute
 			EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'required', @@valueint = @@required
 			
+			--Set attribute Required for editing in Lime
+			EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'limerequiredforedit', @@valueint = @@limerequiredforedit
+			
 			--Set width
 			IF @@width IS NOT NULL
 			BEGIN
@@ -136,6 +144,18 @@ BEGIN
 			BEGIN
 				EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'height', @@valueint = @@height
 			END
+			
+			--Set width properties
+			EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'newline', @@valueint = @@newline
+			
+			--Set SQL Expression
+			EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'sql', @@value = @@sql
+			
+			--Set SQL for update
+			EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'onsqlupdate', @@value = @@onsqlupdate
+			
+			--Set SQL for new
+			EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'onsqlinsert', @@value = @@onsqlinsert
 			
 			--Set fieldorder, if not provided we use default value 0 which means it will be put last
 			EXEC @return_value = [dbo].[lsp_setfieldorder] @@idfield = @@idfield, @@fieldorder = @@fieldorder
