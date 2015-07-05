@@ -511,22 +511,61 @@ End Sub
 Private Sub AddTable(table As Object)
 On Error GoTo ErrorHandler
     Dim oProc As LDE.Procedure
+    Dim localname_singular As String
+    Dim localname_plural As String
+    Dim errorMessage As String
+    
+    localname_singular = ""
+    localname_plural = ""
+    errorMessage = ""
+    
     Set oProc = Database.Procedures("csp_lip_createtable")
-    oProc.Parameters("@@tablename").InputValue = table.Item("name")
-    If table.Exists("localname_singular") Then   '##TODO: Rebuild into for each loop
-        oProc.Parameters("@@localnamesingularsv").InputValue = table.Item("localname_singular").Item("sv")
-        oProc.Parameters("@@localnamesingularenus").InputValue = table.Item("localname_singular").Item("en-us")
-    End If
-    If table.Exists("localname_plural") Then   '##TODO: Rebuild into for each loop
-        oProc.Parameters("@@localnamepluralsv").InputValue = table.Item("localname_plural").Item("sv")
-        oProc.Parameters("@@localnamepluralenus").InputValue = table.Item("localname_plural").Item("en-us")
+    
+    If Not oProc Is Nothing Then
+    
+        oProc.Parameters("@@tablename").InputValue = table.Item("name")
+    
+        'Add localnames singular
+        If table.Exists("localname_singular") Then
+            For Each oItem In table.Item("localname_singular")
+                If oItem <> "" Then
+                    localname_singular = localname_singular + VBA.Trim(oItem) + ":" + VBA.Trim(table.Item("localname_singular").Item(oItem)) + ";"
+                End If
+            Next
+            oProc.Parameters("@@localname_singular").InputValue = localname_singular
+        End If
+            
+        'Add localnames plural
+        If table.Exists("localname_plural") Then
+            For Each oItem In table.Item("localname_plural")
+                If oItem <> "" Then
+                    localname_plural = localname_plural + VBA.Trim(oItem) + ":" + VBA.Trim(table.Item("localname_plural").Item(oItem)) + ";"
+                End If
+            Next
+            oProc.Parameters("@@localname_plural").InputValue = localname_plural
+        End If
+        
+        '##TODO: Loop over "attributes"
+        
+        Call oProc.Execute(False)
+        
+        errorMessage = oProc.Parameters("@@errorMessage").OutputValue
+        
+        'If errormessage is set, something went wrong
+        If errorMessage <> "" Then
+            Debug.Print (errorMessage)
+        Else
+            Debug.Print ("Table """ & table.Item("name") & """ created.")
+        End If
+    Else
+        Call Lime.MessageBox("Couldn't find SQL-procedure 'csp_lip_createtable'. Please make sure this procedure exists in the database and restart LDC.")
     End If
     
-    '##TODO: Loop over "attributes"
+    Set oProc = Nothing
     
-    Call oProc.Execute(False)
     Exit Sub
 ErrorHandler:
+    Set oProc = Nothing
     Call UI.ShowError("lip.AddTable")
 End Sub
 
@@ -547,9 +586,9 @@ On Error GoTo ErrorHandler
         
         'Add localnames
         If field.Exists("localname") Then
-            For Each oitem In field.Item("localname")
-                If oitem <> "" Then
-                    fieldLocalnames = fieldLocalnames + VBA.Trim(oitem) + ":" + VBA.Trim(field.Item("localname").Item(oitem)) + ";"
+            For Each oItem In field.Item("localname")
+                If oItem <> "" Then
+                    fieldLocalnames = fieldLocalnames + VBA.Trim(oItem) + ":" + VBA.Trim(field.Item("localname").Item(oItem)) + ";"
                 End If
             Next
             oProc.Parameters("@@localname").InputValue = fieldLocalnames
@@ -557,17 +596,17 @@ On Error GoTo ErrorHandler
         
         'Add attributes
         If field.Exists("attributes") Then
-            For Each oitem In field.Item("attributes")
-                If oitem <> "" Then
-                    oProc.Parameters("@@" & oitem).InputValue = field.Item("attributes").Item(oitem)
+            For Each oItem In field.Item("attributes")
+                If oItem <> "" Then
+                    oProc.Parameters("@@" & oItem).InputValue = field.Item("attributes").Item(oItem)
                 End If
             Next
         End If
         
         'Add separator
         If field.Exists("separator") Then
-            For Each oitem In field.Item("separator")
-                separatorLocalnames = separatorLocalnames + VBA.Trim(oitem) + ":" + VBA.Trim(field.Item("separator").Item(oitem)) + ";"
+            For Each oItem In field.Item("separator")
+                separatorLocalnames = separatorLocalnames + VBA.Trim(oItem) + ":" + VBA.Trim(field.Item("separator").Item(oItem)) + ";"
             Next
             oProc.Parameters("@@separator").InputValue = separatorLocalnames
         End If
