@@ -172,9 +172,10 @@ An example of how the app.json-file could look like:
 ####localize
 
 ####sql
+NOT IMPLEMENTED YET
 
 ####vba
-Here you can specify which VBA-modules that should be installed. Please note that the VBA-file MUST be included in the zip-file of your package. Please specify the relativt path to the file and the name of the VBA-module.
+Here you can specify  VBA-modules that should be installed. Please note that the VBA-file MUST be included in the zip-file of your package. Please specify the relativt path to the file and the name of the VBA-module.
 ####tables
 
 #####name
@@ -192,7 +193,7 @@ Localnames in singular. Each line in this node should represent one language. Va
 ```
 
 #####localname_plural
-Localnames in plural. Each line in this node should represent one language. Valid languages are all languages LIME Pro supports. Example:
+Localnames in plural. Each line in this node represent a language. Valid languages are all languages LIME Pro supports. Example:
 ```
 "localname_singular": {
 "sv": "Måltabeller",
@@ -207,14 +208,32 @@ tableorder, descriptive, invisible
 #####fields
 
 ######name
+The database name of the field. Example:
+```
+"name": "customernbr"
+```
 
 ######localname
+Localnames for the field. Each line in this node represent a language. Valid languages are all languages LIME Pro supports. Example:
+```
+"localname": {
+"sv": "Kundnummer",
+"en_us": "Customer number"
+}
+```
+
+######separator
+Adds a separator to the field. The separator is placed BEFORE the field. Specify the localnames for the separator inside this node. Example
+```
+"separator": {
+"sv": "Administrativ information",
+"en_us": "Administrative information"
+}
+```
 
 ######attributes
 Sets attributes for the field. Each line in this node represent an attribute. Valid attributes at the moment are:
 type, limereadonly, invisible, required, width, height, length, defaultvalue, limedefaultvalue, limerequiredforedit, newline, sql, onsqlupdate, onsqlinsert, fieldorder, isnullable.
-
-The installer should first see if a package is locally installed or not. If the package is installed local
 
 ### Versioning
 ####Package versioning
