@@ -56,7 +56,11 @@ Compare to `pip freeze > requirement.txt`. Creates a package from a LIME Pro sol
 A package is a ZIP-file containing all required resources to install a package
 
 ### A Package Store
-A Package Store could either be file based or web based. A store has a fixed URL (example "http://limebootstrap.lundalogik.se/api/apps"). The URL has subdirectories for each app (example "./checklist"). If the source is a file-based a `/package.json` should automatically be append. This URL should return a JSON as:
+A Package Store could either be file based or web based. A store has a fixed URL (example "http://limebootstrap.lundalogik.se/api/apps"). The URL has subdirectories for each app (example "./checklist"). If the source is a file-based a `/app.json` should automatically be append.
+
+### app.json
+
+An example of how the app.json-file could look like:
 
 ```JSON
 {
@@ -164,6 +168,51 @@ A Package Store could either be file based or web based. A store has a fixed URL
     }
 }
 ```
+
+####localize
+
+####sql
+
+####vba
+Here you can specify which VBA-modules that should be installed. Please note that the VBA-file MUST be included in the zip-file of your package. Please specify the relativt path to the file and the name of the VBA-module.
+####tables
+
+#####name
+Database name of the table. Example:
+```
+"name": "goaltable"
+```
+#####localname_singular
+Localnames in singular. Each line in this node should represent one language. Valid languages are all languages LIME Pro supports. Example:
+```
+"localname_singular": {
+"sv": "Måltabell",
+"en_us": "Goal table"
+}
+```
+
+#####localname_plural
+Localnames in plural. Each line in this node should represent one language. Valid languages are all languages LIME Pro supports. Example:
+```
+"localname_singular": {
+"sv": "Måltabeller",
+"en_us": "Goal tables"
+}
+```
+
+#####attributes
+Sets attributes for the table. Each line in this node represent an attribute. Valid attributes at the moment are:
+tableorder, descriptive, invisible
+
+#####fields
+
+######name
+
+######localname
+
+######attributes
+Sets attributes for the field. Each line in this node represent an attribute. Valid attributes at the moment are:
+type, limereadonly, invisible, required, width, height, length, defaultvalue, limedefaultvalue, limerequiredforedit, newline, sql, onsqlupdate, onsqlinsert, fieldorder, isnullable.
 
 The installer should first see if a package is locally installed or not. If the package is installed local
 
