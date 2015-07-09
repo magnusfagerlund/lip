@@ -103,63 +103,40 @@ An example of how the app.json-file could look like:
         ],
         "sql":[
         	{
-                "relPath": "test.sql",
-                "name": "CSP_Test"
+                "relPath": "test.sql"
             }
         ],
         "tables": [
             {
                 "name": "test",
-                "descriptive":"[test].[title]",
                 "localname_singular": 
                 {
                     "sv": "Test",
-                    "en-us": "Test"
+                    "en_us": "Test"
                 },
                 "localname_plural": 
                 {
                     "sv": "Test",
-                    "en-us": "Test"
+                    "en_us": "Test"
                 },
                 "attributes": {
-                    "invisible": "no",
-                    "actionpad":"lbs.html",
-                    "policy":"policy_database_name"
+                    "invisible": "2",
+                    "descriptive":"[test].[title]",
                 },
                 "fields": [
                     {
                         "name": "title",
-                        "type": "text",
                         "localname": {
                             "sv": "Titel",
-                            "en-us": "Title"
+                            "en_us": "Title"
                         }, 
                         "attributes": {
+                            "type": "text",
                             "length": 256
-                        }
-                    },
-                    {
-                        "name": "industry",
-                        "type": "option",
-                        "localname": {
-                            "sv": "Titel",
-                            "en-us": "Title"
                         },
-                        "options":[
-                            {
-                                "key":"science",
-                                "sv":"Vetenskap",
-                                "en-us": "Science"
-                            },
-                            {
-                                "key":"steel",
-                                "sv":"Stål",
-                                "en-us": "Steel",
-                                "default":true
-                            }
-                        ],
-                        "attributes": {
-                            "length": 256
+                        "separator": {
+                            "sv": "Testseparator",
+                            "en_us": "Test separator"
                         }
                     }
                 ]
@@ -172,7 +149,7 @@ An example of how the app.json-file could look like:
 ####localize
 
 ####sql
-NOT IMPLEMENTED YET
+With this node you can add SQL-procedures and -functions. Specify the relative path to the SQL-file to run. Don't forget to include the SQL-file in your package.
 
 ####vba
 Here you can specify  VBA-modules that should be installed. Please note that the VBA-file MUST be included in the zip-file of your package. Please specify the relativt path to the file and the name of the VBA-module.
