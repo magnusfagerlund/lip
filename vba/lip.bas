@@ -288,7 +288,7 @@ On Error GoTo ErrorHandler
     
     If Package.Item("install").Exists("sql") = True Then
         IncreaseIndent
-        Call InstallSQL(Package.Item("install").Item("sql"))
+        Call InstallSQL(Package.Item("install").Item("sql"), PackageName)
         DecreaseIndent
     End If
     'Update packages.json
