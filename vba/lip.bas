@@ -451,13 +451,35 @@ ErrorHandler:
     Call UI.ShowError("lip.InstallLocalize")
 End Sub
 
-Private Sub InstallSQL(oJSON As Object)
+Private Sub InstallSQL(oJSON As Object, PackageName As String)
 On Error GoTo ErrorHandler
     Dim Sql As Object
     Debug.Print Indent + "Installing SQL..."
     IncreaseIndent
     For Each Sql In oJSON
-        Debug.Print Indent + "Add: " + Sql.Item("name")
+        Dim strSQL As String
+        Dim sLine As String
+        Open ThisApplication.WebFolder & "apps\" & PackageName & "\" & Sql.Item("relPath") For Input As #1
+            Do Until EOF(1)
+                Line Input #1, sLine
+                strSQL = strSQL & sLine & vbNewLine
+            Loop
+            Close #1
+            
+            'If these characters appears in the beginning of the SQL-file, delete them
+            If VBA.Left(strSQL, 2) = "ÿþ" Then
+                strSQL = VBA.Right(strSQL, VBA.Len(strSQL) - 2)
+            End If
+            
+            Dim oProc As New LDE.Procedure
+            Set oProc = Database.Procedures("csp_lip_installSQL")
+            If Not oProc Is Nothing Then
+                oProc.Parameters("@@sql") = strSQL
+                oProc.Execute (False)
+            Else
+                Call Lime.MessageBox("Couldn't find SQL-procedure 'csp_lip_installSQL'. Please make sure this procedure exists in the database and restart LDC.")
+            End If
+            
     Next Sql
     DecreaseIndent
 Exit Sub
