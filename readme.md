@@ -1,6 +1,6 @@
 #LIP - Package Management for LIME Pro
 
-LIP is a package management tool for LIME Pro. A package can currently contain declarations for fields and tables, VBA modules, localizations, LIME Bootstrap Apps and SQL-procedures. LIP downloads and installs packages from Package Stores. A Package Store is any valid source which serves correct JSON-files and package.zip files. Currently the LIME Bootstrap AppStore is the only available Package Store.
+LIP is a package management tool for LIME Pro. A package can currently contain declarations for fields and tables, VBA modules, localizations, LIME Bootstrap Apps and SQL-procedures. LIP downloads and installs packages from Package Stores. A Package Store is any valid source which serves correct JSON-files and package.zip files. You can configure which stores to use in the packages.json-file in your actionpad-folder.
 
 LIP is inspired from Pythons PIP and Nodes NPM but adapted for LIME Pro.
 
@@ -17,24 +17,21 @@ Before you can start installing packages, you need to install LIP to your LIME P
 The first time you install a package, all necessary VBA-modules will automatically be installed.
 
 ###Install a package 
-To install a package, simply type your command in the Immediate-window of the VBA. There are four different installation methods:
+To install a package, simply type your command in the Immediate-window of the VBA. There are three different installation methods:
 
-`lip.InstallPackage("Packagename")`
-Standard installation of package. If you want to use another package store, provide the path to your store as a second argument.
-
-`lip.InstallApp("Appname")`
-Installation of a Bootstrap App. If you want to use another app store, provide the path to your store as a second argument.
+`lip.Install("Packagename")`
+Standard installation of package. Searches for the package on the stores configured in your `packages.json`-file in the actionpad-folder.
 
 `lip.InstallFromZip("SearchPathToZipFile")`
-Install a package from a zip-file, provide the searchpath as an argument.
+Install a package from a zip-file, provide the searchpath as an argument (including the filename).
 
 `lip.InstallFromPackageFile`
-All installed packages are kept tracked of inside the `package.json`-file in the ActionPad folder. If you transfer this file to a new LIME Pro database you can use this file to conduct a brand new install by typing the command above.
+All installed packages are kept tracked of inside the `packages.json`-file in the ActionPad folder. If you transfer this file to a new LIME Pro database you can use this file to conduct a brand new install by typing the command above.
 
 ###Update a package
 If a package already exist and should be updated or reinstalled you must explicitly use the update command 
 
-`lip.UpgradePackage("ExamplePackage")` or `lip.UpgradeApp("AppName")` for apps
+`lip.UpgradePackage("ExamplePackage")`
 
 ###Remove a package
 __Not yet implemented!__
