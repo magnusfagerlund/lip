@@ -212,7 +212,7 @@ On Error GoTo ErrorHandler
         DecreaseIndent
     End If
     'Update packages.json
-    Call WriteToPackageFile(PackageName, PackageVersion)
+    Call WriteToPackageFile(PackageName, CStr(PackageVersion))
     
     Debug.Print Indent + "Installation of " + PackageName + " done!"
 Exit Sub
@@ -231,7 +231,7 @@ On Error GoTo ErrorHandler
         If LocalPackage Is Nothing Then
             Debug.Print Indent + "Installing dependency: " + CStr(DependencyName)
             Call Install(CStr(DependencyName))
-        ElseIf Val(LocalPackage.Item(DependencyName)) < Val(Package.Item("dependencies").Item(DependencyName)) Then
+        ElseIf CDbl(VBA.Replace(LocalPackage.Item(DependencyName), ".", ",")) < CDbl(VBA.Replace(Package.Item("dependencies").Item(DependencyName), ".", ",")) Then
             Call Install(CStr(DependencyName), True)
         Else
         End If
@@ -249,7 +249,7 @@ On Error GoTo ErrorHandler
     Dim oJSON As Object
     Dim oPackages As Object
     Dim Path As String
-    Dim oPackage As Object
+    Dim oPackage As Variant
 
     Set oPackages = ReadPackageFile.Item("stores")
 
@@ -257,9 +257,13 @@ On Error GoTo ErrorHandler
     For Each oPackage In oPackages
 
         Path = oPackages.Item(oPackage)
-        Debug.Print ("Looking for package at store " & oPackage)
+        Debug.Print ("Looking for package at store '" & oPackage & "'")
         sJSON = getJSON(Path + PackageName + "/")
-        sJSON = VBA.Left(sJSON, VBA.Len(sJSON) - 1) & ",""source"":""" & oPackages.Item(oPackage) & """}" 'Add a source node so we know where the package exists
+        
+        If sJSON <> "" Then
+            sJSON = VBA.Left(sJSON, VBA.Len(sJSON) - 1) & ",""source"":""" & oPackages.Item(oPackage) & """}" 'Add a source node so we know where the package exists
+        End If
+        
         Set oJSON = parseJSON(sJSON) 'Create a JSON object from the string
 
         If Not oJSON Is Nothing Then
@@ -298,19 +302,19 @@ On Error GoTo ErrorHandler
     Set LocalPackage = FindPackageLocally(PackageName)
         
     If Not LocalPackage Is Nothing Then
-        LocalPackageVersion = Val(LocalPackage.Item(PackageName))
+        LocalPackageVersion = CDbl(VBA.Replace(LocalPackage.Item(PackageName), ".", ","))
         If PackageVersion = LocalPackageVersion Then
             Debug.Print "Current version of" + PackageName + " is already installed, please use the upgrade command to reinstall package"
             Debug.Print "==================================="
             CheckForLocalInstalledPackage = True
             Exit Function
-        ElseIf PackageVersion < LocalPackageVersion Then
+        ElseIf PackageVersion > LocalPackageVersion Then
             Debug.Print "Package " + PackageName + " is already installed, please use the upgrade command to upgrade package from " + Format(PackageVersion, "0.0") + " -> " + Format(LocalPackageVersion, "0.0")
             Debug.Print "==================================="
             CheckForLocalInstalledPackage = True
             Exit Function
         Else
-            Debug.Print "A newer version of " + PackageName + " is already installed. Remote: " + Format(PackageVersion, "0.0") + " ,Local: " + Format(LocalPackageVersion, "0.0") + " .Please use the upgrade command to reinstall package"
+            Debug.Print "A newer version of " + PackageName + " is already installed. Remote: " + Format(PackageVersion, "0.0") + " ,Local: " + Format(LocalPackageVersion, "0.0") + ". Please use the upgrade command to reinstall package"
             Debug.Print "==================================="
             CheckForLocalInstalledPackage = True
             Exit Function
@@ -351,12 +355,12 @@ End Function
 Private Function findNewestVersion(oVersions As Object) As Double
 On Error GoTo ErrorHandler
     Dim NewestVersion As Double
-    Dim Version As Object
+    Dim Version As Variant
     NewestVersion = -1
     
     For Each Version In oVersions
-        If Val(Version.Item("version")) > NewestVersion Then
-            NewestVersion = Val(Version.Item("version"))
+        If CDbl(VBA.Replace(Version.Item("version"), ".", ",")) > NewestVersion Then
+            NewestVersion = CDbl(VBA.Replace(Version.Item("version"), ".", ","))
         End If
     Next Version
     findNewestVersion = NewestVersion
@@ -368,7 +372,7 @@ End Function
 
 Private Sub InstallLocalize(oJSON As Object)
 On Error GoTo ErrorHandler
-    Dim Localize As Object
+    Dim Localize As Variant
         
     For Each Localize In oJSON
         Call AddOrCheckLocalize( _
@@ -388,7 +392,7 @@ End Sub
 
 Private Sub InstallSQL(oJSON As Object, PackageName As String)
 On Error GoTo ErrorHandler
-    Dim Sql As Object
+    Dim Sql As Variant
     Debug.Print Indent + "Installing SQL..."
     IncreaseIndent
     For Each Sql In oJSON
@@ -430,7 +434,7 @@ On Error GoTo ErrorHandler
     Dim field As Object
     Dim idtable As Long
     Dim iddescriptiveexpression As Long
-    Dim oItem As Object
+    Dim oItem As Variant
     
     Dim localname_singular As String
     Dim localname_plural As String
@@ -525,7 +529,7 @@ On Error GoTo ErrorHandler
     Dim errormessage As String
     Dim fieldLocalnames As String
     Dim separatorLocalnames As String
-    Dim oItem As Object
+    Dim oItem As Variant
     errormessage = ""
     fieldLocalnames = ""
     separatorLocalnames = ""
@@ -591,7 +595,7 @@ Private Sub SetTableAttributes(ByRef table As Object, idtable As Long, iddescrip
 On Error GoTo ErrorHandler
 
     Dim oProcAttributes As LDE.Procedure
-    Dim oItem As Object
+    Dim oItem As Variant
     Dim errormessage As String
     
     If table.Exists("attributes") Then
@@ -703,7 +707,7 @@ End Sub
 
 Private Sub InstallVBAComponents(PackageName As String, VBAModules As Object)
 On Error GoTo ErrorHandler
-    Dim VBAModule As Object
+    Dim VBAModule As Variant
     IncreaseIndent
     For Each VBAModule In VBAModules
         Call addModule(PackageName, VBAModule.Item("name"), VBAModule.Item("relPath"))
@@ -737,7 +741,7 @@ End Sub
 
 Private Function ComponentExists(ComponentName As String, VBComps As Object) As Boolean
 On Error GoTo ErrorHandler
-    Dim VBComp As Object
+    Dim VBComp As Variant
     
     For Each VBComp In VBComps
         If VBComp.name = ComponentName Then
@@ -753,7 +757,7 @@ ErrorHandler:
     Call UI.ShowError("lip.ComponentExists")
 End Function
 
-Private Sub WriteToPackageFile(PackageName, Version)
+Private Sub WriteToPackageFile(PackageName As String, Version As String)
 On Error GoTo ErrorHandler
     Dim oJSON As Object
     Dim fs As Object
@@ -849,12 +853,24 @@ On Error GoTo ErrorHandler
     Dim InstalledPackages As Object
     Dim Package As Object
     Dim ReturnDict As New Scripting.Dictionary
-    Set InstalledPackages = ReadPackageFile.Item("dependencies")
-        If InstalledPackages.Exists(PackageName) = True Then
-            Call ReturnDict.Add(PackageName, InstalledPackages.Item(PackageName))
-            Set FindPackageLocally = ReturnDict
-            Exit Function
+    Dim oPackageFile As Object
+    Set oPackageFile = ReadPackageFile
+    
+    If Not oPackageFile Is Nothing Then
+    
+        If oPackageFile.Exists("dependencies") Then
+            Set InstalledPackages = oPackageFile.Item("dependencies")
+            If InstalledPackages.Exists(PackageName) = True Then
+                Call ReturnDict.Add(PackageName, InstalledPackages.Item(PackageName))
+                Set FindPackageLocally = ReturnDict
+                Exit Function
+            End If
+        Else
+            Debug.Print ("Couldn't find dependencies in packages.json")
         End If
+        
+    End If
+    
     Set FindPackageLocally = Nothing
     Exit Function
 ErrorHandler:
@@ -894,7 +910,7 @@ On Error GoTo ErrorHandler
     Call addModule("vba_json", "JSON", "JSON.bas")
     Call addModule("vba_json", "cStringBuilder", "cStringBuilder.cls")
     
-    Call WriteToPackageFile("vba_json", 1)
+    Call WriteToPackageFile("vba_json", "1")
 
     Debug.Print "Install of LIP complete!"
     Exit Sub
