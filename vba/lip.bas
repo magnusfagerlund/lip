@@ -1,12 +1,11 @@
 Attribute VB_Name = "lip"
 
-'Option Explicit
+Option Explicit
 
+'Lundalogik Package Store, DO NOT CHANGE, used to download system files for LIP
+'Please add your own stores in packages.json
 Private Const BaseURL As String = "http://limebootstrap.lundalogik.com"
 Private Const ApiURL As String = "/api/apps/"
-
-Private Const BaseURLApps As String = "http://limebootstrap.lundalogik.com"
-Private Const ApiURLApps As String = "/api/apps/"
 
 Private IndentLenght As String
 Private Indent As String
@@ -18,36 +17,19 @@ On Error GoTo ErrorHandler:
         Call InstallFromPackageFile
     Else
         'Upgrade specific package
-        Call InstallPackage(PackageName, , True)
+        Call Install(PackageName, True)
     End If
 Exit Sub
 ErrorHandler:
     Call UI.ShowError("lip.UpgradePackage")
 End Sub
 
-Public Sub UpgradeApp(Optional PackageName As String, Optional Path As String)
-On Error GoTo ErrorHandler:
-    If PackageName = "" Then
-        'Upgrade all packages
-        Call InstallFromPackageFile
-    Else
-        'Upgrade specific package
-        Call InstallApp(PackageName, , True)
-    End If
-Exit Sub
-ErrorHandler:
-    Call UI.ShowError("lip.UpgradeApp")
-End Sub
-
-Public Sub InstallPackage(PackageName As String, Optional Path As String, Optional Upgrade As Boolean)
+'Install package/app. Selects packagestore from packages.json
+Public Sub Install(PackageName As String, Optional Upgrade As Boolean)
 On Error GoTo ErrorHandler
     Dim Package As Object
     Dim PackageVersion As Double
-
-    'If path wasn't provided, use standard package store
-    If Path = "" Then
-        Path = BaseURL + ApiURL
-    End If
+    Dim source As String
 
     IndentLenght = "  "
     
@@ -62,13 +44,18 @@ On Error GoTo ErrorHandler
     Debug.Print "====== LIP Install: " + PackageName + " ======"
     
     Debug.Print "Looking for package: '" + PackageName + "'"
-    Set Package = SearchForPackageOnStores(PackageName, Path)
+    Set Package = SearchForPackageOnStores(PackageName)
     If Package Is Nothing Then
         Exit Sub
-    Else
-        Debug.Print PackageName + " " + Format(PackageVersion, "0.0") + " package found."
-        Set Package = Package.Item("info")
     End If
+    
+    If Package.Exists("source") Then
+        source = VBA.Replace(Package.Item("source"), "\/", "/") 'Replace \/ with only / since JSON escapes frontslash with a backslash which causes problems with URLs
+    Else
+        source = BaseURL & ApiURL 'Use Lundalogik Packagestore if source-node wasn't found
+    End If
+    
+    Set Package = Package.Item("info")
     
     'Parse result from store
     PackageVersion = findNewestVersion(Package.Item("versions"))
@@ -83,13 +70,14 @@ On Error GoTo ErrorHandler
     'Install dependecies
     If Package.Exists("dependencies") Then
         IncreaseIndent
-        Call InstallDependencies(Package, Path)
+        Call InstallDependencies(Package)
         DecreaseIndent
     End If
     
     'Download and unzip
     Debug.Print "Downloading '" + PackageName + "' files..."
-    Call DownloadFile(PackageName, Path)
+    
+    Call DownloadFile(PackageName, source)
     Call Unzip(PackageName)
     Debug.Print "Download complete!"
    
@@ -99,81 +87,12 @@ On Error GoTo ErrorHandler
     
 Exit Sub
 ErrorHandler:
-    Call UI.ShowError("lip.InstallPackage")
+    Call UI.ShowError("lip.Install")
 End Sub
 
-Public Sub InstallApp(PackageName As String, Optional Path As String, Optional Upgrade As Boolean)
+'Installs package from a zip-file. Input parameter: complete searchpath to the zip-file, including the filename
+Public Sub InstallFromZip(ZipPath As String)
 On Error GoTo ErrorHandler
-    Dim Package As Object
-    Dim PackageVersion As Double
-    
-    'If path wasn't provided, use standard appstore
-    If Path = "" Then
-        Path = BaseURLApps + ApiURLApps
-    End If
-    
-    IndentLenght = "  "
-    
-    'Check if first use ever
-    If Dir(WebFolder + "packages.json") = "" Then
-        Debug.Print "No packages.json found, assuming fresh install"
-        Call InstallLIP
-    End If
-    
-    PackageName = LCase(PackageName)
-    
-    Debug.Print "====== LIP Install: " + PackageName + " ======"
-    
-    Debug.Print "Looking for package: '" + PackageName + "'"
-    Set Package = SearchForPackageOnStores(PackageName, Path)
-    If Package Is Nothing Then
-        Exit Sub
-    Else
-        Debug.Print PackageName + " " + Format(PackageVersion, "0.0") + " package found."
-        Set Package = Package.Item("info")
-    End If
-    
-    'Parse result from store
-    PackageVersion = findNewestVersion(Package.Item("versions"))
-    
-    'Check if package already exsists
-    If Not Upgrade Then
-        If CheckForLocalInstalledPackage(PackageName, PackageVersion) = True Then
-            Exit Sub
-        End If
-    End If
-    
-    'Install dependecies
-    If Package.Exists("dependencies") Then
-        IncreaseIndent
-        Call InstallDependencies(Package, Path)
-        DecreaseIndent
-    End If
-    
-    'Download and unzip
-    Debug.Print "Downloading '" + PackageName + "' files..."
-    Call DownloadFile(PackageName, Path)
-    Call Unzip(PackageName)
-    Debug.Print "Download complete!"
-   
-    Call InstallPackageComponents(PackageName, PackageVersion, Package)
-    
-    Debug.Print "==================================="
-    
-Exit Sub
-ErrorHandler:
-    Call UI.ShowError("lip.InstallApp")
-End Sub
-
-'Please note: no version handling when installing from zip-file
-'StorePath is used for installing dependencies
-Public Sub InstallFromZip(ZipPath As String, Optional StorePath As String)
-On Error GoTo ErrorHandler
-
-    'If store path wasn't provided, use standard store
-    If StorePath = "" Then
-        StorePath = BaseURL + ApiURL
-    End If
 
     'Check if valid path
     If VBA.Right(ZipPath, 4) = ".zip" Then
@@ -220,7 +139,7 @@ On Error GoTo ErrorHandler
             'Install dependencies
             If Package.Exists("dependencies") Then
                 IncreaseIndent
-                Call InstallDependencies(Package, StorePath)
+                Call InstallDependencies(Package)
                 DecreaseIndent
             End If
             
@@ -240,6 +159,7 @@ ErrorHandler:
     Call UI.ShowError("lip.InstallFromZip")
 End Sub
 
+'Installs all packages defined in the packages.json file
 Public Sub InstallFromPackageFile()
 On Error GoTo ErrorHandler
     Dim LocalPackages As Object
@@ -251,7 +171,7 @@ On Error GoTo ErrorHandler
         Exit Sub
     End If
     For Each LocalPackageName In LocalPackages.keys
-        Call InstallPackage(CStr(LocalPackageName), , True)
+        Call Install(CStr(LocalPackageName), True)
     Next LocalPackageName
 Exit Sub
 ErrorHandler:
@@ -300,53 +220,68 @@ ErrorHandler:
     Call UI.ShowError("lip.InstallPackageComponents")
 End Sub
 
-Private Sub InstallDependencies(Package As Object, Path As String)
+Private Sub InstallDependencies(Package As Object)
 On Error GoTo ErrorHandler
-    Dim DependecyName As Variant
+    Dim DependencyName As Variant
     Dim LocalPackage As Object
     Debug.Print Indent + "Dependencies found! Installing..."
     IncreaseIndent
-    For Each DependecyName In Package.Item("dependencies").keys()
-        Set LocalPackage = FindPackageLocally(CStr(DependecyName))
+    For Each DependencyName In Package.Item("dependencies").keys()
+        Set LocalPackage = FindPackageLocally(CStr(DependencyName))
         If LocalPackage Is Nothing Then
-            Debug.Print Indent + "Installing dependency: " + CStr(DependecyName)
-            Call InstallPackage(CStr(DependecyName), Path)
-        ElseIf Val(LocalPackage.Item(PackageName)) < Val(Package.Item("dependencies").Item(PackageName)) Then
-            Call InstallPackage(CStr(DependecyName), Path, True)
+            Debug.Print Indent + "Installing dependency: " + CStr(DependencyName)
+            Call Install(CStr(DependencyName))
+        ElseIf Val(LocalPackage.Item(DependencyName)) < Val(Package.Item("dependencies").Item(DependencyName)) Then
+            Call Install(CStr(DependencyName), True)
         Else
         End If
-    Next DependecyName
+    Next DependencyName
     DecreaseIndent
 Exit Sub
 ErrorHandler:
     Call UI.ShowError("lip.InstallDependencies")
 End Sub
 
-Private Function SearchForPackageOnStores(PackageName As String, Path As String) As Object
+
+Private Function SearchForPackageOnStores(PackageName As String) As Object
 On Error GoTo ErrorHandler
     Dim sJSON As String
     Dim oJSON As Object
-    
-    sJSON = getJSON(Path + PackageName + "/")
-    Set oJSON = parseJSON(sJSON)
-    
-    If Not oJSON Is Nothing Then
-        If Not oJSON.Item("error") = "" Then
-            Debug.Print PackageName + " package not found!"
-            Set SearchForPackageOnStores = Nothing
-            Exit Function
+    Dim oPackages As Object
+    Dim Path As String
+    Dim oPackage As Object
+
+    Set oPackages = ReadPackageFile.Item("stores")
+
+    'Loop through packagestores from packages.json
+    For Each oPackage In oPackages
+
+        Path = oPackages.Item(oPackage)
+        Debug.Print ("Looking for package at store " & oPackage)
+        sJSON = getJSON(Path + PackageName + "/")
+        sJSON = VBA.Left(sJSON, VBA.Len(sJSON) - 1) & ",""source"":""" & oPackages.Item(oPackage) & """}" 'Add a source node so we know where the package exists
+        Set oJSON = parseJSON(sJSON) 'Create a JSON object from the string
+
+        If Not oJSON Is Nothing Then
+            If oJSON.Item("error") = "" Then
+                'Package found, make sure the install node exists
+                If Not oJSON.Item("info").Item("install") Is Nothing Then
+                    Debug.Print ("Package '" & PackageName & "' found on store '" & oPackage & "'")
+                    Set SearchForPackageOnStores = oJSON
+                    Exit Function
+                Else
+                    Debug.Print ("Package '" & PackageName & "' found on store '" & oPackage & "' but has no valid install instructions!")
+                    Set SearchForPackageOnStores = Nothing
+                    Exit Function
+                End If
+            End If
         End If
-        If oJSON.Item("info").Item("install") Is Nothing Then
-            Debug.Print "Package has no valid install instructions!"
-            Set SearchForPackageOnStores = Nothing
-            Exit Function
-        End If
-    Else
-        Debug.Print ("Could not find package or store.")
-        Set SearchForPackageOnStores = Nothing
-        Exit Function
-    End If
-    Set SearchForPackageOnStores = oJSON
+    Next
+
+    'If we've reached this code, package wasn't found
+    Debug.Print ("Package '" & PackageName & "' not found!")
+    Set SearchForPackageOnStores = Nothing
+
 Exit Function
 ErrorHandler:
     Set SearchForPackageOnStores = Nothing
@@ -467,7 +402,8 @@ On Error GoTo ErrorHandler
             Close #1
             
             'If these characters appears in the beginning of the SQL-file, delete them
-            If VBA.Left(strSQL, 2) = "ÿþ" Then
+            'TODO: change to character codes
+            If VBA.Left(strSQL, 2) = "Ã¿Ã¾" Then
                 strSQL = VBA.Right(strSQL, VBA.Len(strSQL) - 2)
             End If
             
@@ -494,10 +430,11 @@ On Error GoTo ErrorHandler
     Dim field As Object
     Dim idtable As Long
     Dim iddescriptiveexpression As Long
+    Dim oItem As Object
     
     Dim localname_singular As String
     Dim localname_plural As String
-    Dim errorMessage As String
+    Dim errormessage As String
     
     Debug.Print "Adding fields and tables..."
     IncreaseIndent
@@ -505,7 +442,7 @@ On Error GoTo ErrorHandler
     For Each table In oJSON
         localname_singular = ""
         localname_plural = ""
-        errorMessage = ""
+        errormessage = ""
         
         Set oProc = Database.Procedures("csp_lip_createtable")
         
@@ -517,9 +454,9 @@ On Error GoTo ErrorHandler
         
             'Add localnames singular
             If table.Exists("localname_singular") Then
-                For Each oitem In table.Item("localname_singular")
-                    If oitem <> "" Then
-                        localname_singular = localname_singular + VBA.Trim(oitem) + ":" + VBA.Trim(table.Item("localname_singular").Item(oitem)) + ";"
+                For Each oItem In table.Item("localname_singular")
+                    If oItem <> "" Then
+                        localname_singular = localname_singular + VBA.Trim(oItem) + ":" + VBA.Trim(table.Item("localname_singular").Item(oItem)) + ";"
                     End If
                 Next
                 oProc.Parameters("@@localname_singular").InputValue = localname_singular
@@ -527,9 +464,9 @@ On Error GoTo ErrorHandler
                 
             'Add localnames plural
             If table.Exists("localname_plural") Then
-                For Each oitem In table.Item("localname_plural")
-                    If oitem <> "" Then
-                        localname_plural = localname_plural + VBA.Trim(oitem) + ":" + VBA.Trim(table.Item("localname_plural").Item(oitem)) + ";"
+                For Each oItem In table.Item("localname_plural")
+                    If oItem <> "" Then
+                        localname_plural = localname_plural + VBA.Trim(oItem) + ":" + VBA.Trim(table.Item("localname_plural").Item(oItem)) + ";"
                     End If
                 Next
                 oProc.Parameters("@@localname_plural").InputValue = localname_plural
@@ -537,14 +474,14 @@ On Error GoTo ErrorHandler
             
             Call oProc.Execute(False)
             
-            errorMessage = oProc.Parameters("@@errorMessage").OutputValue
+            errormessage = oProc.Parameters("@@errorMessage").OutputValue
             
             idtable = oProc.Parameters("@@idtable").OutputValue
             iddescriptiveexpression = oProc.Parameters("@@iddescriptiveexpression").OutputValue
             
             'If errormessage is set, something went wrong
-            If errorMessage <> "" Then
-                Debug.Print (errorMessage)
+            If errormessage <> "" Then
+                Debug.Print (errormessage)
             Else
                 Debug.Print ("Table """ & table.Item("name") & """ created.")
             End If
@@ -585,10 +522,11 @@ End Sub
 Private Sub AddField(tableName As String, field As Object)
 On Error GoTo ErrorHandler
     Dim oProc As New LDE.Procedure
-    Dim errorMessage As String
+    Dim errormessage As String
     Dim fieldLocalnames As String
     Dim separatorLocalnames As String
-    errorMessage = ""
+    Dim oItem As Object
+    errormessage = ""
     fieldLocalnames = ""
     separatorLocalnames = ""
     Set oProc = Database.Procedures("csp_lip_createfield")
@@ -599,9 +537,9 @@ On Error GoTo ErrorHandler
         
         'Add localnames
         If field.Exists("localname") Then
-            For Each oitem In field.Item("localname")
-                If oitem <> "" Then
-                    fieldLocalnames = fieldLocalnames + VBA.Trim(oitem) + ":" + VBA.Trim(field.Item("localname").Item(oitem)) + ";"
+            For Each oItem In field.Item("localname")
+                If oItem <> "" Then
+                    fieldLocalnames = fieldLocalnames + VBA.Trim(oItem) + ":" + VBA.Trim(field.Item("localname").Item(oItem)) + ";"
                 End If
             Next
             oProc.Parameters("@@localname").InputValue = fieldLocalnames
@@ -609,12 +547,12 @@ On Error GoTo ErrorHandler
         
         'Add attributes
         If field.Exists("attributes") Then
-            For Each oitem In field.Item("attributes")
-                If oitem <> "" Then
-                    If Not oProc.Parameters.Lookup("@@" & oitem, lkLookupProcedureParameterByName) Is Nothing Then
-                        oProc.Parameters("@@" & oitem).InputValue = field.Item("attributes").Item(oitem)
+            For Each oItem In field.Item("attributes")
+                If oItem <> "" Then
+                    If Not oProc.Parameters.Lookup("@@" & oItem, lkLookupProcedureParameterByName) Is Nothing Then
+                        oProc.Parameters("@@" & oItem).InputValue = field.Item("attributes").Item(oItem)
                     Else
-                        Debug.Print ("No support for setting field attribute " & oitem)
+                        Debug.Print ("No support for setting field attribute " & oItem)
                     End If
                 End If
             Next
@@ -622,19 +560,19 @@ On Error GoTo ErrorHandler
         
         'Add separator
         If field.Exists("separator") Then
-            For Each oitem In field.Item("separator")
-                separatorLocalnames = separatorLocalnames + VBA.Trim(oitem) + ":" + VBA.Trim(field.Item("separator").Item(oitem)) + ";"
+            For Each oItem In field.Item("separator")
+                separatorLocalnames = separatorLocalnames + VBA.Trim(oItem) + ":" + VBA.Trim(field.Item("separator").Item(oItem)) + ";"
             Next
             oProc.Parameters("@@separator").InputValue = separatorLocalnames
         End If
         
         Call oProc.Execute(False)
         
-        errorMessage = oProc.Parameters("@@errorMessage").OutputValue
+        errormessage = oProc.Parameters("@@errorMessage").OutputValue
         
         'If errormessage is set, something went wrong
-        If errorMessage <> "" Then
-            Debug.Print (errorMessage)
+        If errormessage <> "" Then
+            Debug.Print (errormessage)
         Else
             Debug.Print ("Field """ & field.Item("name") & """ created.")
         End If
@@ -653,6 +591,8 @@ Private Sub SetTableAttributes(ByRef table As Object, idtable As Long, iddescrip
 On Error GoTo ErrorHandler
 
     Dim oProcAttributes As LDE.Procedure
+    Dim oItem As Object
+    Dim errormessage As String
     
     If table.Exists("attributes") Then
     
@@ -666,23 +606,23 @@ On Error GoTo ErrorHandler
             oProcAttributes.Parameters("@@idtable").InputValue = idtable
             oProcAttributes.Parameters("@@iddescriptiveexpression").InputValue = iddescriptiveexpression
         
-            For Each oitem In table.Item("attributes")
-                If oitem <> "" Then
-                    If Not oProcAttributes.Parameters.Lookup("@@" & oitem, lkLookupProcedureParameterByName) Is Nothing Then
-                        oProcAttributes.Parameters("@@" & oitem).InputValue = table.Item("attributes").Item(oitem)
+            For Each oItem In table.Item("attributes")
+                If oItem <> "" Then
+                    If Not oProcAttributes.Parameters.Lookup("@@" & oItem, lkLookupProcedureParameterByName) Is Nothing Then
+                        oProcAttributes.Parameters("@@" & oItem).InputValue = table.Item("attributes").Item(oItem)
                     Else
-                        Debug.Print ("No support for setting table attribute " & oitem)
+                        Debug.Print ("No support for setting table attribute " & oItem)
                     End If
                 End If
             Next
             
             Call oProcAttributes.Execute(False)
         
-            errorMessage = oProcAttributes.Parameters("@@errorMessage").OutputValue
+            errormessage = oProcAttributes.Parameters("@@errorMessage").OutputValue
             
             'If errormessage is set, something went wrong
-            If errorMessage <> "" Then
-                Debug.Print (errorMessage)
+            If errormessage <> "" Then
+                Debug.Print (errormessage)
             Else
                 Debug.Print ("Attributes for table """ & table.Item("name") & """ set.")
             End If
@@ -705,6 +645,8 @@ On Error GoTo ErrorHandler
     Dim qs As String
     qs = CStr(Rnd() * 1000000#)
     Dim downloadURL As String
+    Dim myURL As String
+    Dim oStream As Object
     downloadURL = Path + PackageName + "/download/"
     
     Dim WinHttpReq As Object
@@ -779,8 +721,6 @@ On Error GoTo ErrorHandler
         Dim VBComps As Object
         Dim Path As String
         
-        'Set VBComps = CreateObject("VBIDE.VBComponents")
-        'Debug.Print "'Microsoft Visual Basic for Applications Extensibility 5.4' missing. Please add the reference (Tools>References)"
         Set VBComps = Application.VBE.ActiveVBProject.VBComponents
         If ComponentExists(ModuleName, VBComps) = True Then
             VBComps.Item(ModuleName).name = ModuleName & "OLD"
@@ -799,7 +739,6 @@ Private Function ComponentExists(ComponentName As String, VBComps As Object) As 
 On Error GoTo ErrorHandler
     Dim VBComp As Object
     
-    'Set VBComp = CreateObject("VBIDE.VBComponent")
     For Each VBComp In VBComps
         If VBComp.name = ComponentName Then
              ComponentExists = True
@@ -817,6 +756,8 @@ End Function
 Private Sub WriteToPackageFile(PackageName, Version)
 On Error GoTo ErrorHandler
     Dim oJSON As Object
+    Dim fs As Object
+    Dim a As Object
     Dim Line As Variant
     Set oJSON = ReadPackageFile
     
@@ -825,6 +766,7 @@ On Error GoTo ErrorHandler
     Set fs = CreateObject("Scripting.FileSystemObject")
     Set a = fs.CreateTextFile(WebFolder + "packages.json", True)
     For Each Line In Split(PrettyPrintJSON(JSON.toString(oJSON)), vbCrLf)
+        Line = VBA.Replace(Line, "\/", "/") 'Replace \/ with only / since JSON escapes frontslash with a backslash which causes problems with packagestores URLs
         a.WriteLine Line
     Next Line
     a.Close
@@ -885,7 +827,7 @@ Private Function ReadPackageFile() As Object
 On Error GoTo ErrorHandler
     Dim sJSON As String
     Dim oJSON As Object
-    sJSON = getJSON(WebFolder + "packages.json") '"packages.json")
+    sJSON = getJSON(WebFolder + "packages.json")
     
     If sJSON = "" Then
         Debug.Print "Error: No packages.json found!"
@@ -922,12 +864,18 @@ End Function
 
 Private Sub CreateANewPackageFile()
 On Error GoTo ErrorHandler
+    Dim fs As Object
+    Dim a As Object
     Set fs = CreateObject("Scripting.FileSystemObject")
     Set a = fs.CreateTextFile(WebFolder + "packages.json", True)
-    a.WriteLine "{"
-    a.WriteLine "    ""dependencies"":{"
-    a.WriteLine "}"
-    a.WriteLine "}"
+    a.WriteLine ("{")
+    a.WriteLine ("    ""stores"":{")
+    a.WriteLine ("        ""PackageStore"":""http://limebootstrap.lundalogik.com/api/apps/"",")
+    a.WriteLine ("        ""Bootstrap Appstore"":""http://limebootstrap.lundalogik.com/api/apps/""")
+    a.WriteLine ("    },")
+    a.WriteLine ("    ""dependencies"":{")
+    a.WriteLine ("    }")
+    a.WriteLine ("}")
     a.Close
     Exit Sub
 ErrorHandler:
@@ -936,14 +884,16 @@ End Sub
 
 Private Sub InstallLIP()
 On Error GoTo ErrorHandler
+
+    Debug.Print "Creating a new packages.json file..."
+    Call CreateANewPackageFile
+    
     Debug.Print "Installing JSON-lib..."
     Call DownloadFile("vba_json", BaseURL + ApiURL)
     Call Unzip("vba_json")
     Call addModule("vba_json", "JSON", "JSON.bas")
     Call addModule("vba_json", "cStringBuilder", "cStringBuilder.cls")
     
-    Debug.Print "Creating a new packages.json file..."
-    Call CreateANewPackageFile
     Call WriteToPackageFile("vba_json", 1)
 
     Debug.Print "Install of LIP complete!"
