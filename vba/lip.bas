@@ -309,7 +309,7 @@ On Error GoTo ErrorHandler
             CheckForLocalInstalledPackage = True
             Exit Function
         ElseIf PackageVersion > LocalPackageVersion Then
-            Debug.Print "Package " + PackageName + " is already installed, please use the upgrade command to upgrade package from " + Format(PackageVersion, "0.0") + " -> " + Format(LocalPackageVersion, "0.0")
+            Debug.Print "Package " + PackageName + " is already installed, please use the upgrade command to upgrade package from " + Format(LocalPackageVersion, "0.0") + " -> " + Format(PackageVersion, "0.0")
             Debug.Print "==================================="
             CheckForLocalInstalledPackage = True
             Exit Function
