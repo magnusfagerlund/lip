@@ -105,7 +105,8 @@ An example of how the app.json-file could look like:
         "sql":[
         	{
                 "relPath": "test.sql",
-                "name": "csp_mypackage_test"
+                "name": "csp_mypackage_test",
+                "type": "procedure"
             }
         ],
         "tables": [
@@ -166,7 +167,24 @@ An example of how the app.json-file could look like:
 ####localize
 
 ####sql
-With this node you can add SQL-procedures and -functions. Specify the relative path to the SQL-file to run and the name of the procedure/function (used to check if it already exists and therefore should be updated instead of created). The name should include your packagename (e.g. csp_mypackage_addGoals) to distinguish the procedure from others. Don't forget to include the SQL-file in your package.
+With this node you can add SQL-procedures and -functions by letting LIP run a SQL-file.
+```
+"sql":[
+	{
+        "relPath": "test.sql",
+        "name": "csp_mypackage_test",
+        "type": "procedure"
+    }
+]
+```
+#####relPath (mandatory)
+Specify the relative path to the SQL-file to run. Don't forget to include the SQL-file in your package.
+
+#####name (mandatory)
+Name of the procedure/function to add. When naming your procedure, remember to include your packagename (e.g. csp_mypackage_addGoals) in the name to distinguish the procedure from others.
+
+#####type (mandatory)
+"procedure" or "function"
 
 IMPORTANT: in your SQL-file you CAN'T include the rows before the "CREATE PROCEDURE"-row. The reason for this is how the procedure is added to the database. One SQL-file can also only include one procedure. Example of an SQL-file:
 ```
