@@ -135,21 +135,21 @@ An example of how the app.json-file could look like:
                         }, 
                         "attributes": {
                             "type": "text",
-                            "limereadonly": "",
-                            "invisible": "",
-                            "required": "",
-                            "width": "",
-                            "height": "",
+                            "limereadonly": "1",
+                            "invisible": "0",
+                            "required": "1",
+                            "width": "3",
+                            "height": "1",
                             "length": "256",
-                            "defaultvalue": "Empty",
-                            "limedefaultvalue": "",
-                            "limerequiredforedit": "",
-                            "newline": "",
-                            "sql": "",
-                            "onsqlupdate"
-                            "onsqlinsert"
-                            "fieldorder"
-                            "isnullable"
+                            "defaultvalue": "Lund",
+                            "limedefaultvalue": "Application.ActiveUser.Record.Id",
+                            "limerequiredforedit": "0",
+                            "newline": "2",
+                            "sql": "[test].[field2]",
+                            "onsqlupdate": "[test].[field3]",
+                            "onsqlinsert": "[test].[field4]",
+                            "fieldorder": "4",
+                            "isnullable": "0"
                         },
                         "separator": {
                             "sv": "Testseparator",
@@ -262,7 +262,28 @@ Adds a separator to the field. The separator is placed BEFORE the field. Specify
 ```
 
 ###### attributes
-Sets attributes for the field. Each line in this node represent an attribute. Valid attributes:
+Sets attributes for the field. Each line in this node represent an attribute.
+```
+"attributes": {
+    "type": "text",
+    "limereadonly": "1",
+    "invisible": "0",
+    "required": "1",
+    "width": "3",
+    "height": "1",
+    "length": "256",
+    "defaultvalue": "Lund",
+    "limedefaultvalue": "Application.ActiveUser.Record.Id",
+    "limerequiredforedit": "0",
+    "newline": "2",
+    "sql": "[test].[field2]",
+    "onsqlupdate": "[test].[field3]",
+    "onsqlinsert": "[test].[field4]",
+    "fieldorder": "4",
+    "isnullable": "0"
+}
+```
+Valid attributes:
 
 Attribute | Mandatory |  Possible values | Value if not provided
 ------- | -------- | ------- | --------
