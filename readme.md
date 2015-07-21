@@ -119,7 +119,7 @@ An example of how the app.json-file could look like:
                 },
                 "attributes": {
                     "invisible": "2",
-                    "descriptive":"[test].[title]",
+                    "descriptive":"[test].[title]"
                 },
                 "fields": [
                     {
@@ -158,17 +158,30 @@ BEGIN
     SELECT 0
     --My code here
 END
-
+```
 ####vba
-Here you can specify VBA-modules that should be installed. Please note that the VBA-file MUST be included in the zip-file of your package. Please specify the relativt path to the file and the name of the VBA-module.
+Here you can specify VBA-modules (Forms and Class Modules are also supported) that should be installed. Please note that the VBA-file MUST be included in the zip-file of your package. Please specify the relative path to the VBA-file and the name of the VBA-module. When adding forms, please include both form-files (.frm and .frx) and specify the .frm-file in "relPath". Example:
+```
+"vba": [
+    {
+        "relPath": "Install/MyForm.frm",
+        "name": "MyForm"
+    },
+    {
+        "relPath": "Install/MyClassModule.cls",
+        "name": "MyClassModule"
+    }
+]
+```
+
 ####tables
 
-#####name
+#####name (mandatory)
 Database name of the table. Example:
 ```
 "name": "goaltable"
 ```
-#####localname_singular
+#####localname_singular (mandatory)
 Localnames in singular. Each line in this node should represent one language. Valid languages are all languages LIME Pro supports. Example:
 ```
 "localname_singular": {
@@ -177,10 +190,10 @@ Localnames in singular. Each line in this node should represent one language. Va
 }
 ```
 
-#####localname_plural
+#####localname_plural (mandatory)
 Localnames in plural. Each line in this node represent a language. Valid languages are all languages LIME Pro supports. Example:
 ```
-"localname_singular": {
+"localname_plural": {
 "sv": "Måltabeller",
 "en_us": "Goal tables"
 }
@@ -189,16 +202,28 @@ Localnames in plural. Each line in this node represent a language. Valid languag
 #####attributes
 Sets attributes for the table. Each line in this node represent an attribute. Valid attributes at the moment are:
 tableorder, descriptive, invisible
-
+```
+"attributes": {
+                    "tableorder": "3",
+                    "invisible": "2",
+                    "descriptive": "[test].[title]"
+                }
+```
+######tableorder
+Integer with desired table order. The table will be placed last if not provided.
+######descriptive
+Not mandatory but highly recommended.
+######invisible
+Integer with desired invisible-properties. Possible values are 1 or 2 ("Yes" or "Yes, for everyone but administrators"). Visible if not provided
 #####fields
-
-######name
+    
+######name (mandatory)
 The database name of the field. Example:
 ```
 "name": "customernbr"
 ```
 
-######localname
+######localname (mandatory)
 Localnames for the field. Each line in this node represent a language. Valid languages are all languages LIME Pro supports. Example:
 ```
 "localname": {
