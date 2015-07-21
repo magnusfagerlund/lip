@@ -100,7 +100,8 @@ An example of how the app.json-file could look like:
         ],
         "sql":[
         	{
-                "relPath": "test.sql"
+                "relPath": "test.sql",
+                "name": "csp_mypackage_test"
             }
         ],
         "tables": [
@@ -146,10 +147,20 @@ An example of how the app.json-file could look like:
 ####localize
 
 ####sql
-With this node you can add SQL-procedures and -functions. Specify the relative path to the SQL-file to run. Don't forget to include the SQL-file in your package.
+With this node you can add SQL-procedures and -functions. Specify the relative path to the SQL-file to run and the name of the procedure/function (used to check if it already exists and therefore should be updated instead of created). The name should include your packagename (e.g. csp_mypackage_addGoals) to distinguish the procedure from others. Don't forget to include the SQL-file in your package.
+
+IMPORTANT: in your SQL-file you CAN'T include the rows before the "CREATE PROCEDURE"-row. The reason for this is how the procedure is added to the database. One SQL-file can also only include one procedure. Example of an SQL-file:
+```
+CREATE PROCEDURE [dbo].[csp_mypackage_addGoals]
+    @@myVariable INT = NULL
+AS
+BEGIN
+    SELECT 0
+    --My code here
+END
 
 ####vba
-Here you can specify  VBA-modules that should be installed. Please note that the VBA-file MUST be included in the zip-file of your package. Please specify the relativt path to the file and the name of the VBA-module.
+Here you can specify VBA-modules that should be installed. Please note that the VBA-file MUST be included in the zip-file of your package. Please specify the relativt path to the file and the name of the VBA-module.
 ####tables
 
 #####name
