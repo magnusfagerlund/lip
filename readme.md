@@ -261,40 +261,26 @@ Adds a separator to the field. The separator is placed BEFORE the field. Specify
 ```
 
 ###### attributes
-Sets attributes for the field. Each line in this node represent an attribute. Valid attributes at the moment are:
-type, limereadonly, invisible, required, width, height, length, defaultvalue, limedefaultvalue, limerequiredforedit, newline, sql, onsqlupdate, onsqlinsert, fieldorder, isnullable.
+Sets attributes for the field. Each line in this node represent an attribute. Valid attributes at the moment are the following:
 
-###### type
-
-###### limereadonly
-
-###### invisible
-
-###### required
-
-###### width
-
-###### height
-
-###### length
-
-###### defaultvalue
-
-###### limedefaultvalue
-
-###### limerequiredforedit
-
-###### newline
-
-###### sql
-
-###### onsqlupdate
-
-###### onsqlinsert
-
-###### fieldorder
-
-###### isnullable
+Attribute | Mandatory |  Possible values | Value if not provided
+------- | -------- | ------- | --------
+type|Yes|string/geography/integer/decimal/time/ html/xml/link/yesno/file/relation/user/ set/option/formatedstring/color/sql|-
+invisible|No|0/1/2/65535 (No/On forms/In lists/Everywhere)|0
+length|No|integer (can only be set for textfields)|nvarchar(max)
+required|No|0/1|0
+sql (sql expression)|No|text|<empty>
+onsqlinsert (SQL for new)|No|text|<empty>
+onsqlupdate (SQL for update)|No|text|<empty>
+fieldorder|No|Integer|Put last
+height|No|Integer|Default
+width|No|Integer|Default
+newline (width properties)|No|0/1/2/3 ("Variable width"/ "Variable width on New line"/ "Fixed width"/ "Fixed width on new line")|2 (Fixed Width)
+defaultvalue|No|text|Default
+limedefaultvalue|No|text|Default
+isnullable|No|0/1|0
+limereadonly|No|0/1|0
+required_for_editing|No|0/1|0
 
 ### Versioning
 ####Package versioning
