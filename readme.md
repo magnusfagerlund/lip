@@ -219,8 +219,7 @@ Localnames in plural. Each line in this node represent a language. Valid languag
 ```
 
 ##### attributes
-Sets attributes for the table. Each line in this node represent an attribute. Valid attributes at the moment are:
-tableorder, descriptive, invisible
+Sets attributes for the table. Each line in this node represent an attribute.
 ```
 "attributes": {
                     "tableorder": "3",
@@ -228,12 +227,14 @@ tableorder, descriptive, invisible
                     "descriptive": "[test].[title]"
                 }
 ```
-###### tableorder
-Integer with desired table order. The table will be placed last if not provided.
-######descriptive
-Not mandatory but highly recommended.
-###### invisible
-Integer with desired invisible-properties. Possible values are 1 or 2 ("Yes" or "Yes, for everyone but administrators"). Visible if not provided
+Valid attributes:
+
+Attribute | Mandatory |  Possible values | Value if not provided
+-----|------|-----|-----
+tableorder|No|Integer|Placed last
+descriptive|No|text|Record ID
+invisible|No|1/2 ("Yes"/"Yes, for everyone but administrators")|"No"
+
 #####fields
     
 ###### name (mandatory)
@@ -261,7 +262,7 @@ Adds a separator to the field. The separator is placed BEFORE the field. Specify
 ```
 
 ###### attributes
-Sets attributes for the field. Each line in this node represent an attribute. Valid attributes at the moment are the following:
+Sets attributes for the field. Each line in this node represent an attribute. Valid attributes:
 
 Attribute | Mandatory |  Possible values | Value if not provided
 ------- | -------- | ------- | --------
