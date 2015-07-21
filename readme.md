@@ -55,6 +55,10 @@ A package is a ZIP-file containing all required resources to install a package
 ### A Package Store
 A Package Store could either be file based or web based. A store has a fixed URL (example "http://limebootstrap.lundalogik.se/api/apps"). The URL has subdirectories for each app (example "./checklist"). If the source is a file-based a `/app.json` should automatically be append.
 
+#### Specifying own package stores
+Open the `packages.json`-file in the actionpad-folder and add your own stores in the "stores"-node. Give the store a name and provide the address. Example: "AppStore":"http://limebootstrap.lundalogik.com/api/apps/"
+When installing or upgrading a package, the stores will be searched from the top to the bottom, meaning your first store will be searched for the package first, then the second store and so on.
+
 ### app.json
 
 An example of how the app.json-file could look like:
@@ -118,6 +122,7 @@ An example of how the app.json-file could look like:
                     "en_us": "Test"
                 },
                 "attributes": {
+                    "tableorder": "3",
                     "invisible": "2",
                     "descriptive":"[test].[title]"
                 },
@@ -130,7 +135,21 @@ An example of how the app.json-file could look like:
                         }, 
                         "attributes": {
                             "type": "text",
-                            "length": 256
+                            "limereadonly": "",
+                            "invisible": "",
+                            "required": "",
+                            "width": "",
+                            "height": "",
+                            "length": "256",
+                            "defaultvalue": "Empty",
+                            "limedefaultvalue": "",
+                            "limerequiredforedit": "",
+                            "newline": "",
+                            "sql": "",
+                            "onsqlupdate"
+                            "onsqlinsert"
+                            "fieldorder"
+                            "isnullable"
                         },
                         "separator": {
                             "sv": "Testseparator",
@@ -159,7 +178,7 @@ BEGIN
     --My code here
 END
 ```
-####vba
+#### vba
 Here you can specify VBA-modules (Forms and Class Modules are also supported) that should be installed. Please note that the VBA-file MUST be included in the zip-file of your package. Please specify the relative path to the VBA-file and the name of the VBA-module. When adding forms, please include both form-files (.frm and .frx) and specify the .frm-file in "relPath". Example:
 ```
 "vba": [
@@ -174,14 +193,14 @@ Here you can specify VBA-modules (Forms and Class Modules are also supported) th
 ]
 ```
 
-####tables
+#### tables
 
-#####name (mandatory)
+##### name (mandatory)
 Database name of the table. Example:
 ```
 "name": "goaltable"
 ```
-#####localname_singular (mandatory)
+##### localname_singular (mandatory)
 Localnames in singular. Each line in this node should represent one language. Valid languages are all languages LIME Pro supports. Example:
 ```
 "localname_singular": {
@@ -190,7 +209,7 @@ Localnames in singular. Each line in this node should represent one language. Va
 }
 ```
 
-#####localname_plural (mandatory)
+##### localname_plural (mandatory)
 Localnames in plural. Each line in this node represent a language. Valid languages are all languages LIME Pro supports. Example:
 ```
 "localname_plural": {
@@ -199,7 +218,7 @@ Localnames in plural. Each line in this node represent a language. Valid languag
 }
 ```
 
-#####attributes
+##### attributes
 Sets attributes for the table. Each line in this node represent an attribute. Valid attributes at the moment are:
 tableorder, descriptive, invisible
 ```
@@ -209,21 +228,21 @@ tableorder, descriptive, invisible
                     "descriptive": "[test].[title]"
                 }
 ```
-######tableorder
+###### tableorder
 Integer with desired table order. The table will be placed last if not provided.
 ######descriptive
 Not mandatory but highly recommended.
-######invisible
+###### invisible
 Integer with desired invisible-properties. Possible values are 1 or 2 ("Yes" or "Yes, for everyone but administrators"). Visible if not provided
 #####fields
     
-######name (mandatory)
+###### name (mandatory)
 The database name of the field. Example:
 ```
 "name": "customernbr"
 ```
 
-######localname (mandatory)
+###### localname (mandatory)
 Localnames for the field. Each line in this node represent a language. Valid languages are all languages LIME Pro supports. Example:
 ```
 "localname": {
@@ -232,7 +251,7 @@ Localnames for the field. Each line in this node represent a language. Valid lan
 }
 ```
 
-######separator
+###### separator
 Adds a separator to the field. The separator is placed BEFORE the field. Specify the localnames for the separator inside this node. Example
 ```
 "separator": {
@@ -241,9 +260,41 @@ Adds a separator to the field. The separator is placed BEFORE the field. Specify
 }
 ```
 
-######attributes
+###### attributes
 Sets attributes for the field. Each line in this node represent an attribute. Valid attributes at the moment are:
 type, limereadonly, invisible, required, width, height, length, defaultvalue, limedefaultvalue, limerequiredforedit, newline, sql, onsqlupdate, onsqlinsert, fieldorder, isnullable.
+
+###### type
+
+###### limereadonly
+
+###### invisible
+
+###### required
+
+###### width
+
+###### height
+
+###### length
+
+###### defaultvalue
+
+###### limedefaultvalue
+
+###### limerequiredforedit
+
+###### newline
+
+###### sql
+
+###### onsqlupdate
+
+###### onsqlinsert
+
+###### fieldorder
+
+###### isnullable
 
 ### Versioning
 ####Package versioning
