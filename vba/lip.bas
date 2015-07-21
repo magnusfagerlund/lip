@@ -898,7 +898,7 @@ ErrorHandler:
     Call UI.ShowError("lip.CreateNewPackageFile")
 End Sub
 
-Private Sub InstallLIP()
+Public Sub InstallLIP()
 On Error GoTo ErrorHandler
 
     Debug.Print "Creating a new packages.json file..."
