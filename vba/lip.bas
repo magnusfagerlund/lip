@@ -401,6 +401,9 @@ On Error GoTo ErrorHandler
     Debug.Print Indent + "Installing SQL..."
     IncreaseIndent
     For Each Sql In oJSON
+    
+        strSQL = ""
+        sErrormessage = ""
 
         Open ThisApplication.WebFolder & "apps\" & PackageName & "\" & Sql.Item("relPath") For Input As #1
             Do Until EOF(1)
