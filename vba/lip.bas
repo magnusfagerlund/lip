@@ -728,22 +728,26 @@ ErrorHandler:
 End Sub
 
 Private Sub addModule(PackageName As String, ModuleName As String, RelPath As String)
-On Error GoTo ErrorHandler
+On Error GoTo Errorhandler
     If PackageName <> "" And ModuleName <> "" Then
         Dim VBComps As Object
         Dim Path As String
+        Dim tempModuleName As String
         
         Set VBComps = Application.VBE.ActiveVBProject.VBComponents
         If ComponentExists(ModuleName, VBComps) = True Then
-            VBComps.Item(ModuleName).name = ModuleName & "OLD"
-            Call VBComps.Remove(VBComps.Item(ModuleName & "OLD"))
+            tempModuleName = LCO.GenerateGUID
+            tempModuleName = VBA.Replace(VBA.Mid(tempModuleName, 2, VBA.Len(tempModuleName) - 2), "-", "")
+            tempModuleName = VBA.Left("temp" & tempModuleName, 30)
+            VBComps.Item(ModuleName).Name = tempModuleName
+            Call VBComps.Remove(VBComps.Item(tempModuleName))
         End If
         Path = WebFolder + "apps\" + PackageName + "\" + RelPath
      
         Call Application.VBE.ActiveVBProject.VBComponents.Import(Path)
     End If
     Exit Sub
-ErrorHandler:
+Errorhandler:
     Call UI.ShowError("lip.addModule")
 End Sub
 
