@@ -982,7 +982,7 @@ On Error GoTo ErrorHandler
         Call oRecs.Update
         
     Else
-        Call MsgBox("There are multiple copies of " & sOwner & "." & sCode & "  which is bad! Fix it", vbCritical, "To many translations makes Jack a dull boy")
+        Call Lime.MessageBox("There are multiple copies of " & sOwner & "." & sCode & ". Fix this and try again.", vbCritical)
     End If
     
     Set Localize.dicLookup = Nothing
