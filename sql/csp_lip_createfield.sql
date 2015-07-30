@@ -10,6 +10,7 @@ CREATE PROCEDURE [dbo].[csp_lip_createfield]
 	, @@fieldname NVARCHAR(64)
 	, @@localname NVARCHAR(MAX)
 	, @@separator NVARCHAR(MAX) = N''
+	, @@optionlist NVARCHAR(MAX) = N''
 	, @@type NVARCHAR(64)
 	, @@defaultvalue NVARCHAR(64) = NULL
 	, @@limedefaultvalue NVARCHAR(64) = NULL
@@ -45,14 +46,23 @@ BEGIN
 	DECLARE @currentString NVARCHAR(256)
 	DECLARE @currentLanguage NVARCHAR(8)
 	DECLARE @currentLocalize NVARCHAR(256)
+	DECLARE @isFirstLocalize BIT
+	DECLARE @currentOption NVARCHAR(MAX)
+	DECLARE @nextOptionStarts INT
+	DECLARE @nextOptionEnds INT
+	DECLARE @currentPositionInOption INT
 
-	SET @return_value = NULL
+	SET @return_value = 0
 	SET @@idfield = NULL
 	SET @idstringlocalname = NULL
 	SET @idcategory = NULL
 	SET @idstring = NULL
 	SET @@errorMessage = N''
 	SET @sql = N''
+	SET @isFirstLocalize = 1
+	SET @currentOption =N''
+	SET @nextOptionStarts = 0
+	SET @nextOptionEnds = 0
 	
 	--Check if field already exists
 	EXEC lsp_getfield @@table = @@tablename, @@name = @@fieldname, @@count = @count OUTPUT
@@ -186,7 +196,7 @@ BEGIN
 												, @@name = N'separatorlocalname'
 												, @@value = @idstring output
 												
-					--Make sure @@localname ends with ; in order to avoid infinite loop
+					--Make sure @@separator ends with ; in order to avoid infinite loop
 					IF RIGHT(@@separator, 1) <> N';'
 					BEGIN
 						SET @@separator=@@separator + N';'
@@ -212,6 +222,83 @@ BEGIN
 					END								
 				END
 				--End of creating separator
+				
+				--Create options
+				IF @@optionlist <> N''
+				BEGIN
+					SET @idstring = -1
+
+
+					--Make sure @@optionlist starts with [
+					IF LEFT(@@optionlist, 1) <> N'['
+					BEGIN
+						SET @@optionlist= N'[' + @@optionlist
+					END
+					
+					--Make sure @@optionlist ends with ] in order to avoid infinite loop
+					IF RIGHT(@@optionlist, 1) <> N']'
+					BEGIN
+						SET @@optionlist=@@optionlist + N']'
+					END
+					
+					SET @currentPosition = 0
+
+					--Loop through options
+					WHILE @currentPosition <= LEN(@@optionlist) AND @return_value = 0
+					BEGIN
+						SET @nextOptionStarts = CHARINDEX('[', @@optionlist, @currentPosition)
+						
+						IF @nextOptionStarts <> 0
+						BEGIN
+							SET @nextOptionEnds = CHARINDEX(']', @@optionlist, @nextOptionStarts)
+							IF @nextOptionEnds <> 0
+							BEGIN
+								SET @currentOption = SUBSTRING(@@optionlist, @nextOptionStarts + 1, @nextOptionEnds - @nextOptionStarts - 1)
+								
+								--Make sure @@currentOption ends with ; in order to avoid infinite loop
+								IF RIGHT(@currentOption, 1) <> N';'
+								BEGIN
+									SET @currentOption=@currentOption + N';'
+								END
+								
+								SET @currentPositionInOption = 0
+								SET @isFirstLocalize = 1
+								SET @idstring = -1
+								
+								WHILE @currentPositionInOption <= LEN(@currentOption) AND @return_value = 0
+									BEGIN
+										SET @nextOccurance = CHARINDEX(';', @currentOption, @currentPositionInOption)
+										IF @nextOccurance <> 0
+										BEGIN
+											SET @currentString = SUBSTRING(@currentOption, @currentPositionInOption, @nextOccurance - @currentPositionInOption)
+											SET @currentLanguage=SUBSTRING(@currentString,0,CHARINDEX(':', @currentString))
+											SET @currentLocalize=SUBSTRING(@currentString,CHARINDEX(':', @currentString)+1,LEN(@currentString)-CHARINDEX(':', @currentString))
+											
+											IF @isFirstLocalize = 1
+											BEGIN
+												EXEC @return_value = [dbo].[lsp_addstring]
+													@@idcategory = @idcategory
+													, @@string = @currentLocalize
+													, @@lang = @currentLanguage
+													, @@idstring = @idstring OUTPUT
+												SET @isFirstLocalize = 0
+											END
+											ELSE
+											BEGIN									
+												EXEC @return_value = [dbo].[lsp_setstring]
+														@@idstring = @idstring
+														, @@lang = @currentLanguage
+														, @@string = @currentLocalize
+											END
+													
+											SET @currentPositionInOption = @nextOccurance+1
+										END
+									END		
+							END	
+							SET @currentPosition = @nextOptionEnds+1
+						END
+					END							
+				END
 				
 				EXEC lsp_refreshldc
 				
