@@ -352,7 +352,7 @@ limedefaultvalue|No|text|Default
 isnullable|No|0/1|0
 limereadonly|No|0/1|0
 required_for_editing|No|0/1|0
-type|No|Timefields: 0/1/2/3/4/5/6/7/8/9 ("Date" / "Date and Time" / "Time" / "Year" / "Half a Year" / "Four Months" / "Quarter" / "Month" / "Week" / "Date and Time (with Seconds)"|0
+type|No|**Timefields:** 0/1/2/3/4/5/6/7/8/9 ("Date" / "Date and Time" / "Time" / "Year" / "Half a Year" / "Four Months" / "Quarter" / "Month" / "Week" / "Date and Time (with Seconds)" **Optionlists:** 0/1 ("Color and Text"/"Only Color")|0
 
 ### Versioning
 ####Package versioning
