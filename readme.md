@@ -327,7 +327,8 @@ Sets attributes for the field. Each line in this node represent an attribute.
     "onsqlupdate": "[test].[field3]",
     "onsqlinsert": "[test].[field4]",
     "fieldorder": "4",
-    "isnullable": "0"
+    "isnullable": "0",
+    "timefieldtype": "1"
 }
 ```
 Valid attributes:
@@ -350,6 +351,7 @@ limedefaultvalue|No|text|Default
 isnullable|No|0/1|0
 limereadonly|No|0/1|0
 required_for_editing|No|0/1|0
+timefieldtype|No|0/1/2/3/4/5/6/7/8/9 ("Date" / "Date and Time" / "Time" / "Year" / "Half a Year" / "Four Months" / "Quarter" / "Month" / "Week" / "Date and Time (with Seconds)"|0
 
 ### Versioning
 ####Package versioning
