@@ -155,7 +155,19 @@ An example of how the app.json-file could look like:
                         "separator": {
                             "sv": "Testseparator",
                             "en_us": "Test separator"
-                        }
+                        },
+			"options": [
+				{
+					"sv": "Alt 1",
+					"en_us": "Alt 1",
+					"key": "alt1"
+				},
+				{
+					"sv": "Alt 2",
+					"en_us":"Alt 2"
+					"key":"alt2"
+				}
+			]
                     }
                 ]
             }
@@ -277,6 +289,23 @@ Adds a separator to the field. The separator is placed BEFORE the field. Specify
 "sv": "Administrativ information",
 "en_us": "Administrative information"
 }
+```
+###### options
+Adds options to an option field, set field or textfield. Every option must be specified as an own node and localnames and keys are placed inside this node.. Example
+
+```
+"options": [
+	{
+		"sv": "Alt 1",
+		"en_us": "Alt 1",
+		"key": "alt1"
+	},
+	{
+		"sv": "Alt 2",
+		"en_us": "Alt 2",
+		"key": "alt2"
+	}
+]
 ```
 
 ###### attributes
