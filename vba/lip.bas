@@ -541,6 +541,7 @@ On Error GoTo ErrorHandler
     Dim fieldLocalnames As String
     Dim separatorLocalnames As String
     Dim oItem As Variant
+    Dim optionItems As Variant
     errormessage = ""
     fieldLocalnames = ""
     separatorLocalnames = ""
@@ -579,6 +580,20 @@ On Error GoTo ErrorHandler
                 separatorLocalnames = separatorLocalnames + VBA.Trim(oItem) + ":" + VBA.Trim(field.Item("separator").Item(oItem)) + ";"
             Next
             oProc.Parameters("@@separator").InputValue = separatorLocalnames
+        End If
+        
+        Dim strOptions As String
+        strOptions = ""
+        'Add options
+        If field.Exists("options") Then
+            For Each optionItems In field.Item("options")
+                strOptions = strOptions + "["
+                For Each oItem In optionItems
+                    strOptions = strOptions + VBA.Trim(oItem) + ":" + VBA.Trim(optionItems.Item(oItem)) + ";"
+                Next
+                strOptions = strOptions + "]"
+            Next
+            oProc.Parameters("@@optionlist").InputValue = strOptions
         End If
         
         Call oProc.Execute(False)
@@ -731,7 +746,7 @@ ErrorHandler:
 End Sub
 
 Private Sub addModule(PackageName As String, ModuleName As String, RelPath As String)
-On Error GoTo Errorhandler
+On Error GoTo ErrorHandler
     If PackageName <> "" And ModuleName <> "" Then
         Dim VBComps As Object
         Dim Path As String
@@ -750,7 +765,7 @@ On Error GoTo Errorhandler
         Call Application.VBE.ActiveVBProject.VBComponents.Import(Path)
     End If
     Exit Sub
-Errorhandler:
+ErrorHandler:
     Call UI.ShowError("lip.addModule")
 End Sub
 
@@ -759,7 +774,7 @@ On Error GoTo ErrorHandler
     Dim VBComp As Variant
     
     For Each VBComp In VBComps
-        If VBComp.name = ComponentName Then
+        If VBComp.Name = ComponentName Then
              ComponentExists = True
              Exit Function
         End If
@@ -993,3 +1008,5 @@ On Error GoTo ErrorHandler
 ErrorHandler:
     Call UI.ShowError("lip.DecreaseIndent")
 End Sub
+
+
