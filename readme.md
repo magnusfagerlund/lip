@@ -156,18 +156,18 @@ An example of how the app.json-file could look like:
                             "sv": "Testseparator",
                             "en_us": "Test separator"
                         },
-			"options": [
-				{
-					"sv": "Alt 1",
-					"en_us": "Alt 1",
-					"key": "alt1"
-				},
-				{
-					"sv": "Alt 2",
-					"en_us": "Alt 2",
-					"key": "alt2"
-				}
-			]
+						"options": [
+							{
+								"sv": "Alt 1",
+								"en_us": "Alt 1",
+								"key": "alt1"
+							},
+							{
+								"sv": "Alt 2",
+								"en_us": "Alt 2",
+								"key": "alt2"
+							}
+						]
                     }
                 ]
             }
