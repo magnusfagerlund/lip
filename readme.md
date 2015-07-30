@@ -161,12 +161,14 @@ An example of how the app.json-file could look like:
 							{
 								"sv": "Alt 1",
 								"en_us": "Alt 1",
-								"key": "alt1"
+								"key": "alt1",
+								"color": "65535"
 							},
 							{
 								"sv": "Alt 2",
 								"en_us": "Alt 2",
-								"key": "alt2"
+								"key": "alt2",
+								"color": "255"
 							}
 						]
                     }
@@ -292,19 +294,24 @@ Adds a separator to the field. The separator is placed BEFORE the field. Specify
 }
 ```
 ###### options
-Adds options to an option field, set field or textfield. Every option must be specified as an own node and localnames and keys are placed inside this node.. Example
+Adds options to an option field, set field or textfield. Every option must be specified as an own node and localnames, keys and colors are placed inside this node.
+If you specify a color, this can't be placed first in the option-node. Some color-examples: red=255, yellow=65535, blue=16711680, green=32768.
+
+Example:
 
 ```
 "options": [
 	{
 		"sv": "Alt 1",
 		"en_us": "Alt 1",
-		"key": "alt1"
+		"key": "alt1",
+		"color": "65535"
 	},
 	{
 		"sv": "Alt 2",
 		"en_us": "Alt 2",
-		"key": "alt2"
+		"key": "alt2",
+		"color": "255"
 	}
 ]
 ```
