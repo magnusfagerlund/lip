@@ -164,8 +164,8 @@ An example of how the app.json-file could look like:
 				},
 				{
 					"sv": "Alt 2",
-					"en_us":"Alt 2"
-					"key":"alt2"
+					"en_us": "Alt 2",
+					"key": "alt2"
 				}
 			]
                     }
