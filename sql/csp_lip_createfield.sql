@@ -11,7 +11,7 @@ CREATE PROCEDURE [dbo].[csp_lip_createfield]
 	, @@localname NVARCHAR(MAX)
 	, @@separator NVARCHAR(MAX) = N''
 	, @@optionlist NVARCHAR(MAX) = N''
-	, @@type NVARCHAR(64)
+	, @@fieldtype NVARCHAR(64)
 	, @@defaultvalue NVARCHAR(64) = NULL
 	, @@limedefaultvalue NVARCHAR(64) = NULL
 	, @@limereadonly INT = 0
@@ -27,6 +27,7 @@ CREATE PROCEDURE [dbo].[csp_lip_createfield]
 	, @@onsqlinsert NVARCHAR(MAX) = N''
 	, @@fieldorder INT = 0 -- Default value 0 means it will be put last
 	, @@isnullable INT = 0
+	, @@type INT = 0
 	, @@errorMessage NVARCHAR(512) OUTPUT
 	, @@idfield INT OUTPUT
 AS
@@ -74,16 +75,16 @@ BEGIN
 	ELSE --Field doesn't exist
 	BEGIN
 		--Check if fieldtype exists
-		IF (SELECT COUNT(*) FROM fieldtype WHERE name = @@type AND active = 1 AND creatable = 1) <> 1
+		IF (SELECT COUNT(*) FROM fieldtype WHERE name = @@fieldtype AND active = 1 AND creatable = 1) <> 1
 		BEGIN
-			SET @@errorMessage = N'''' + @@type + N''' is not a valid fieldtype. Field ''' + @@fieldname + ''' couldn''t be created'
+			SET @@errorMessage = N'''' + @@fieldtype + N''' is not a valid fieldtype. Field ''' + @@fieldname + ''' couldn''t be created'
 		END
 		ELSE
 		BEGIN
 			-- Get field type
 			SELECT @idfieldtype = idfieldtype
 			FROM fieldtype
-			WHERE name = @@type
+			WHERE name = @@fieldtype
 				AND active = 1
 				AND creatable = 1
 
@@ -276,19 +277,35 @@ BEGIN
 											
 											IF @isFirstLocalize = 1
 											BEGIN
-												EXEC @return_value = [dbo].[lsp_addstring]
-													@@idcategory = @idcategory
-													, @@string = @currentLocalize
-													, @@lang = @currentLanguage
-													, @@idstring = @idstring OUTPUT
-												SET @isFirstLocalize = 0
+												IF @currentLanguage <> N'color'
+												BEGIN
+													EXEC @return_value = [dbo].[lsp_addstring]
+														@@idcategory = @idcategory
+														, @@string = @currentLocalize
+														, @@lang = @currentLanguage
+														, @@idstring = @idstring OUTPUT
+
+													SET @isFirstLocalize = 0
+												END
 											END
 											ELSE
-											BEGIN									
-												EXEC @return_value = [dbo].[lsp_setstring]
-														@@idstring = @idstring
-														, @@lang = @currentLanguage
-														, @@string = @currentLocalize
+											BEGIN
+												IF @currentLanguage <> N'color'
+												BEGIN						
+													EXEC @return_value = [dbo].[lsp_setstring]
+															@@idstring = @idstring
+															, @@lang = @currentLanguage
+															, @@string = @currentLocalize
+												END
+												ELSE
+												BEGIN
+													EXEC lsp_addattributedata
+														@@owner	= N'string',
+														@@idrecord = @idstring,
+														@@idrecord2 = NULL,
+														@@name = N'color',
+														@@value	= @currentLocalize
+												END
 											END
 													
 											SET @currentPositionInOption = @nextOccurance+1
@@ -298,6 +315,12 @@ BEGIN
 							SET @currentPosition = @nextOptionEnds+1
 						END
 					END							
+				END
+				
+				IF @@fieldtype = N'time'
+				BEGIN
+					--Set type for timefield
+					EXEC [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'type', @@valueint = @@type
 				END
 				
 				EXEC lsp_refreshldc
