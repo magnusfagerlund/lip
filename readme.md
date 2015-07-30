@@ -135,7 +135,7 @@ An example of how the app.json-file could look like:
                             "en_us": "Title"
                         }, 
                         "attributes": {
-                            "type": "text",
+                            "fieldtype": "text",
                             "limereadonly": "1",
                             "invisible": "0",
                             "required": "1",
@@ -150,7 +150,8 @@ An example of how the app.json-file could look like:
                             "onsqlupdate": "[test].[field3]",
                             "onsqlinsert": "[test].[field4]",
                             "fieldorder": "4",
-                            "isnullable": "0"
+                            "isnullable": "0",
+                            "type": "1"
                         },
                         "separator": {
                             "sv": "Testseparator",
@@ -312,7 +313,7 @@ Adds options to an option field, set field or textfield. Every option must be sp
 Sets attributes for the field. Each line in this node represent an attribute.
 ```
 "attributes": {
-    "type": "text",
+    "fieldtype": "text",
     "limereadonly": "1",
     "invisible": "0",
     "required": "1",
@@ -328,14 +329,14 @@ Sets attributes for the field. Each line in this node represent an attribute.
     "onsqlinsert": "[test].[field4]",
     "fieldorder": "4",
     "isnullable": "0",
-    "timefieldtype": "1"
+    "type": "1"
 }
 ```
 Valid attributes:
 
 Attribute | Mandatory |  Possible values | Value if not provided
 ------- | -------- | ------- | --------
-type|Yes|string/geography/integer/decimal/time/ html/xml/link/yesno/file/relation/user/ set/option/formatedstring/color/sql|-
+fieldtype|Yes|string/geography/integer/decimal/time/ html/xml/link/yesno/file/relation/user/ set/option/formatedstring/color/sql|-
 invisible|No|0/1/2/65535 (No/On forms/In lists/Everywhere)|0
 length|No|integer (can only be set for textfields)|nvarchar(max)
 required|No|0/1|0
@@ -351,7 +352,7 @@ limedefaultvalue|No|text|Default
 isnullable|No|0/1|0
 limereadonly|No|0/1|0
 required_for_editing|No|0/1|0
-timefieldtype|No|0/1/2/3/4/5/6/7/8/9 ("Date" / "Date and Time" / "Time" / "Year" / "Half a Year" / "Four Months" / "Quarter" / "Month" / "Week" / "Date and Time (with Seconds)"|0
+type|No|Timefields: 0/1/2/3/4/5/6/7/8/9 ("Date" / "Date and Time" / "Time" / "Year" / "Half a Year" / "Four Months" / "Quarter" / "Month" / "Week" / "Date and Time (with Seconds)"|0
 
 ### Versioning
 ####Package versioning
