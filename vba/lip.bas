@@ -379,7 +379,7 @@ On Error GoTo ErrorHandler
             Localize.Item("owner"), _
             Localize.Item("context"), _
             "", _
-            Localize.Item("en-us"), _
+            Localize.Item("en_us"), _
             Localize.Item("sv"), _
             Localize.Item("no"), _
             Localize.Item("fi") _
@@ -965,7 +965,7 @@ On Error GoTo ErrorHandler
         oRec.Value("code") = sCode
         oRec.Value("context") = sDescription
         oRec.Value("sv") = sSV
-        oRec.Value("en-us") = sEN_US
+        oRec.Value("en_us") = sEN_US
         oRec.Value("no") = sNO
         oRec.Value("fi") = sFI
         Call oRec.Update
@@ -976,7 +976,7 @@ On Error GoTo ErrorHandler
         oRecs(1).Value("code") = sCode
         oRecs(1).Value("context") = sDescription
         oRecs(1).Value("sv") = sSV
-        oRecs(1).Value("en-us") = sEN_US
+        oRecs(1).Value("en_us") = sEN_US
         oRecs(1).Value("no") = sNO
         oRecs(1).Value("fi") = sFI
         Call oRecs.Update
