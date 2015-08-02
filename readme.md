@@ -90,10 +90,18 @@ An example of how the app.json-file could look like:
             {
                 "owner": "checklist",
                 "context": "title",
-                "sv": "test",
-                "en-us": "test",
-                "no": "test",
-                "fi": "test"
+                "sv": "Test",
+                "en_us": "Test",
+                "no": "Test",
+                "fi": "Test"
+            },
+            {
+                "owner": "checklist",
+                "context": "description",
+                "sv": "A short description",
+                "en_us": "A short description",
+                "no": "A short description",
+                "fi": "A short description"
             }
         ],
         "vba": [
@@ -180,7 +188,27 @@ An example of how the app.json-file could look like:
 ```
 
 ####localize
-
+Here you can specify posts to be added in the localize-table of LIME Pro. Example:
+```
+"localize": [
+    {
+        "owner": "checklist",
+        "context": "title",
+        "sv": "Test",
+        "en_us": "Test",
+        "no": "Test",
+        "fi": "Test"
+    },
+    {
+        "owner": "checklist",
+        "context": "description",
+        "sv": "A short description",
+        "en_us": "A short description",
+        "no": "A short description",
+        "fi": "A short description"
+    }
+]
+```
 ####sql
 With this node you can add SQL-procedures and -functions by letting LIP run a SQL-file.
 ```
