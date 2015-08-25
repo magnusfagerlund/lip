@@ -29,7 +29,8 @@ Public Sub Install(PackageName As String, Optional Upgrade As Boolean)
 On Error GoTo ErrorHandler
     Dim Package As Object
     Dim PackageVersion As Double
-    Dim source As String
+    Dim DownloadURL As String
+    Dim InstallPath as String
 
     IndentLenght = "  "
     
@@ -50,11 +51,17 @@ On Error GoTo ErrorHandler
     End If
     
     If Package.Exists("source") Then
-        source = VBA.Replace(Package.Item("source"), "\/", "/") 'Replace \/ with only / since JSON escapes frontslash with a backslash which causes problems with URLs
+        DownloadURL = VBA.Replace(Package.Item("source"), "\/", "/") 'Replace \/ with only / since JSON escapes frontslash with a backslash which causes problems with URLs
     Else
-        source = BaseURL & ApiURL 'Use Lundalogik Packagestore if source-node wasn't found
+        DownloadURL = BaseURL & ApiURL &  PackageName & "/download/" 'Use Lundalogik Packagestore if source-node wasn't found
     End If
     
+    If Package.Exists("installPath") Then
+        InstallPath = VBA.Replace(Package.Item("source"), "\/", "/")
+    Else
+        InstallPath = "apps/"
+    End If
+
     Set Package = Package.Item("info")
     
     'Parse result from store
@@ -77,11 +84,11 @@ On Error GoTo ErrorHandler
     'Download and unzip
     Debug.Print "Downloading '" + PackageName + "' files..."
     
-    Call DownloadFile(PackageName, source)
-    Call Unzip(PackageName)
+    Call DownloadFile(PackageName, DownloadURL, InstallPath)
+    Call Unzip(PackageName, InstallPath)
     Debug.Print "Download complete!"
    
-    Call InstallPackageComponents(PackageName, PackageVersion, Package)
+    Call InstallPackageComponents(PackageName, PackageVersion, Package, InstallPath)
     
     Debug.Print "==================================="
     
@@ -90,8 +97,9 @@ ErrorHandler:
     Call UI.ShowError("lip.Install")
 End Sub
 
+' BROKEN! Needs to add InstallPath
 'Installs package from a zip-file. Input parameter: complete searchpath to the zip-file, including the filename
-Public Sub InstallFromZip(ZipPath As String)
+Private Sub InstallFromZip(ZipPath As String)
 On Error GoTo ErrorHandler
 
     'Check if valid path
@@ -179,7 +187,7 @@ ErrorHandler:
 End Sub
 
 
-Private Sub InstallPackageComponents(PackageName As String, PackageVersion As Double, Package)
+Private Sub InstallPackageComponents(PackageName As String, PackageVersion As Double, Package, InstallPath as String)
 On Error GoTo ErrorHandler
 
     
@@ -196,7 +204,7 @@ On Error GoTo ErrorHandler
     If Package.Item("install").Exists("vba") = True Then
         Debug.Print Indent + "Adding VBA modules, forms and classes..."
         IncreaseIndent
-        Call InstallVBAComponents(PackageName, Package.Item("install").Item("vba"))
+        Call InstallVBAComponents(PackageName, Package.Item("install").Item("vba"), InstallPath)
         DecreaseIndent
     End If
     
@@ -208,7 +216,13 @@ On Error GoTo ErrorHandler
     
     If Package.Item("install").Exists("sql") = True Then
         IncreaseIndent
-        Call InstallSQL(Package.Item("install").Item("sql"), PackageName)
+        Call InstallSQL(Package.Item("install").Item("sql"), PackageName, InstallPath)
+        DecreaseIndent
+    End If
+
+    If Package.Item("install").Exists("files") = True Then
+        IncreaseIndent
+        Call InstallFiles(Package.Item("install").Item("files"), PackageName, InstallPath)
         DecreaseIndent
     End If
     'Update packages.json
@@ -390,7 +404,36 @@ ErrorHandler:
     Call UI.ShowError("lip.InstallLocalize")
 End Sub
 
-Private Sub InstallSQL(oJSON As Object, PackageName As String)
+Private Sub InstallFiles(oJSON As Object, packageName as String, InstallPath as String)
+On Error GoTo ErrorHandler
+    Dim FSO As Object
+    Dim FromPath As String
+    Dim ToPath As String
+    Dim File As Variant
+
+    For Each File in oJSON
+        FromPath = Webfolder & InstallPath & packageName & "\" & File
+        ToPath = Webfolder & File
+
+        If Right(FromPath, 1) = "\" Then 
+            FromPath = Left(FromPath, Len(FromPath) - 1)
+        End If
+        If Right(ToPath, 1) = "\" Then 
+            ToPath = Left(ToPath, Len(ToPath) - 1)
+        End If
+        Set FSO = CreateObject("scripting.filesystemobject")
+
+        FSO.CopyFolder Source:=FromPath, Destination:=ToPath
+        On Error Resume Next 'It is a beautiful languge
+        Kill FromPath 
+        On Error GoTo ErrorHandler
+    Next File
+    
+ErrorHandler:
+    UI.ShowError("lip.InstallFiles")
+End Sub
+
+Private Sub InstallSQL(oJSON As Object, PackageName As String, InstallPath as String)
 On Error GoTo ErrorHandler
     Dim Sql As Variant
     Dim oProc As New LDE.Procedure
@@ -405,7 +448,7 @@ On Error GoTo ErrorHandler
         strSQL = ""
         sErrormessage = ""
 
-        Open ThisApplication.WebFolder & "apps\" & PackageName & "\" & Sql.Item("relPath") For Input As #1
+        Open ThisApplication.WebFolder & InstallPath & PackageName & "\" & Sql.Item("relPath") For Input As #1
             Do Until EOF(1)
                 Line Input #1, sLine
                 strSQL = strSQL & sLine & vbNewLine
@@ -670,14 +713,14 @@ ErrorHandler:
     Call UI.ShowError("lip.SetTableAttributes")
 End Sub
 
-Private Sub DownloadFile(PackageName As String, Path As String)
+Private Sub DownloadFile(PackageName As String, Path As String, InstallPath as String)
 On Error GoTo ErrorHandler
     Dim qs As String
     qs = CStr(Rnd() * 1000000#)
     Dim downloadURL As String
     Dim myURL As String
     Dim oStream As Object
-    downloadURL = Path + PackageName + "/download/"
+    downloadURL = Path
     
     Dim WinHttpReq As Object
     Set WinHttpReq = CreateObject("Microsoft.XMLHTTP")
@@ -690,7 +733,7 @@ On Error GoTo ErrorHandler
         oStream.Open
         oStream.Type = 1
         oStream.Write WinHttpReq.responseBody
-        oStream.SaveToFile WebFolder + "apps\" + PackageName + ".zip", 2 ' 1 = no overwrite, 2 = overwrite
+        oStream.SaveToFile WebFolder + InstallPath + PackageName + ".zip", 2 ' 1 = no overwrite, 2 = overwrite
         oStream.Close
     End If
     Exit Sub
@@ -698,7 +741,7 @@ ErrorHandler:
     Call UI.ShowError("lip.DownloadFile")
 End Sub
 
-Private Sub Unzip(PackageName)
+Private Sub Unzip(PackageName as String, InstallPath as String)
 On Error GoTo ErrorHandler
     Dim FSO As Object
     Dim oApp As Object
@@ -707,8 +750,8 @@ On Error GoTo ErrorHandler
     Dim DefPath As String
     Dim strDate As String
 
-    Fname = WebFolder + "apps\" + PackageName + ".zip"
-    FileNameFolder = WebFolder & "apps\" & PackageName & "\"
+    Fname = WebFolder + InstallPath + PackageName + ".zip"
+    FileNameFolder = WebFolder & InstallPath & PackageName & "\"
 
     On Error Resume Next
     Set FSO = CreateObject("scripting.filesystemobject")
@@ -731,12 +774,12 @@ ErrorHandler:
     Call UI.ShowError("lip.Unzip")
 End Sub
 
-Private Sub InstallVBAComponents(PackageName As String, VBAModules As Object)
+Private Sub InstallVBAComponents(PackageName As String, VBAModules As Object, InstallPath as String)
 On Error GoTo ErrorHandler
     Dim VBAModule As Variant
     IncreaseIndent
     For Each VBAModule In VBAModules
-        Call addModule(PackageName, VBAModule.Item("name"), VBAModule.Item("relPath"))
+        Call addModule(PackageName, VBAModule.Item("name"), VBAModule.Item("relPath"), InstallPath)
         Debug.Print Indent + "Added " + VBAModule.Item("name")
     Next VBAModule
     DecreaseIndent
@@ -745,7 +788,7 @@ ErrorHandler:
     Call UI.ShowError("lip.InstallVBAComponents")
 End Sub
 
-Private Sub addModule(PackageName As String, ModuleName As String, RelPath As String)
+Private Sub addModule(PackageName As String, ModuleName As String, RelPath As String, InstallPath as String)
 On Error GoTo ErrorHandler
     If PackageName <> "" And ModuleName <> "" Then
         Dim VBComps As Object
@@ -760,7 +803,7 @@ On Error GoTo ErrorHandler
             VBComps.Item(ModuleName).Name = tempModuleName
             Call VBComps.Remove(VBComps.Item(tempModuleName))
         End If
-        Path = WebFolder + "apps\" + PackageName + "\" + RelPath
+        Path = WebFolder + InstallPath + PackageName + "\" + RelPath
      
         Call Application.VBE.ActiveVBProject.VBComponents.Import(Path)
     End If
@@ -926,6 +969,22 @@ On Error GoTo ErrorHandler
     Exit Sub
 ErrorHandler:
     Call UI.ShowError("lip.CreateNewPackageFile")
+End Sub
+
+Public Function GetAllInstalledPackages() as String
+On Error GoTo ErrorHandler
+    Dim oPackageFile As Object
+    Set oPackageFile = ReadPackageFile()
+    If Not oPackageFile Is Nothing Then
+        GetAllInstalledPackages = JSON.toString(oPackageFile)
+    else
+        GetAllInstalledPackages = "{}"
+        Debug.Print ("Couldn't find dependencies in packages.json")
+    end
+
+    Exit Sub
+ErrorHandler:
+    Call UI.ShowError("lip.GetInstalledPackages")
 End Sub
 
 Public Sub InstallLIP()
