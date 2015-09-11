@@ -7,6 +7,8 @@ Option Explicit
 Private Const BaseURL As String = "http://limebootstrap.lundalogik.com"
 Private Const ApiURL As String = "/api/apps/"
 
+Private Const DefaultInstallPath = "packages\"
+
 Private IndentLenght As String
 Private Indent As String
 
@@ -29,69 +31,77 @@ Public Sub Install(PackageName As String, Optional Upgrade As Boolean)
 On Error GoTo ErrorHandler
     Dim Package As Object
     Dim PackageVersion As Double
-    Dim source As String
+    Dim downloadURL As String
+    Dim InstallPath As String
 
     IndentLenght = "  "
-    
+
     'Check if first use ever
     If Dir(WebFolder + "packages.json") = "" Then
         Debug.Print "No packages.json found, assuming fresh install"
         Call InstallLIP
     End If
-    
+
     PackageName = LCase(PackageName)
-    
+
     Debug.Print "====== LIP Install: " + PackageName + " ======"
-    
+
     Debug.Print "Looking for package: '" + PackageName + "'"
     Set Package = SearchForPackageOnStores(PackageName)
     If Package Is Nothing Then
         Exit Sub
     End If
-    
+
     If Package.Exists("source") Then
-        source = VBA.Replace(Package.Item("source"), "\/", "/") 'Replace \/ with only / since JSON escapes frontslash with a backslash which causes problems with URLs
+        downloadURL = VBA.Replace(Package.Item("source"), "\/", "/") 'Replace \/ with only / since JSON escapes frontslash with a backslash which causes problems with URLs
     Else
-        source = BaseURL & ApiURL 'Use Lundalogik Packagestore if source-node wasn't found
+        downloadURL = BaseURL & ApiURL & PackageName & "/download/"  'Use Lundalogik Packagestore if source-node wasn't found
     End If
-    
-    Set Package = Package.Item("info")
-    
+
+    If Package.Exists("installPath") Then
+        InstallPath = ThisApplication.WebFolder & Package.Item("installPath") & "\"
+    Else
+        InstallPath = ThisApplication.WebFolder & DefaultInstallPath
+    End If
+
+    Set Package = Package
+
     'Parse result from store
     PackageVersion = findNewestVersion(Package.Item("versions"))
-    
+
     'Check if package already exsists
     If Not Upgrade Then
         If CheckForLocalInstalledPackage(PackageName, PackageVersion) = True Then
             Exit Sub
         End If
     End If
-    
+
     'Install dependecies
     If Package.Exists("dependencies") Then
         IncreaseIndent
         Call InstallDependencies(Package)
         DecreaseIndent
     End If
-    
+
     'Download and unzip
     Debug.Print "Downloading '" + PackageName + "' files..."
-    
-    Call DownloadFile(PackageName, source)
-    Call Unzip(PackageName)
+
+    Call DownloadFile(PackageName, downloadURL, InstallPath)
+    Call Unzip(PackageName, InstallPath)
     Debug.Print "Download complete!"
-   
-    Call InstallPackageComponents(PackageName, PackageVersion, Package)
-    
+
+    Call InstallPackageComponents(PackageName, PackageVersion, Package, InstallPath)
+
     Debug.Print "==================================="
-    
+
 Exit Sub
 ErrorHandler:
     Call UI.ShowError("lip.Install")
 End Sub
 
+' BROKEN! Needs to add InstallPath
 'Installs package from a zip-file. Input parameter: complete searchpath to the zip-file, including the filename
-Public Sub InstallFromZip(ZipPath As String)
+Private Sub InstallFromZip(ZipPath As String)
 On Error GoTo ErrorHandler
 
     'Check if valid path
@@ -102,7 +112,7 @@ On Error GoTo ErrorHandler
                 Debug.Print "No packages.json found, assuming fresh install"
                 Call InstallLIP
             End If
-            
+
 '           Copy file to actionpads\apps
             Dim PackageName As String
             Dim strArray() As String
@@ -110,41 +120,41 @@ On Error GoTo ErrorHandler
             PackageName = VBA.Split(strArray(UBound(strArray)), ".")(0)
             Debug.Print "====== LIP Install: " + PackageName + " ======"
             Debug.Print "Copying and unzipping file"
-            
+
             'Copy zip-file to the apps-folder if it's not already there
             If ZipPath <> ThisApplication.WebFolder & "apps\" & PackageName & ".zip" Then
                 Call VBA.FileCopy(ZipPath, ThisApplication.WebFolder & "apps\" & PackageName & ".zip")
             End If
-            
+
 '           Unzip file
-            Call Unzip(PackageName) 'Filename without fileextension as parameter
-            
+            Call Unzip(PackageName, ThisApplication.WebFolder & DefaultInstallPath) 'Filename without fileextension as parameter
+
             'Get package information from json-file
             Dim Package As Object
             Dim sJSON As String
             Dim sLine As String
-            
-            Open ThisApplication.WebFolder & "apps\" & PackageName & "\" & "app.json" For Input As #1
+
+            Open DefaultInstallPath & PackageName & "\" & "app.json" For Input As #1
             'TODO: Catch if app.json is missing
-            
+
             Do Until EOF(1)
                 Line Input #1, sLine
                 sJSON = sJSON & sLine
             Loop
-            
+
             Close #1
-            
+
             Set Package = JSON.parse(sJSON)
-            
+
             'Install dependencies
             If Package.Exists("dependencies") Then
                 IncreaseIndent
                 Call InstallDependencies(Package)
                 DecreaseIndent
             End If
-            
-            Call InstallPackageComponents(PackageName, 1, Package)
-    
+
+            Call InstallPackageComponents(PackageName, 1, Package, ThisApplication.WebFolder & DefaultInstallPath)
+
             Debug.Print "==================================="
         Else
             Debug.Print ("Couldn't find file.")
@@ -164,7 +174,7 @@ Public Sub InstallFromPackageFile()
 On Error GoTo ErrorHandler
     Dim LocalPackages As Object
     Dim LocalPackageName As Variant
-    
+
     Debug.Print "Installing dependecies from packages.json file..."
     Set LocalPackages = ReadPackageFile().Item("dependencies")
     If LocalPackages Is Nothing Then
@@ -179,41 +189,47 @@ ErrorHandler:
 End Sub
 
 
-Private Sub InstallPackageComponents(PackageName As String, PackageVersion As Double, Package)
+Private Sub InstallPackageComponents(PackageName As String, PackageVersion As Double, Package, InstallPath As String)
 On Error GoTo ErrorHandler
 
-    
+
     'Install localizations
     If Package.Item("install").Exists("localize") = True Then
         Debug.Print Indent + "Adding localizations..."
         IncreaseIndent
         Call InstallLocalize(Package.Item("install").Item("localize"))
         DecreaseIndent
-          
+
     End If
-    
+
     'Install VBA
     If Package.Item("install").Exists("vba") = True Then
         Debug.Print Indent + "Adding VBA modules, forms and classes..."
         IncreaseIndent
-        Call InstallVBAComponents(PackageName, Package.Item("install").Item("vba"))
+        Call InstallVBAComponents(PackageName, Package.Item("install").Item("vba"), InstallPath)
         DecreaseIndent
     End If
-    
+
     If Package.Item("install").Exists("tables") = True Then
         IncreaseIndent
         Call InstallFieldsAndTables(Package.Item("install").Item("tables"))
         DecreaseIndent
     End If
-    
+
     If Package.Item("install").Exists("sql") = True Then
         IncreaseIndent
-        Call InstallSQL(Package.Item("install").Item("sql"), PackageName)
+        Call InstallSQL(Package.Item("install").Item("sql"), PackageName, InstallPath)
+        DecreaseIndent
+    End If
+
+    If Package.Item("install").Exists("files") = True Then
+        IncreaseIndent
+        Call InstallFiles(Package.Item("install").Item("files"), PackageName, InstallPath)
         DecreaseIndent
     End If
     'Update packages.json
     Call WriteToPackageFile(PackageName, CStr(PackageVersion))
-    
+
     Debug.Print Indent + "Installation of " + PackageName + " done!"
 Exit Sub
 ErrorHandler:
@@ -259,17 +275,17 @@ On Error GoTo ErrorHandler
         Path = oPackages.Item(oPackage)
         Debug.Print ("Looking for package at store '" & oPackage & "'")
         sJSON = getJSON(Path + PackageName + "/")
-        
+
         If sJSON <> "" Then
             sJSON = VBA.Left(sJSON, VBA.Len(sJSON) - 1) & ",""source"":""" & oPackages.Item(oPackage) & """}" 'Add a source node so we know where the package exists
         End If
-        
+
         Set oJSON = parseJSON(sJSON) 'Create a JSON object from the string
 
         If Not oJSON Is Nothing Then
             If oJSON.Item("error") = "" Then
                 'Package found, make sure the install node exists
-                If Not oJSON.Item("info").Item("install") Is Nothing Then
+                If Not oJSON.Item("install") Is Nothing Then
                     Debug.Print ("Package '" & PackageName & "' found on store '" & oPackage & "'")
                     Set SearchForPackageOnStores = oJSON
                     Exit Function
@@ -298,9 +314,9 @@ On Error GoTo ErrorHandler
     Dim LocalPackage As Object
     Dim LocalPackageVersion As Double
     Dim LocalPackageName As Variant
-    
+
     Set LocalPackage = FindPackageLocally(PackageName)
-        
+
     If Not LocalPackage Is Nothing Then
         LocalPackageVersion = CDbl(VBA.Replace(LocalPackage.Item(PackageName), ".", ","))
         If PackageVersion = LocalPackageVersion Then
@@ -357,7 +373,7 @@ On Error GoTo ErrorHandler
     Dim NewestVersion As Double
     Dim Version As Variant
     NewestVersion = -1
-    
+
     For Each Version In oVersions
         If CDbl(VBA.Replace(Version.Item("version"), ".", ",")) > NewestVersion Then
             NewestVersion = CDbl(VBA.Replace(Version.Item("version"), ".", ","))
@@ -373,7 +389,7 @@ End Function
 Private Sub InstallLocalize(oJSON As Object)
 On Error GoTo ErrorHandler
     Dim Localize As Variant
-        
+
     For Each Localize In oJSON
         Call AddOrCheckLocalize( _
             Localize.Item("owner"), _
@@ -390,52 +406,92 @@ ErrorHandler:
     Call UI.ShowError("lip.InstallLocalize")
 End Sub
 
-Private Sub InstallSQL(oJSON As Object, PackageName As String)
+Private Sub InstallFiles(oJSON As Object, PackageName As String, InstallPath As String)
 On Error GoTo ErrorHandler
-    Dim Sql As Variant
-    Dim oProc As New LDE.Procedure
-    Dim strSQL As String
-    Dim sLine As String
-    Dim sErrormessage As String
-        
+    Dim FSO As Object
+    Dim FromPath As String
+    Dim ToPath As String
+    Dim File As Variant
+
+    For Each File In oJSON
+        FromPath = InstallPath & PackageName & "\" & File
+        ToPath = WebFolder & File
+
+        If Right(FromPath, 1) = "\" Then
+            FromPath = Left(FromPath, Len(FromPath) - 1)
+        End If
+        If Right(ToPath, 1) = "\" Then
+            ToPath = Left(ToPath, Len(ToPath) - 1)
+        End If
+        Set FSO = CreateObject("scripting.filesystemobject")
+
+        FSO.CopyFolder source:=FromPath, Destination:=ToPath
+        On Error Resume Next 'It is a beautiful languge
+        Kill FromPath
+        On Error GoTo ErrorHandler
+    Next File
+
+ErrorHandler:
+    UI.ShowError ("lip.InstallFiles")
+End Sub
+
+Private Sub InstallSQL(oJSON As Object, PackageName As String, InstallPath As String)
+On Error GoTo ErrorHandler
+    Dim SQL As Variant
+    Dim Path As String
+    Dim RelPath As String
+
     Debug.Print Indent + "Installing SQL..."
     IncreaseIndent
-    For Each Sql In oJSON
-    
-        strSQL = ""
-        sErrormessage = ""
-
-        Open ThisApplication.WebFolder & "apps\" & PackageName & "\" & Sql.Item("relPath") For Input As #1
-            Do Until EOF(1)
-                Line Input #1, sLine
-                strSQL = strSQL & sLine & vbNewLine
-            Loop
-            Close #1
-            
-            Set oProc = Database.Procedures("csp_lip_installSQL")
-            If Not oProc Is Nothing Then
-                oProc.Parameters("@@sql") = strSQL
-                oProc.Parameters("@@name") = Sql.Item("name")
-                oProc.Parameters("@@type") = Sql.Item("type")
-                oProc.Execute (False)
-                
-                sErrormessage = oProc.Parameters("@@errormessage").OutputValue
-                
-                If sErrormessage <> "" Then
-                    Debug.Print (sErrormessage)
-                Else
-                    Debug.Print ("'" & Sql.Item("name") & "'" & " added.")
-                End If
-                
-            Else
-                Call Lime.MessageBox("Couldn't find SQL-procedure 'csp_lip_installSQL'. Please make sure this procedure exists in the database and restart LDC.")
-            End If
-            
-    Next Sql
+    For Each SQL In oJSON
+        RelPath = Replace(SQL.Item("relPath"), "/", "\")
+        Path = InstallPath & PackageName & "\" & RelPath
+        Call CreateSQLProcedure(Path, SQL.Item("name"), SQL.Item("type"))
+    Next SQL
     DecreaseIndent
 Exit Sub
 ErrorHandler:
     Call UI.ShowError("lip.InstallSQL")
+End Sub
+
+Private Sub CreateSQLProcedure(Path As String, Name As String, ProcType As String)
+    Dim oProc As New LDE.Procedure
+    Dim strSQL As String
+    Dim sLine As String
+    Dim sErrormessage As String
+
+    strSQL = ""
+    sErrormessage = ""
+
+    Open Path For Input As #1
+        Do Until EOF(1)
+            Line Input #1, sLine
+            strSQL = strSQL & sLine & vbNewLine
+        Loop
+        Close #1
+
+        Set oProc = Database.Procedures("csp_lip_installSQL")
+        If Not oProc Is Nothing Then
+            oProc.Parameters("@@sql") = strSQL
+            oProc.Parameters("@@name") = Name
+            oProc.Parameters("@@type") = ProcType
+            oProc.Execute (False)
+
+            sErrormessage = oProc.Parameters("@@errormessage").OutputValue
+
+            If sErrormessage <> "" Then
+                Debug.Print (sErrormessage)
+            Else
+                Debug.Print ("'" & Name & "'" & " added.")
+            End If
+
+        Else
+            Call Lime.MessageBox("Couldn't find SQL-procedure 'csp_lip_installSQL'. Please make sure this procedure exists in the database and restart LDC.")
+        End If
+
+Exit Sub
+ErrorHandler:
+    Call UI.ShowError("lip.CreateSQLProcedure")
 End Sub
 
 Private Sub InstallFieldsAndTables(oJSON As Object)
@@ -446,27 +502,27 @@ On Error GoTo ErrorHandler
     Dim idtable As Long
     Dim iddescriptiveexpression As Long
     Dim oItem As Variant
-    
+
     Dim localname_singular As String
     Dim localname_plural As String
     Dim errormessage As String
-    
+
     Debug.Print "Adding fields and tables..."
     IncreaseIndent
-    
+
     For Each table In oJSON
         localname_singular = ""
         localname_plural = ""
         errormessage = ""
-        
+
         Set oProc = Database.Procedures("csp_lip_createtable")
-        
+
         If Not oProc Is Nothing Then
-        
+
             Debug.Print Indent + "Add table: " + table.Item("name")
-            
+
             oProc.Parameters("@@tablename").InputValue = table.Item("name")
-        
+
             'Add localnames singular
             If table.Exists("localname_singular") Then
                 For Each oItem In table.Item("localname_singular")
@@ -476,7 +532,7 @@ On Error GoTo ErrorHandler
                 Next
                 oProc.Parameters("@@localname_singular").InputValue = localname_singular
             End If
-                
+
             'Add localnames plural
             If table.Exists("localname_plural") Then
                 For Each oItem In table.Item("localname_plural")
@@ -486,21 +542,21 @@ On Error GoTo ErrorHandler
                 Next
                 oProc.Parameters("@@localname_plural").InputValue = localname_plural
             End If
-            
+
             Call oProc.Execute(False)
-            
+
             errormessage = oProc.Parameters("@@errorMessage").OutputValue
-            
+
             idtable = oProc.Parameters("@@idtable").OutputValue
             iddescriptiveexpression = oProc.Parameters("@@iddescriptiveexpression").OutputValue
-            
+
             'If errormessage is set, something went wrong
             If errormessage <> "" Then
                 Debug.Print (errormessage)
             Else
                 Debug.Print ("Table """ & table.Item("name") & """ created.")
             End If
-            
+
             ' Create fields
             IncreaseIndent
             If table.Exists("fields") Then
@@ -509,24 +565,24 @@ On Error GoTo ErrorHandler
                     Call AddField(table.Item("name"), field)
                 Next field
             End If
-            
+
             'Set table attributes(must be done AFTER fields has been created in order to be able to set descriptive expression)
             'Only set attributes if table was created
             If idtable <> -1 Then
                 Call SetTableAttributes(table, idtable, iddescriptiveexpression)
             End If
-            
+
             DecreaseIndent
-            
+
         Else
             Call Lime.MessageBox("Couldn't find SQL-procedure 'csp_lip_createtable'. Please make sure this procedure exists in the database and restart LDC.")
         End If
-        
+
     Next table
     DecreaseIndent
-    
+
     Set oProc = Nothing
-    
+
     Exit Sub
 ErrorHandler:
     Set oProc = Nothing
@@ -546,11 +602,12 @@ On Error GoTo ErrorHandler
     fieldLocalnames = ""
     separatorLocalnames = ""
     Set oProc = Database.Procedures("csp_lip_createfield")
-    
+
     If Not oProc Is Nothing Then
         oProc.Parameters("@@tablename").InputValue = tableName
         oProc.Parameters("@@fieldname").InputValue = field.Item("name")
-        
+        oProc.Parameters("@@type").InputValue = field.Item("type")
+
         'Add localnames
         If field.Exists("localname") Then
             For Each oItem In field.Item("localname")
@@ -560,7 +617,7 @@ On Error GoTo ErrorHandler
             Next
             oProc.Parameters("@@localname").InputValue = fieldLocalnames
         End If
-        
+
         'Add attributes
         If field.Exists("attributes") Then
             For Each oItem In field.Item("attributes")
@@ -573,7 +630,7 @@ On Error GoTo ErrorHandler
                 End If
             Next
         End If
-        
+
         'Add separator
         If field.Exists("separator") Then
             For Each oItem In field.Item("separator")
@@ -581,7 +638,7 @@ On Error GoTo ErrorHandler
             Next
             oProc.Parameters("@@separator").InputValue = separatorLocalnames
         End If
-        
+
         Dim strOptions As String
         strOptions = ""
         'Add options
@@ -595,11 +652,11 @@ On Error GoTo ErrorHandler
             Next
             oProc.Parameters("@@optionlist").InputValue = strOptions
         End If
-        
+
         Call oProc.Execute(False)
-        
+        'Debug.Print Indent + "Installed field " & field.Item("name")
         errormessage = oProc.Parameters("@@errorMessage").OutputValue
-        
+
         'If errormessage is set, something went wrong
         If errormessage <> "" Then
             Debug.Print (errormessage)
@@ -610,7 +667,7 @@ On Error GoTo ErrorHandler
         Call Lime.MessageBox("Couldn't find SQL-procedure 'csp_lip_createfield'. Please make sure this procedure exists in the database and restart LDC.")
     End If
     Set oProc = Nothing
-    
+
     Exit Sub
 ErrorHandler:
     Set oProc = Nothing
@@ -623,19 +680,19 @@ On Error GoTo ErrorHandler
     Dim oProcAttributes As LDE.Procedure
     Dim oItem As Variant
     Dim errormessage As String
-    
+
     If table.Exists("attributes") Then
-    
+
         Set oProcAttributes = Application.Database.Procedures("csp_lip_settableattributes")
-        
+
         If Not oProcAttributes Is Nothing Then
-        
+
             Debug.Print Indent + "Adding attributes for table: " + table.Item("name")
-        
+
             oProcAttributes.Parameters("@@tablename").InputValue = table.Item("name")
             oProcAttributes.Parameters("@@idtable").InputValue = idtable
             oProcAttributes.Parameters("@@iddescriptiveexpression").InputValue = iddescriptiveexpression
-        
+
             For Each oItem In table.Item("attributes")
                 If oItem <> "" Then
                     If Not oProcAttributes.Parameters.Lookup("@@" & oItem, lkLookupProcedureParameterByName) Is Nothing Then
@@ -645,32 +702,32 @@ On Error GoTo ErrorHandler
                     End If
                 End If
             Next
-            
+
             Call oProcAttributes.Execute(False)
-        
+
             errormessage = oProcAttributes.Parameters("@@errorMessage").OutputValue
-            
+
             'If errormessage is set, something went wrong
             If errormessage <> "" Then
                 Debug.Print (errormessage)
             Else
                 Debug.Print ("Attributes for table """ & table.Item("name") & """ set.")
             End If
-        
+
         Else
             Call Lime.MessageBox("Couldn't find SQL-procedure 'csp_lip_settableattributes'. Please make sure this procedure exists in the database and restart LDC.")
         End If
     End If
-    
+
     Set oProcAttributes = Nothing
-    
+
     Exit Sub
 ErrorHandler:
     Set oProcAttributes = Nothing
     Call UI.ShowError("lip.SetTableAttributes")
 End Sub
 
-Private Sub DownloadFile(PackageName As String, Path As String)
+Private Sub DownloadFile(PackageName As String, Path As String, InstallPath As String)
 On Error GoTo ErrorHandler
     Dim qs As String
     qs = CStr(Rnd() * 1000000#)
@@ -678,19 +735,19 @@ On Error GoTo ErrorHandler
     Dim myURL As String
     Dim oStream As Object
     downloadURL = Path + PackageName + "/download/"
-    
+
     Dim WinHttpReq As Object
     Set WinHttpReq = CreateObject("Microsoft.XMLHTTP")
     WinHttpReq.Open "GET", downloadURL + "?" + qs, False
     WinHttpReq.Send
-    
+
     myURL = WinHttpReq.responseBody
     If WinHttpReq.status = 200 Then
         Set oStream = CreateObject("ADODB.Stream")
         oStream.Open
         oStream.Type = 1
         oStream.Write WinHttpReq.responseBody
-        oStream.SaveToFile WebFolder + "apps\" + PackageName + ".zip", 2 ' 1 = no overwrite, 2 = overwrite
+        oStream.SaveToFile InstallPath + PackageName + ".zip", 2 ' 1 = no overwrite, 2 = overwrite
         oStream.Close
     End If
     Exit Sub
@@ -698,7 +755,7 @@ ErrorHandler:
     Call UI.ShowError("lip.DownloadFile")
 End Sub
 
-Private Sub Unzip(PackageName)
+Private Sub Unzip(PackageName As String, InstallPath As String)
 On Error GoTo ErrorHandler
     Dim FSO As Object
     Dim oApp As Object
@@ -707,8 +764,8 @@ On Error GoTo ErrorHandler
     Dim DefPath As String
     Dim strDate As String
 
-    Fname = WebFolder + "apps\" + PackageName + ".zip"
-    FileNameFolder = WebFolder & "apps\" & PackageName & "\"
+    Fname = InstallPath + PackageName + ".zip"
+    FileNameFolder = InstallPath & PackageName & "\"
 
     On Error Resume Next
     Set FSO = CreateObject("scripting.filesystemobject")
@@ -716,27 +773,27 @@ On Error GoTo ErrorHandler
     FSO.DeleteFile FileNameFolder & "*.*", True
     'Delete subfolders
     FSO.DeleteFolder FileNameFolder & "*.*", True
-    
+
     'Make the normal folder in DefPath
     MkDir FileNameFolder
-    
+
     Set oApp = CreateObject("Shell.Application")
     oApp.Namespace(FileNameFolder).CopyHere oApp.Namespace(Fname).Items
-    
+
     'Delete zip-file
     FSO.DeleteFile Fname, True
-    
+
     Exit Sub
 ErrorHandler:
     Call UI.ShowError("lip.Unzip")
 End Sub
 
-Private Sub InstallVBAComponents(PackageName As String, VBAModules As Object)
+Private Sub InstallVBAComponents(PackageName As String, VBAModules As Object, InstallPath As String)
 On Error GoTo ErrorHandler
     Dim VBAModule As Variant
     IncreaseIndent
     For Each VBAModule In VBAModules
-        Call addModule(PackageName, VBAModule.Item("name"), VBAModule.Item("relPath"))
+        Call addModule(PackageName, VBAModule.Item("name"), VBAModule.Item("relPath"), InstallPath)
         Debug.Print Indent + "Added " + VBAModule.Item("name")
     Next VBAModule
     DecreaseIndent
@@ -745,13 +802,13 @@ ErrorHandler:
     Call UI.ShowError("lip.InstallVBAComponents")
 End Sub
 
-Private Sub addModule(PackageName As String, ModuleName As String, RelPath As String)
+Private Sub addModule(PackageName As String, ModuleName As String, RelPath As String, InstallPath As String)
 On Error GoTo ErrorHandler
     If PackageName <> "" And ModuleName <> "" Then
         Dim VBComps As Object
         Dim Path As String
         Dim tempModuleName As String
-        
+
         Set VBComps = Application.VBE.ActiveVBProject.VBComponents
         If ComponentExists(ModuleName, VBComps) = True Then
             tempModuleName = LCO.GenerateGUID
@@ -760,8 +817,8 @@ On Error GoTo ErrorHandler
             VBComps.Item(ModuleName).Name = tempModuleName
             Call VBComps.Remove(VBComps.Item(tempModuleName))
         End If
-        Path = WebFolder + "apps\" + PackageName + "\" + RelPath
-     
+        Path = InstallPath + PackageName + "\" + Replace(RelPath, "/", "\")
+
         Call Application.VBE.ActiveVBProject.VBComponents.Import(Path)
     End If
     Exit Sub
@@ -772,16 +829,16 @@ End Sub
 Private Function ComponentExists(ComponentName As String, VBComps As Object) As Boolean
 On Error GoTo ErrorHandler
     Dim VBComp As Variant
-    
+
     For Each VBComp In VBComps
         If VBComp.Name = ComponentName Then
              ComponentExists = True
              Exit Function
         End If
     Next VBComp
-    
+
     ComponentExists = False
-    
+
     Exit Function
 ErrorHandler:
     Call UI.ShowError("lip.ComponentExists")
@@ -794,7 +851,7 @@ On Error GoTo ErrorHandler
     Dim a As Object
     Dim Line As Variant
     Set oJSON = ReadPackageFile
-    
+
     oJSON.Item("dependencies").Item(PackageName) = Version
 
     Set fs = CreateObject("Scripting.FileSystemObject")
@@ -815,7 +872,7 @@ On Error GoTo ErrorHandler
     Dim Indent As String
     Dim PrettyJSON As String
     Dim InsideQuotation As Boolean
-    
+
     For i = 1 To Len(JSON)
         Select Case Mid(JSON, i, 1)
             Case """"
@@ -850,7 +907,7 @@ On Error GoTo ErrorHandler
         End Select
     Next i
     PrettyPrintJSON = PrettyJSON
-    
+
     Exit Function
 ErrorHandler:
     PrettyPrintJSON = ""
@@ -862,16 +919,16 @@ On Error GoTo ErrorHandler
     Dim sJSON As String
     Dim oJSON As Object
     sJSON = getJSON(WebFolder + "packages.json")
-    
+
     If sJSON = "" Then
         Debug.Print "Error: No packages.json found!"
         Set ReadPackageFile = Nothing
         Exit Function
     End If
-    
+
     Set oJSON = JSON.parse(sJSON)
     Set ReadPackageFile = oJSON
-    
+
     Exit Function
 ErrorHandler:
     Set ReadPackageFile = Nothing
@@ -885,9 +942,9 @@ On Error GoTo ErrorHandler
     Dim ReturnDict As New Scripting.Dictionary
     Dim oPackageFile As Object
     Set oPackageFile = ReadPackageFile
-    
+
     If Not oPackageFile Is Nothing Then
-    
+
         If oPackageFile.Exists("dependencies") Then
             Set InstalledPackages = oPackageFile.Item("dependencies")
             If InstalledPackages.Exists(PackageName) = True Then
@@ -898,9 +955,9 @@ On Error GoTo ErrorHandler
         Else
             Debug.Print ("Couldn't find dependencies in packages.json")
         End If
-        
+
     End If
-    
+
     Set FindPackageLocally = Nothing
     Exit Function
 ErrorHandler:
@@ -928,18 +985,42 @@ ErrorHandler:
     Call UI.ShowError("lip.CreateNewPackageFile")
 End Sub
 
+Public Function GetAllInstalledPackages() As String
+On Error GoTo ErrorHandler
+    Dim oPackageFile As Object
+    Set oPackageFile = ReadPackageFile()
+
+    If Not oPackageFile Is Nothing Then
+        GetAllInstalledPackages = JSON.toString(oPackageFile)
+    Else
+        GetAllInstalledPackages = "{}"
+        Debug.Print ("Couldn't find dependencies in packages.json")
+    End If
+
+    Exit Function
+ErrorHandler:
+    Call UI.ShowError("lip.GetInstalledPackages")
+End Function
+
 Public Sub InstallLIP()
 On Error GoTo ErrorHandler
+    Dim InstallPath As String
 
     Debug.Print "Creating a new packages.json file..."
     Call CreateANewPackageFile
-    
+    Dim FSO As New FileSystemObject
+    InstallPath = ThisApplication.WebFolder & DefaultInstallPath
+    If Not FSO.FolderExists(InstallPath) Then
+        FSO.CreateFolder InstallPath
+    End If
+
     Debug.Print "Installing JSON-lib..."
-    Call DownloadFile("vba_json", BaseURL + ApiURL)
-    Call Unzip("vba_json")
-    Call addModule("vba_json", "JSON", "JSON.bas")
-    Call addModule("vba_json", "cStringBuilder", "cStringBuilder.cls")
-    
+    Call DownloadFile("vba_json", BaseURL + ApiURL, InstallPath)
+    Call Unzip("vba_json", InstallPath)
+    Call addModule("vba_json", "JSON", "JSON.bas", InstallPath)
+    Call addModule("vba_json", "cStringBuilder", "cStringBuilder.cls", InstallPath)
+    'Call CreateSQLProcedure(
+
     Call WriteToPackageFile("vba_json", "1")
 
     Debug.Print "Install of LIP complete!"
@@ -952,11 +1033,11 @@ Private Function AddOrCheckLocalize(sOwner As String, sCode As String, sDescript
 On Error GoTo ErrorHandler
     Dim oFilter As New LDE.Filter
     Dim oRecs As New LDE.Records
-    
+
     Call oFilter.AddCondition("owner", lkOpEqual, sOwner)
     Call oFilter.AddCondition("code", lkOpEqual, sCode)
     oFilter.AddOperator lkOpAnd
-    
+
     If oFilter.HitCount(Database.Classes("localize")) = 0 Then
         Debug.Print (Indent + "Localization " & sOwner & "." & sCode & " not found, creating new!")
         Dim oRec As New LDE.Record
@@ -980,11 +1061,11 @@ On Error GoTo ErrorHandler
         oRecs(1).Value("no") = sNO
         oRecs(1).Value("fi") = sFI
         Call oRecs.Update
-        
+
     Else
         Call Lime.MessageBox("There are multiple copies of " & sOwner & "." & sCode & ". Fix this and try again.", vbCritical)
     End If
-    
+
     Set Localize.dicLookup = Nothing
     AddOrCheckLocalize = True
     Exit Function
@@ -1008,5 +1089,3 @@ On Error GoTo ErrorHandler
 ErrorHandler:
     Call UI.ShowError("lip.DecreaseIndent")
 End Sub
-
-
