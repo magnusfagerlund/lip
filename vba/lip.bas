@@ -4,8 +4,8 @@ Option Explicit
 
 'Lundalogik Package Store, DO NOT CHANGE, used to download system files for LIP
 'Please add your own stores in packages.json
-Private Const BaseURL As String = "http://limebootstrap.lundalogik.com"
-Private Const ApiURL As String = "/api/apps/"
+Private Const BaseURL As String = "http://api.lime-bootstrap.com"
+Private Const ApiURL As String = "/packages/"
 
 Private Const DefaultInstallPath = "packages\"
 
@@ -973,8 +973,8 @@ On Error GoTo ErrorHandler
     Set a = fs.CreateTextFile(WebFolder + "packages.json", True)
     a.WriteLine ("{")
     a.WriteLine ("    ""stores"":{")
-    a.WriteLine ("        ""PackageStore"":""http://limebootstrap.lundalogik.com/api/apps/"",")
-    a.WriteLine ("        ""Bootstrap Appstore"":""http://limebootstrap.lundalogik.com/api/apps/""")
+    a.WriteLine ("        ""PackageStore"":""http://api.lime-bootstrap.com/packages/"",")
+    a.WriteLine ("        ""Bootstrap Appstore"":""http://api.lime-bootstrap.com/apps/""")
     a.WriteLine ("    },")
     a.WriteLine ("    ""dependencies"":{")
     a.WriteLine ("    }")
