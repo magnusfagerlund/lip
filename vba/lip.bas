@@ -609,7 +609,6 @@ On Error GoTo ErrorHandler
     If Not oProc Is Nothing Then
         oProc.Parameters("@@tablename").InputValue = tableName
         oProc.Parameters("@@fieldname").InputValue = field.Item("name")
-        oProc.Parameters("@@type").InputValue = field.Item("type")
 
         'Add localnames
         If field.Exists("localname") Then
