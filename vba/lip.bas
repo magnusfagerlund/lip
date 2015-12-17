@@ -101,7 +101,7 @@ End Sub
 
 ' BROKEN! Needs to add InstallPath
 'Installs package from a zip-file. Input parameter: complete searchpath to the zip-file, including the filename
-Private Sub InstallFromZip(ZipPath As String)
+Public Sub InstallFromZip(ZipPath As String)
 On Error GoTo ErrorHandler
 
     'Check if valid path
@@ -123,7 +123,7 @@ On Error GoTo ErrorHandler
 
             'Copy zip-file to the apps-folder if it's not already there
             If ZipPath <> ThisApplication.WebFolder & "apps\" & PackageName & ".zip" Then
-                Call VBA.FileCopy(ZipPath, ThisApplication.WebFolder & "apps\" & PackageName & ".zip")
+                Call VBA.FileCopy(ZipPath, ThisApplication.WebFolder & DefaultInstallPath & PackageName & ".zip")
             End If
 
 '           Unzip file
@@ -134,7 +134,7 @@ On Error GoTo ErrorHandler
             Dim sJSON As String
             Dim sLine As String
 
-            Open DefaultInstallPath & PackageName & "\" & "app.json" For Input As #1
+            Open ThisApplication.WebFolder & DefaultInstallPath & PackageName & "\" & "app.json" For Input As #1
             'TODO: Catch if app.json is missing
 
             Do Until EOF(1)
@@ -425,7 +425,7 @@ On Error GoTo ErrorHandler
         End If
         Set FSO = CreateObject("scripting.filesystemobject")
 
-        FSO.CopyFolder source:=FromPath, Destination:=ToPath
+        FSO.CopyFolder Source:=FromPath, Destination:=ToPath
         On Error Resume Next 'It is a beautiful languge
         Kill FromPath
         On Error GoTo ErrorHandler
@@ -596,11 +596,14 @@ On Error GoTo ErrorHandler
     Dim errormessage As String
     Dim fieldLocalnames As String
     Dim separatorLocalnames As String
+    Dim tooltipLocalnames As String
     Dim oItem As Variant
     Dim optionItems As Variant
     errormessage = ""
     fieldLocalnames = ""
     separatorLocalnames = ""
+    tooltipLocalnames = ""
+    
     Set oProc = Database.Procedures("csp_lip_createfield")
 
     If Not oProc Is Nothing Then
@@ -637,6 +640,14 @@ On Error GoTo ErrorHandler
                 separatorLocalnames = separatorLocalnames + VBA.Trim(oItem) + ":" + VBA.Trim(field.Item("separator").Item(oItem)) + ";"
             Next
             oProc.Parameters("@@separator").InputValue = separatorLocalnames
+        End If
+        
+        'Add tooltip
+        If field.Exists("tooltip") Then
+            For Each oItem In field.Item("tooltip")
+                tooltipLocalnames = tooltipLocalnames + VBA.Trim(oItem) + ":" + VBA.Trim(field.Item("tooltip").Item(oItem)) + ";"
+            Next
+            oProc.Parameters("@@tooltip").InputValue = tooltipLocalnames
         End If
 
         Dim strOptions As String
