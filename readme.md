@@ -165,6 +165,10 @@ An example of how the app.json-file could look like:
                             "sv": "Testseparator",
                             "en_us": "Test separator"
                         },
+						"tooltip": {
+			                            "sv": "Min beskrivning",
+			                            "en_us": "My tooltip"
+						},
 						"options": [
 							{
 								"sv": "Alt 1",
@@ -314,11 +318,20 @@ Localnames for the field. Each line in this node represent a language. Valid lan
 ```
 
 ###### separator
-Adds a separator to the field. The separator is placed BEFORE the field. Specify the localnames for the separator inside this node. Example
+Adds a separator to the field. The separator is placed BEFORE the field. Specify the localnames for the separator inside this node. Example:
 ```
 "separator": {
 "sv": "Administrativ information",
 "en_us": "Administrative information"
+}
+```
+###### tooltip
+Adds tooltip to the field. Specify the localnames for the tooltip inside this node.
+Example:
+```
+"tooltip": {
+    "sv": "Min beskrivning",
+    "en_us": "My tooltip"
 }
 ```
 ###### options
