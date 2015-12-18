@@ -159,7 +159,8 @@ An example of how the app.json-file could look like:
                             "onsqlinsert": "[test].[field4]",
                             "fieldorder": "4",
                             "isnullable": "0",
-                            "type": "1"
+                            "type": "1",
+                            "relationtab": "1"
                         },
                         "separator": {
                             "sv": "Testseparator",
@@ -377,7 +378,8 @@ Sets attributes for the field. Each line in this node represent an attribute.
     "onsqlinsert": "[test].[field4]",
     "fieldorder": "4",
     "isnullable": "0",
-    "type": "1"
+    "type": "1",
+    "relationtab": "1"
 }
 ```
 Valid attributes:
@@ -401,6 +403,7 @@ isnullable|No|0/1|0
 limereadonly|No|0/1|0
 required_for_editing|No|0/1|0
 type|No|**Timefields:** 0/1/2/3/4/5/6/7/8/9 ("Date" / "Date and Time" / "Time" / "Year" / "Half a Year" / "Four Months" / "Quarter" / "Month" / "Week" / "Date and Time (with Seconds)" **Optionlists:** 0/1 ("Color and Text"/"Only Color")|0
+relationtab|No|0/1 (relationfield / relationtab, only valid when creating a relation)|0 (relationfield)
 
 ### Versioning
 ####Package versioning
