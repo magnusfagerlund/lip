@@ -187,7 +187,21 @@ An example of how the app.json-file could look like:
                     }
                 ]
             }
-        ]
+        ],
+	"relations": [
+	{
+		"table1": "company",
+		"field1": "person",
+		"table2": "person",
+		"field2": "company"
+	},
+	{
+		"table1": "business",
+		"field1": "responsible",
+		"table2": "coworker",
+		"field2": "business"
+	}
+	]
     }
 }
 ```
@@ -404,6 +418,25 @@ limereadonly|No|0/1|0
 required_for_editing|No|0/1|0
 type|No|**Timefields:** 0/1/2/3/4/5/6/7/8/9 ("Date" / "Date and Time" / "Time" / "Year" / "Half a Year" / "Four Months" / "Quarter" / "Month" / "Week" / "Date and Time (with Seconds)" **Optionlists:** 0/1 ("Color and Text"/"Only Color")|0
 relationtab|No|0/1 (relationfield / relationtab, only valid when creating a relation)|0 (relationfield)
+
+#### relations
+Here you specify which relations to create. This section only contains information about which fields/tabs to create a relation between, the rest of the information about each field you specify in the field-section. There you also specify whether the field should be an actual field or a tab (attribute 'relationtab' set to 0 or 1). Example:
+```
+	"relations": [
+	{
+		"table1": "company",
+		"field1": "person",
+		"table2": "person",
+		"field2": "company"
+	},
+	{
+		"table1": "business",
+		"field1": "responsible",
+		"table2": "coworker",
+		"field2": "business"
+	}
+	]
+```
 
 ### Versioning
 ####Package versioning
