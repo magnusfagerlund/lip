@@ -31,6 +31,7 @@ CREATE PROCEDURE [dbo].[csp_lip_createfield]
 	, @@fieldorder INT = 0 -- Default value 0 means it will be put last
 	, @@isnullable INT = 0
 	, @@type INT = 0
+	, @@relationtab BIT = 0
 	, @@errorMessage NVARCHAR(512) OUTPUT
 	, @@idfield INT OUTPUT
 AS
@@ -68,8 +69,14 @@ BEGIN
 	SET @currentOption =N''
 	SET @nextOptionStarts = 0
 	SET @nextOptionEnds = 0
-	SET @supportedFieldtypes = N'string;integer;decimal;time;link;yesno;set;option;formatedstring;color;'
-	--Not supported: geography;html;xml;file;relation;user;sql
+	SET @supportedFieldtypes = N'string;integer;decimal;time;link;yesno;set;option;formatedstring;color;relation'
+	--Not supported: geography;html;xml;file;user;sql
+	
+	--Make sure @@length is set to NULL if fieldtype is not string
+	IF @@fieldtype <> N'string' AND @@length IS NOT NULL
+	BEGIN
+		SET @@length = NULL
+	END
 	
 	--Check if field already exists
 	EXEC lsp_getfield @@table = @@tablename, @@name = @@fieldname, @@count = @count OUTPUT
@@ -198,6 +205,16 @@ BEGIN
 					
 					--Set fieldorder, if not provided we use default value 0 which means it will be put last
 					EXEC @return_value = [dbo].[lsp_setfieldorder] @@idfield = @@idfield, @@fieldorder = @@fieldorder
+					
+					--Set relation properties, if relationfield
+					IF @@fieldtype = N'relation'
+					BEGIN
+						EXEC lsp_setattributevalue @@owner = 'field', @@idrecord = @@idfield, @@name = 'relationmincount', @@value = 0
+						IF @@relationtab = 1
+						BEGIN
+							EXEC lsp_setattributevalue @@owner = 'field', @@idrecord = @@idfield, @@name = 'relationmaxcount', @@value = 1
+						END	
+					END
 					
 					--Create separator
 					IF @@separator <> N''
