@@ -215,6 +215,12 @@ On Error GoTo ErrorHandler
         Call InstallFieldsAndTables(Package.Item("install").Item("tables"))
         DecreaseIndent
     End If
+    
+    If Package.Item("install").Exists("relations") = True Then
+        IncreaseIndent
+        Call InstallRelations(Package.Item("install").Item("relations"))
+        DecreaseIndent
+    End If
 
     If Package.Item("install").Exists("sql") = True Then
         IncreaseIndent
@@ -1099,3 +1105,57 @@ On Error GoTo ErrorHandler
 ErrorHandler:
     Call UI.ShowError("lip.DecreaseIndent")
 End Sub
+
+Private Sub InstallRelations(oJSON As Object)
+On Error GoTo ErrorHandler
+    Dim relation As Object
+    Dim oProc As LDE.Procedure
+
+    Dim errormessage As String
+
+    Debug.Print "Adding relations..."
+    IncreaseIndent
+
+    For Each relation In oJSON
+    
+        errormessage = ""
+
+        Set oProc = Database.Procedures("csp_lip_addRelations")
+
+        If Not oProc Is Nothing Then
+
+            Debug.Print Indent + "Add relation between: " + relation.Item("table1") + "." + relation.Item("field1") + " and " + relation.Item("table2") + "." + relation.Item("field2")
+
+            oProc.Parameters("@@table1").InputValue = relation.Item("table1")
+            oProc.Parameters("@@field1").InputValue = relation.Item("field1")
+            oProc.Parameters("@@table2").InputValue = relation.Item("table2")
+            oProc.Parameters("@@field2").InputValue = relation.Item("field2")
+
+            Call oProc.Execute(False)
+
+            errormessage = oProc.Parameters("@@errorMessage").OutputValue
+
+            'If errormessage is set, something went wrong
+            If errormessage <> "" Then
+                Debug.Print (errormessage)
+            Else
+                Debug.Print ("Relation between: " + relation.Item("table1") + "." + relation.Item("field1") + " and " + relation.Item("table2") + "." + relation.Item("field2") + " created.")
+            End If
+            
+            DecreaseIndent
+
+        Else
+            Call Lime.MessageBox("Couldn't find SQL-procedure 'csp_lip_addRelations'. Please make sure this procedure exists in the database and restart LDC.")
+        End If
+
+    Next relation
+    DecreaseIndent
+
+    Set oProc = Nothing
+
+    Exit Sub
+ErrorHandler:
+    Set oProc = Nothing
+    Call UI.ShowError("lip.InstallRelations")
+End Sub
+
