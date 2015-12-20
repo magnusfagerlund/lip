@@ -175,7 +175,8 @@ An example of how the app.json-file could look like:
 								"sv": "Alt 1",
 								"en_us": "Alt 1",
 								"key": "alt1",
-								"color": "65535"
+								"color": "65535",
+								"default": "true"
 							},
 							{
 								"sv": "Alt 2",
@@ -350,8 +351,11 @@ Example:
 }
 ```
 ###### options
-Adds options to an option field, set field or textfield. Every option must be specified as an own node and localnames, keys and colors are placed inside this node.
-If you specify a color, this can't be placed first in the option-node. Some color-examples: red=255, yellow=65535, blue=16711680, green=32768.
+Adds options to an option field, set field or textfield. Every option must be specified as an own node and localnames and other attributes are placed inside this node.
+
+Important! Localize rows must be placed first in the node. If you place the color or default attribute first, these attributes won't be set.
+
+Some color-examples: red=255, yellow=65535, blue=16711680, green=32768.
 
 Example:
 
@@ -361,7 +365,8 @@ Example:
 		"sv": "Alt 1",
 		"en_us": "Alt 1",
 		"key": "alt1",
-		"color": "65535"
+		"color": "65535",
+		"default": "true"
 	},
 	{
 		"sv": "Alt 2",
