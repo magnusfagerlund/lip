@@ -356,12 +356,12 @@ BEGIN
 											IF @nextOccurance <> 0
 											BEGIN
 												SET @currentString = SUBSTRING(@currentOption, @currentPositionInOption, @nextOccurance - @currentPositionInOption)
-												SET @currentLanguage=SUBSTRING(@currentString,0,CHARINDEX(':', @currentString))
+												SET @currentLanguage=LOWER(SUBSTRING(@currentString,0,CHARINDEX(':', @currentString)))
 												SET @currentLocalize=SUBSTRING(@currentString,CHARINDEX(':', @currentString)+1,LEN(@currentString)-CHARINDEX(':', @currentString))
 												
 												IF @isFirstLocalize = 1
 												BEGIN
-													IF @currentLanguage <> N'color'
+													IF @currentLanguage <> N'color' AND @currentLanguage <> N'default'
 													BEGIN
 														EXEC @return_value = [dbo].[lsp_addstring]
 															@@idcategory = @idcategory
@@ -374,14 +374,7 @@ BEGIN
 												END
 												ELSE
 												BEGIN
-													IF @currentLanguage <> N'color'
-													BEGIN						
-														EXEC @return_value = [dbo].[lsp_setstring]
-																@@idstring = @idstring
-																, @@lang = @currentLanguage
-																, @@string = @currentLocalize
-													END
-													ELSE
+													IF @currentLanguage = N'color'
 													BEGIN
 														EXEC lsp_addattributedata
 															@@owner	= N'string',
@@ -389,6 +382,26 @@ BEGIN
 															@@idrecord2 = NULL,
 															@@name = N'color',
 															@@value	= @currentLocalize
+													END
+													ELSE
+													BEGIN
+														IF @currentLanguage = N'default'
+														BEGIN
+															IF LOWER(@currentLocalize) = N'true'
+															BEGIN
+																EXEC [dbo].[lsp_setfieldattributevalue] 
+																	@@idfield = @@idfield
+																	, @@name = N'defaultvalue'
+																	, @@valueint = @idstring
+															END
+														END
+														ELSE
+														BEGIN
+															EXEC @return_value = [dbo].[lsp_setstring]
+																	@@idstring = @idstring
+																	, @@lang = @currentLanguage
+																	, @@string = @currentLocalize
+														END
 													END
 												END
 														
@@ -401,9 +414,9 @@ BEGIN
 						END							
 					END
 					
-					IF @@fieldtype = N'time'
+					IF @@fieldtype = N'time' OR @@fieldtype = N'option'
 					BEGIN
-						--Set type for timefield
+						--Set type for timefield or optionlist
 						EXEC [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'type', @@valueint = @@type
 					END
 					
