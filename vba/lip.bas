@@ -38,15 +38,15 @@ On Error GoTo ErrorHandler
 
     'Check if first use ever
     If Dir(WebFolder + "packages.json") = "" Then
-        Debug.Print "No packages.json found, assuming fresh install"
+        Debug.Print Indent + "No packages.json found, assuming fresh install"
         Call InstallLIP
     End If
 
     PackageName = LCase(PackageName)
 
-    Debug.Print "====== LIP Install: " + PackageName + " ======"
+    Debug.Print Indent + "====== LIP Install: " + PackageName + " ======"
 
-    Debug.Print "Looking for package: '" + PackageName + "'"
+    Debug.Print Indent + "Looking for package: '" + PackageName + "'"
     Set Package = SearchForPackageOnStores(PackageName)
     If Package Is Nothing Then
         Exit Sub
@@ -84,15 +84,15 @@ On Error GoTo ErrorHandler
     End If
 
     'Download and unzip
-    Debug.Print "Downloading '" + PackageName + "' files..."
+    Debug.Print Indent + "Downloading '" + PackageName + "' files..."
 
     Call DownloadFile(PackageName, downloadURL, InstallPath)
     Call Unzip(PackageName, InstallPath)
-    Debug.Print "Download complete!"
+    Debug.Print Indent + "Download complete!"
 
     Call InstallPackageComponents(PackageName, PackageVersion, Package, InstallPath)
 
-    Debug.Print "==================================="
+    Debug.Print Indent + "==================================="
 
 Exit Sub
 ErrorHandler:
@@ -109,7 +109,7 @@ On Error GoTo ErrorHandler
         If VBA.Dir(ZipPath) <> "" Then
             'Check if first use ever
             If Dir(WebFolder + "packages.json") = "" Then
-                Debug.Print "No packages.json found, assuming fresh install"
+                Debug.Print Indent + "No packages.json found, assuming fresh install"
                 Call InstallLIP
             End If
 
@@ -118,8 +118,8 @@ On Error GoTo ErrorHandler
             Dim strArray() As String
             strArray = VBA.Split(ZipPath, "\")
             PackageName = VBA.Split(strArray(UBound(strArray)), ".")(0)
-            Debug.Print "====== LIP Install: " + PackageName + " ======"
-            Debug.Print "Copying and unzipping file"
+            Debug.Print Indent + "====== LIP Install: " + PackageName + " ======"
+            Debug.Print Indent + "Copying and unzipping file"
 
             'Copy zip-file to the apps-folder if it's not already there
             If ZipPath <> ThisApplication.WebFolder & "apps\" & PackageName & ".zip" Then
@@ -155,12 +155,12 @@ On Error GoTo ErrorHandler
 
             Call InstallPackageComponents(PackageName, 1, Package, ThisApplication.WebFolder & DefaultInstallPath)
 
-            Debug.Print "==================================="
+            Debug.Print Indent + "==================================="
         Else
-            Debug.Print ("Couldn't find file.")
+            Debug.Print Indent + ("Couldn't find file.")
         End If
     Else
-        Debug.Print ("Path must end with .zip")
+        Debug.Print Indent + ("Path must end with .zip")
     End If
 
 
@@ -175,7 +175,7 @@ On Error GoTo ErrorHandler
     Dim LocalPackages As Object
     Dim LocalPackageName As Variant
 
-    Debug.Print "Installing dependecies from packages.json file..."
+    Debug.Print Indent + "Installing dependecies from packages.json file..."
     Set LocalPackages = ReadPackageFile().Item("dependencies")
     If LocalPackages Is Nothing Then
         Exit Sub
@@ -258,7 +258,7 @@ On Error GoTo ErrorHandler
         Else
         End If
     Next DependencyName
-    DecreaseIndent
+    Call DecreaseIndent
 Exit Sub
 ErrorHandler:
     Call UI.ShowError("lip.InstallDependencies")
@@ -279,7 +279,7 @@ On Error GoTo ErrorHandler
     For Each oPackage In oPackages
 
         Path = oPackages.Item(oPackage)
-        Debug.Print ("Looking for package at store '" & oPackage & "'")
+        Debug.Print Indent + ("Looking for package at store '" & oPackage & "'")
         sJSON = getJSON(Path + PackageName + "/")
 
         If sJSON <> "" Then
@@ -292,11 +292,11 @@ On Error GoTo ErrorHandler
             If oJSON.Item("error") = "" Then
                 'Package found, make sure the install node exists
                 If Not oJSON.Item("install") Is Nothing Then
-                    Debug.Print ("Package '" & PackageName & "' found on store '" & oPackage & "'")
+                    Debug.Print Indent + ("Package '" & PackageName & "' found on store '" & oPackage & "'")
                     Set SearchForPackageOnStores = oJSON
                     Exit Function
                 Else
-                    Debug.Print ("Package '" & PackageName & "' found on store '" & oPackage & "' but has no valid install instructions!")
+                    Debug.Print Indent + ("Package '" & PackageName & "' found on store '" & oPackage & "' but has no valid install instructions!")
                     Set SearchForPackageOnStores = Nothing
                     Exit Function
                 End If
@@ -305,7 +305,7 @@ On Error GoTo ErrorHandler
     Next
 
     'If we've reached this code, package wasn't found
-    Debug.Print ("Package '" & PackageName & "' not found!")
+    Debug.Print Indent + ("Package '" & PackageName & "' not found!")
     Set SearchForPackageOnStores = Nothing
 
 Exit Function
@@ -326,18 +326,18 @@ On Error GoTo ErrorHandler
     If Not LocalPackage Is Nothing Then
         LocalPackageVersion = CDbl(VBA.Replace(LocalPackage.Item(PackageName), ".", ","))
         If PackageVersion = LocalPackageVersion Then
-            Debug.Print "Current version of" + PackageName + " is already installed, please use the upgrade command to reinstall package"
-            Debug.Print "==================================="
+            Debug.Print Indent + "Current version of" + PackageName + " is already installed, please use the upgrade command to reinstall package"
+            Debug.Print Indent + "==================================="
             CheckForLocalInstalledPackage = True
             Exit Function
         ElseIf PackageVersion > LocalPackageVersion Then
-            Debug.Print "Package " + PackageName + " is already installed, please use the upgrade command to upgrade package from " + Format(LocalPackageVersion, "0.0") + " -> " + Format(PackageVersion, "0.0")
-            Debug.Print "==================================="
+            Debug.Print Indent + "Package " + PackageName + " is already installed, please use the upgrade command to upgrade package from " + Format(LocalPackageVersion, "0.0") + " -> " + Format(PackageVersion, "0.0")
+            Debug.Print Indent + "==================================="
             CheckForLocalInstalledPackage = True
             Exit Function
         Else
-            Debug.Print "A newer version of " + PackageName + " is already installed. Remote: " + Format(PackageVersion, "0.0") + " ,Local: " + Format(LocalPackageVersion, "0.0") + ". Please use the upgrade command to reinstall package"
-            Debug.Print "==================================="
+            Debug.Print Indent + "A newer version of " + PackageName + " is already installed. Remote: " + Format(PackageVersion, "0.0") + " ,Local: " + Format(LocalPackageVersion, "0.0") + ". Please use the upgrade command to reinstall package"
+            Debug.Print Indent + "==================================="
             CheckForLocalInstalledPackage = True
             Exit Function
         End If
@@ -486,9 +486,9 @@ Private Sub CreateSQLProcedure(Path As String, Name As String, ProcType As Strin
             sErrormessage = oProc.Parameters("@@errormessage").OutputValue
 
             If sErrormessage <> "" Then
-                Debug.Print (sErrormessage)
+                Debug.Print Indent + (sErrormessage)
             Else
-                Debug.Print ("'" & Name & "'" & " added.")
+                Debug.Print Indent + ("'" & Name & "'" & " added.")
             End If
 
         Else
@@ -513,7 +513,7 @@ On Error GoTo ErrorHandler
     Dim localname_plural As String
     Dim errormessage As String
 
-    Debug.Print "Adding fields and tables..."
+    Debug.Print Indent + "Adding fields and tables..."
     IncreaseIndent
 
     For Each table In oJSON
@@ -558,9 +558,9 @@ On Error GoTo ErrorHandler
 
             'If errormessage is set, something went wrong
             If errormessage <> "" Then
-                Debug.Print (errormessage)
+                Debug.Print Indent + (errormessage)
             Else
-                Debug.Print ("Table """ & table.Item("name") & """ created.")
+                Debug.Print Indent + ("Table """ & table.Item("name") & """ created.")
             End If
 
             ' Create fields
@@ -633,7 +633,7 @@ On Error GoTo ErrorHandler
                     If Not oProc.Parameters.Lookup("@@" & oItem, lkLookupProcedureParameterByName) Is Nothing Then
                         oProc.Parameters("@@" & oItem).InputValue = field.Item("attributes").Item(oItem)
                     Else
-                        Debug.Print ("No support for setting field attribute " & oItem)
+                        Debug.Print Indent + ("No support for setting field attribute " & oItem)
                     End If
                 End If
             Next
@@ -670,14 +670,13 @@ On Error GoTo ErrorHandler
         End If
 
         Call oProc.Execute(False)
-        'Debug.Print Indent + "Installed field " & field.Item("name")
         errormessage = oProc.Parameters("@@errorMessage").OutputValue
 
         'If errormessage is set, something went wrong
         If errormessage <> "" Then
-            Debug.Print (errormessage)
+            Debug.Print Indent + (errormessage)
         Else
-            Debug.Print ("Field """ & field.Item("name") & """ created.")
+            Debug.Print Indent + ("Field """ & field.Item("name") & """ created.")
         End If
     Else
         Call Lime.MessageBox("Couldn't find SQL-procedure 'csp_lip_createfield'. Please make sure this procedure exists in the database and restart LDC.")
@@ -714,7 +713,7 @@ On Error GoTo ErrorHandler
                     If Not oProcAttributes.Parameters.Lookup("@@" & oItem, lkLookupProcedureParameterByName) Is Nothing Then
                         oProcAttributes.Parameters("@@" & oItem).InputValue = table.Item("attributes").Item(oItem)
                     Else
-                        Debug.Print ("No support for setting table attribute " & oItem)
+                        Debug.Print Indent + ("No support for setting table attribute " & oItem)
                     End If
                 End If
             Next
@@ -725,9 +724,9 @@ On Error GoTo ErrorHandler
 
             'If errormessage is set, something went wrong
             If errormessage <> "" Then
-                Debug.Print (errormessage)
+                Debug.Print Indent + (errormessage)
             Else
-                Debug.Print ("Attributes for table """ & table.Item("name") & """ set.")
+                Debug.Print Indent + ("Attributes for table """ & table.Item("name") & """ set.")
             End If
 
         Else
@@ -937,7 +936,7 @@ On Error GoTo ErrorHandler
     sJSON = getJSON(WebFolder + "packages.json")
 
     If sJSON = "" Then
-        Debug.Print "Error: No packages.json found!"
+        Debug.Print Indent + "Error: No packages.json found!"
         Set ReadPackageFile = Nothing
         Exit Function
     End If
@@ -969,7 +968,7 @@ On Error GoTo ErrorHandler
                 Exit Function
             End If
         Else
-            Debug.Print ("Couldn't find dependencies in packages.json")
+            Debug.Print Indent + ("Couldn't find dependencies in packages.json")
         End If
 
     End If
@@ -1010,7 +1009,7 @@ On Error GoTo ErrorHandler
         GetAllInstalledPackages = JSON.toString(oPackageFile)
     Else
         GetAllInstalledPackages = "{}"
-        Debug.Print ("Couldn't find dependencies in packages.json")
+        Debug.Print Indent + ("Couldn't find dependencies in packages.json")
     End If
 
     Exit Function
@@ -1022,7 +1021,7 @@ Public Sub InstallLIP()
 On Error GoTo ErrorHandler
     Dim InstallPath As String
 
-    Debug.Print "Creating a new packages.json file..."
+    Debug.Print Indent + "Creating a new packages.json file..."
     Call CreateANewPackageFile
     Dim FSO As New FileSystemObject
     InstallPath = ThisApplication.WebFolder & DefaultInstallPath
@@ -1030,16 +1029,15 @@ On Error GoTo ErrorHandler
         FSO.CreateFolder InstallPath
     End If
 
-    Debug.Print "Installing JSON-lib..."
+    Debug.Print Indent + "Installing JSON-lib..."
     Call DownloadFile("vba_json", BaseURL + ApiURL, InstallPath)
     Call Unzip("vba_json", InstallPath)
     Call addModule("vba_json", "JSON", "JSON.bas", InstallPath)
     Call addModule("vba_json", "cStringBuilder", "cStringBuilder.cls", InstallPath)
-    'Call CreateSQLProcedure(
 
     Call WriteToPackageFile("vba_json", "1")
 
-    Debug.Print "Install of LIP complete!"
+    Debug.Print Indent + "Install of LIP complete!"
     Exit Sub
 ErrorHandler:
     Call UI.ShowError("lip.InstallLIP")
@@ -1086,7 +1084,7 @@ On Error GoTo ErrorHandler
     AddOrCheckLocalize = True
     Exit Function
 ErrorHandler:
-    Debug.Print ("Error while validating or adding Localize")
+    Debug.Print Indent + ("Error while validating or adding Localize")
     AddOrCheckLocalize = False
 End Function
 
@@ -1100,7 +1098,13 @@ End Sub
 
 Private Sub DecreaseIndent()
 On Error GoTo ErrorHandler
-    Indent = Left(Indent, Len(Indent) - Len(IndentLenght))
+
+    If Len(Indent) - Len(IndentLenght) > 0 Then
+        Indent = Left(Indent, Len(Indent) - Len(IndentLenght))
+    Else
+        Indent = ""
+    End If
+    
     Exit Sub
 ErrorHandler:
     Call UI.ShowError("lip.DecreaseIndent")
@@ -1113,7 +1117,7 @@ On Error GoTo ErrorHandler
 
     Dim errormessage As String
 
-    Debug.Print "Adding relations..."
+    Debug.Print Indent + "Adding relations..."
     IncreaseIndent
 
     For Each relation In oJSON
@@ -1137,9 +1141,9 @@ On Error GoTo ErrorHandler
 
             'If errormessage is set, something went wrong
             If errormessage <> "" Then
-                Debug.Print (errormessage)
+                Debug.Print Indent + (errormessage)
             Else
-                Debug.Print ("Relation between: " + relation.Item("table1") + "." + relation.Item("field1") + " and " + relation.Item("table2") + "." + relation.Item("field2") + " created.")
+                Debug.Print Indent + ("Relation between: " + relation.Item("table1") + "." + relation.Item("field1") + " and " + relation.Item("table2") + "." + relation.Item("field2") + " created.")
             End If
             
             DecreaseIndent
