@@ -308,8 +308,8 @@ BEGIN
 					END
 					--End of creating tooltip
 					
-					--Create options
-					IF @@optionlist <> N''
+					--Create options, only for optionfields or setfields
+					IF @@optionlist <> N'' AND (@@fieldtype=N'option' OR @@fieldtype=N'set')
 					BEGIN
 						SET @idstring = -1
 
