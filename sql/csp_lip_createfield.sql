@@ -119,6 +119,8 @@ BEGIN
 					,@@localname = @idstringlocalname OUTPUT
 					,@@idcategory = @idcategory OUTPUT
 					
+
+				
 				-- Refresh ldc to make sure field is visible in LIME later on
 				EXEC lsp_refreshldc
 					
@@ -130,6 +132,14 @@ BEGIN
 				ELSE
 				BEGIN
 					SET @return_value = 0
+					
+					--Set idcategory for textfield or decimal-field, since this isn't done by lsp_addfield (only setfields and optionfields)
+					IF @@fieldtype = N'string' OR @@fieldtype = N'decimal'
+					BEGIN
+						EXEC @return_value =  lsp_setfieldattributevalue @@idfield = @@idfield, 
+														 @@name = N'idcategory',
+														 @@valueint = @idcategory OUTPUT
+					END
 
 					--Make sure @@localname ends with ; in order to avoid infinite loop
 					IF RIGHT(@@localname, 1) <> N';'
@@ -308,8 +318,8 @@ BEGIN
 					END
 					--End of creating tooltip
 					
-					--Create options, only for optionfields or setfields
-					IF @@optionlist <> N'' AND (@@fieldtype=N'option' OR @@fieldtype=N'set')
+					--Create options
+					IF @@optionlist <> N'' AND (@@fieldtype=N'option' OR @@fieldtype=N'set' OR @@fieldtype=N'string' OR @@fieldtype=N'decimal')
 					BEGIN
 						SET @idstring = -1
 
