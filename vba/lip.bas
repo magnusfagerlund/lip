@@ -99,7 +99,6 @@ ErrorHandler:
     Call UI.ShowError("lip.Install")
 End Sub
 
-' BROKEN! Needs to add InstallPath
 'Installs package from a zip-file. Input parameter: complete searchpath to the zip-file, including the filename
 Public Sub InstallFromZip(ZipPath As String)
 On Error GoTo ErrorHandler
@@ -191,13 +190,17 @@ End Sub
 
 Private Sub InstallPackageComponents(PackageName As String, PackageVersion As Double, Package, InstallPath As String)
 On Error GoTo ErrorHandler
-
+    
+    Dim bOk As Boolean
+    bOk = True
 
     'Install localizations
     If Package.Item("install").Exists("localize") = True Then
         Debug.Print Indent + "Adding localizations..."
         IncreaseIndent
-        Call InstallLocalize(Package.Item("install").Item("localize"))
+        If InstallLocalize(Package.Item("install").Item("localize")) = False Then
+            bOk = False
+        End If
         DecreaseIndent
 
     End If
@@ -206,37 +209,53 @@ On Error GoTo ErrorHandler
     If Package.Item("install").Exists("vba") = True Then
         Debug.Print Indent + "Adding VBA modules, forms and classes..."
         IncreaseIndent
-        Call InstallVBAComponents(PackageName, Package.Item("install").Item("vba"), InstallPath)
+        If InstallVBAComponents(PackageName, Package.Item("install").Item("vba"), InstallPath) = False Then
+            bOk = False
+        End If
         DecreaseIndent
     End If
 
     If Package.Item("install").Exists("tables") = True Then
         IncreaseIndent
-        Call InstallFieldsAndTables(Package.Item("install").Item("tables"))
+        If InstallFieldsAndTables(Package.Item("install").Item("tables")) = False Then
+            bOk = False
+        End If
         DecreaseIndent
     End If
     
     If Package.Item("install").Exists("relations") = True Then
         IncreaseIndent
-        Call InstallRelations(Package.Item("install").Item("relations"))
+        If InstallRelations(Package.Item("install").Item("relations")) = False Then
+            bOk = False
+        End If
         DecreaseIndent
     End If
 
     If Package.Item("install").Exists("sql") = True Then
         IncreaseIndent
-        Call InstallSQL(Package.Item("install").Item("sql"), PackageName, InstallPath)
+        If InstallSQL(Package.Item("install").Item("sql"), PackageName, InstallPath) = False Then
+            bOk = False
+        End If
         DecreaseIndent
     End If
 
     If Package.Item("install").Exists("files") = True Then
         IncreaseIndent
-        Call InstallFiles(Package.Item("install").Item("files"), PackageName, InstallPath)
+        If InstallFiles(Package.Item("install").Item("files"), PackageName, InstallPath) = False Then
+            bOk = False
+        End If
         DecreaseIndent
     End If
     'Update packages.json
-    Call WriteToPackageFile(PackageName, CStr(PackageVersion))
-
-    Debug.Print Indent + "Installation of " + PackageName + " done!"
+    If WriteToPackageFile(PackageName, CStr(PackageVersion)) = False Then
+        bOk = False
+    End If
+    
+    If bOk Then
+        Debug.Print Indent + "Installation of " + PackageName + " done!"
+    Else
+        Debug.Print Indent + "Something went wrong while installing " + PackageName + ". Please check for error messages above."
+    End If
 Exit Sub
 ErrorHandler:
     Call UI.ShowError("lip.InstallPackageComponents")
@@ -392,12 +411,14 @@ ErrorHandler:
     Call UI.ShowError("lip.findNewestVersion")
 End Function
 
-Private Sub InstallLocalize(oJSON As Object)
+Private Function InstallLocalize(oJSON As Object) As Boolean
 On Error GoTo ErrorHandler
+    Dim bOk As Boolean
     Dim Localize As Variant
-
+    bOk = True
+    
     For Each Localize In oJSON
-        Call AddOrCheckLocalize( _
+        If AddOrCheckLocalize( _
             Localize.Item("owner"), _
             Localize.Item("context"), _
             "", _
@@ -405,19 +426,28 @@ On Error GoTo ErrorHandler
             Localize.Item("sv"), _
             Localize.Item("no"), _
             Localize.Item("fi") _
-        )
+        ) = False Then
+            bOk = False
+        End If
     Next Localize
-Exit Sub
+    
+    InstallLocalize = bOk
+    
+Exit Function
 ErrorHandler:
+    InstallLocalize = False
     Call UI.ShowError("lip.InstallLocalize")
-End Sub
+End Function
 
-Private Sub InstallFiles(oJSON As Object, PackageName As String, InstallPath As String)
+Private Function InstallFiles(oJSON As Object, PackageName As String, InstallPath As String) As Boolean
 On Error GoTo ErrorHandler
+    Dim bOk As Boolean
     Dim FSO As Object
     Dim FromPath As String
     Dim ToPath As String
     Dim File As Variant
+    
+    bOk = True
 
     For Each File In oJSON
         FromPath = InstallPath & PackageName & "\" & File
@@ -436,36 +466,48 @@ On Error GoTo ErrorHandler
         Kill FromPath
         On Error GoTo ErrorHandler
     Next File
+    
+    InstallFiles = bOk
 
 ErrorHandler:
-    UI.ShowError ("lip.InstallFiles")
-End Sub
+    InstallFiles = False
+    Call UI.ShowError("lip.InstallFiles")
+End Function
 
-Private Sub InstallSQL(oJSON As Object, PackageName As String, InstallPath As String)
+Private Function InstallSQL(oJSON As Object, PackageName As String, InstallPath As String) As Boolean
 On Error GoTo ErrorHandler
+    Dim bOk As Boolean
     Dim SQL As Variant
     Dim Path As String
     Dim RelPath As String
+    
+    bOk = True
 
     Debug.Print Indent + "Installing SQL..."
     IncreaseIndent
     For Each SQL In oJSON
         RelPath = Replace(SQL.Item("relPath"), "/", "\")
         Path = InstallPath & PackageName & "\" & RelPath
-        Call CreateSQLProcedure(Path, SQL.Item("name"), SQL.Item("type"))
+        If CreateSQLProcedure(Path, SQL.Item("name"), SQL.Item("type")) = False Then
+            bOk = False
+        End If
     Next SQL
     DecreaseIndent
-Exit Sub
+    InstallSQL = bOk
+Exit Function
 ErrorHandler:
+    InstallSQL = False
     Call UI.ShowError("lip.InstallSQL")
-End Sub
+End Function
 
-Private Sub CreateSQLProcedure(Path As String, Name As String, ProcType As String)
+Private Function CreateSQLProcedure(Path As String, Name As String, ProcType As String) As Boolean
+    Dim bOk As Boolean
     Dim oProc As New LDE.Procedure
     Dim strSQL As String
     Dim sLine As String
     Dim sErrormessage As String
 
+    bOk = True
     strSQL = ""
     sErrormessage = ""
 
@@ -487,21 +529,27 @@ Private Sub CreateSQLProcedure(Path As String, Name As String, ProcType As Strin
 
             If sErrormessage <> "" Then
                 Debug.Print Indent + (sErrormessage)
+                bOk = False
             Else
                 Debug.Print Indent + ("'" & Name & "'" & " added.")
             End If
 
         Else
+            bOk = False
             Call Lime.MessageBox("Couldn't find SQL-procedure 'csp_lip_installSQL'. Please make sure this procedure exists in the database and restart LDC.")
         End If
+        
+        CreateSQLProcedure = bOk
 
-Exit Sub
+Exit Function
 ErrorHandler:
+    CreateSQLProcedure = False
     Call UI.ShowError("lip.CreateSQLProcedure")
-End Sub
+End Function
 
-Private Sub InstallFieldsAndTables(oJSON As Object)
+Private Function InstallFieldsAndTables(oJSON As Object) As Boolean
 On Error GoTo ErrorHandler
+    Dim bOk As Boolean
     Dim table As Object
     Dim oProc As LDE.Procedure
     Dim field As Object
@@ -512,6 +560,8 @@ On Error GoTo ErrorHandler
     Dim localname_singular As String
     Dim localname_plural As String
     Dim errormessage As String
+    
+    bOk = True
 
     Debug.Print Indent + "Adding fields and tables..."
     IncreaseIndent
@@ -559,6 +609,7 @@ On Error GoTo ErrorHandler
             'If errormessage is set, something went wrong
             If errormessage <> "" Then
                 Debug.Print Indent + (errormessage)
+                bOk = False
             Else
                 Debug.Print Indent + ("Table """ & table.Item("name") & """ created.")
             End If
@@ -568,19 +619,24 @@ On Error GoTo ErrorHandler
             If table.Exists("fields") Then
                 For Each field In table.Item("fields")
                     Debug.Print Indent + "Add field: " + field.Item("name")
-                    Call AddField(table.Item("name"), field)
+                    If AddField(table.Item("name"), field) = False Then
+                        bOk = False
+                    End If
                 Next field
             End If
 
             'Set table attributes(must be done AFTER fields has been created in order to be able to set descriptive expression)
             'Only set attributes if table was created
             If idtable <> -1 Then
-                Call SetTableAttributes(table, idtable, iddescriptiveexpression)
+                If SetTableAttributes(table, idtable, iddescriptiveexpression) = False Then
+                    bOk = False
+                End If
             End If
 
             DecreaseIndent
 
         Else
+            bOk = False
             Call Lime.MessageBox("Couldn't find SQL-procedure 'csp_lip_createtable'. Please make sure this procedure exists in the database and restart LDC.")
         End If
 
@@ -588,16 +644,20 @@ On Error GoTo ErrorHandler
     DecreaseIndent
 
     Set oProc = Nothing
+    
+    InstallFieldsAndTables = bOk
 
-    Exit Sub
+    Exit Function
 ErrorHandler:
     Set oProc = Nothing
+    InstallFieldsAndTables = False
     Call UI.ShowError("lip.InstallFieldsAndTables")
-End Sub
+End Function
 
 
-Private Sub AddField(tableName As String, field As Object)
+Private Function AddField(tableName As String, field As Object) As Boolean
 On Error GoTo ErrorHandler
+    Dim bOk As Boolean
     Dim oProc As New LDE.Procedure
     Dim errormessage As String
     Dim fieldLocalnames As String
@@ -605,6 +665,7 @@ On Error GoTo ErrorHandler
     Dim tooltipLocalnames As String
     Dim oItem As Variant
     Dim optionItems As Variant
+    bOk = True
     errormessage = ""
     fieldLocalnames = ""
     separatorLocalnames = ""
@@ -675,26 +736,33 @@ On Error GoTo ErrorHandler
         'If errormessage is set, something went wrong
         If errormessage <> "" Then
             Debug.Print Indent + (errormessage)
+            bOk = False
         Else
             Debug.Print Indent + ("Field """ & field.Item("name") & """ created.")
         End If
     Else
+        bOk = False
         Call Lime.MessageBox("Couldn't find SQL-procedure 'csp_lip_createfield'. Please make sure this procedure exists in the database and restart LDC.")
     End If
     Set oProc = Nothing
+    AddField = bOk
 
-    Exit Sub
+    Exit Function
 ErrorHandler:
     Set oProc = Nothing
+    AddField = False
     Call UI.ShowError("lip.AddField")
-End Sub
+End Function
 
-Private Sub SetTableAttributes(ByRef table As Object, idtable As Long, iddescriptiveexpression As Long)
+Private Function SetTableAttributes(ByRef table As Object, idtable As Long, iddescriptiveexpression As Long) As Boolean
 On Error GoTo ErrorHandler
 
+    Dim bOk As Boolean
     Dim oProcAttributes As LDE.Procedure
     Dim oItem As Variant
     Dim errormessage As String
+    
+    bOk = True
 
     If table.Exists("attributes") Then
 
@@ -725,22 +793,27 @@ On Error GoTo ErrorHandler
             'If errormessage is set, something went wrong
             If errormessage <> "" Then
                 Debug.Print Indent + (errormessage)
+                bOk = False
             Else
                 Debug.Print Indent + ("Attributes for table """ & table.Item("name") & """ set.")
             End If
 
         Else
+            bOk = False
             Call Lime.MessageBox("Couldn't find SQL-procedure 'csp_lip_settableattributes'. Please make sure this procedure exists in the database and restart LDC.")
         End If
     End If
 
     Set oProcAttributes = Nothing
+    
+    SetTableAttributes = bOk
 
-    Exit Sub
+    Exit Function
 ErrorHandler:
     Set oProcAttributes = Nothing
+    SetTableAttributes = False
     Call UI.ShowError("lip.SetTableAttributes")
-End Sub
+End Function
 
 Private Sub DownloadFile(PackageName As String, Path As String, InstallPath As String)
 On Error GoTo ErrorHandler
@@ -803,22 +876,31 @@ ErrorHandler:
     Call UI.ShowError("lip.Unzip")
 End Sub
 
-Private Sub InstallVBAComponents(PackageName As String, VBAModules As Object, InstallPath As String)
+Private Function InstallVBAComponents(PackageName As String, VBAModules As Object, InstallPath As String) As Boolean
 On Error GoTo ErrorHandler
+    Dim bOk As Boolean
+    bOk = True
     Dim VBAModule As Variant
     IncreaseIndent
     For Each VBAModule In VBAModules
-        Call addModule(PackageName, VBAModule.Item("name"), VBAModule.Item("relPath"), InstallPath)
-        Debug.Print Indent + "Added " + VBAModule.Item("name")
+        If addModule(PackageName, VBAModule.Item("name"), VBAModule.Item("relPath"), InstallPath) = False Then
+            bOk = False
+        Else
+            Debug.Print Indent + "Added " + VBAModule.Item("name")
+        End If
     Next VBAModule
     DecreaseIndent
-    Exit Sub
+    InstallVBAComponents = bOk
+    Exit Function
 ErrorHandler:
+    InstallVBAComponents = False
     Call UI.ShowError("lip.InstallVBAComponents")
-End Sub
+End Function
 
-Private Sub addModule(PackageName As String, ModuleName As String, RelPath As String, InstallPath As String)
+Private Function addModule(PackageName As String, ModuleName As String, RelPath As String, InstallPath As String) As Boolean
 On Error GoTo ErrorHandler
+    Dim bOk As Boolean
+    bOk = True
     If PackageName <> "" And ModuleName <> "" Then
         Dim VBComps As Object
         Dim Path As String
@@ -835,11 +917,16 @@ On Error GoTo ErrorHandler
         Path = InstallPath + PackageName + "\" + Replace(RelPath, "/", "\")
 
         Call Application.VBE.ActiveVBProject.VBComponents.Import(Path)
+    Else
+        bOk = False
+        Debug.Print (Indent + "Detected invalid package- or modulename while installing """ + RelPath + """")
     End If
-    Exit Sub
+    addModule = bOk
+    Exit Function
 ErrorHandler:
+    addModule = False
     Call UI.ShowError("lip.addModule")
-End Sub
+End Function
 
 Private Function ComponentExists(ComponentName As String, VBComps As Object) As Boolean
 On Error GoTo ErrorHandler
@@ -859,12 +946,15 @@ ErrorHandler:
     Call UI.ShowError("lip.ComponentExists")
 End Function
 
-Private Sub WriteToPackageFile(PackageName As String, Version As String)
+Private Function WriteToPackageFile(PackageName As String, Version As String) As Boolean
 On Error GoTo ErrorHandler
+    Dim bOk As Boolean
     Dim oJSON As Object
     Dim fs As Object
     Dim a As Object
     Dim Line As Variant
+    
+    bOk = True
     Set oJSON = ReadPackageFile
 
     oJSON.Item("dependencies").Item(PackageName) = Version
@@ -876,10 +966,12 @@ On Error GoTo ErrorHandler
         a.WriteLine Line
     Next Line
     a.Close
-    Exit Sub
+    WriteToPackageFile = bOk
+    Exit Function
 ErrorHandler:
+    WriteToPackageFile = False
     Call UI.ShowError("lip.WriteToPackageFile")
-End Sub
+End Function
 
 Private Function PrettyPrintJSON(JSON As String) As String
 On Error GoTo ErrorHandler
@@ -1110,12 +1202,14 @@ ErrorHandler:
     Call UI.ShowError("lip.DecreaseIndent")
 End Sub
 
-Private Sub InstallRelations(oJSON As Object)
+Private Function InstallRelations(oJSON As Object) As Boolean
 On Error GoTo ErrorHandler
+    Dim bOk As Boolean
     Dim relation As Object
     Dim oProc As LDE.Procedure
 
     Dim errormessage As String
+    bOk = True
 
     Debug.Print Indent + "Adding relations..."
     IncreaseIndent
@@ -1142,6 +1236,7 @@ On Error GoTo ErrorHandler
             'If errormessage is set, something went wrong
             If errormessage <> "" Then
                 Debug.Print Indent + (errormessage)
+                bOk = False
             Else
                 Debug.Print Indent + ("Relation between: " + relation.Item("table1") + "." + relation.Item("field1") + " and " + relation.Item("table2") + "." + relation.Item("field2") + " created.")
             End If
@@ -1149,6 +1244,7 @@ On Error GoTo ErrorHandler
             DecreaseIndent
 
         Else
+            bOk = False
             Call Lime.MessageBox("Couldn't find SQL-procedure 'csp_lip_addRelations'. Please make sure this procedure exists in the database and restart LDC.")
         End If
 
@@ -1156,10 +1252,13 @@ On Error GoTo ErrorHandler
     DecreaseIndent
 
     Set oProc = Nothing
+    
+    InstallRelations = bOk
 
-    Exit Sub
+    Exit Function
 ErrorHandler:
     Set oProc = Nothing
+    InstallRelations = False
     Call UI.ShowError("lip.InstallRelations")
-End Sub
+End Function
 
