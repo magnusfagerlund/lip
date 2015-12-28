@@ -405,8 +405,8 @@ Valid attributes:
 
 Attribute | Mandatory |  Possible values | Value if not provided
 ------- | -------- | ------- | --------
-fieldtype|Yes|string/geography/integer/decimal/time/ html/xml/link/yesno/file/relation/user/ set/option/formatedstring/color/sql|-
-invisible|No|0/1/2/65535 (No/On forms/In lists/Everywhere)|0
+fieldtype|Yes|string/integer/decimal/time/ xml/link/yesno/file/relation/ set/option/formatedstring/color/sql|-
+invisible|No|0/1/2/65535 (No/On forms/In lists/Everywhere)|Default value for fieldtype
 length|No|integer (can only be set for textfields)|nvarchar(max)
 required|No|0/1|0
 sql (sql expression)|No|text|<empty>
