@@ -18,16 +18,16 @@ CREATE PROCEDURE [dbo].[csp_lip_createfield]
 	, @@defaultvalue NVARCHAR(64) = NULL
 	, @@limedefaultvalue NVARCHAR(64) = NULL
 	, @@limereadonly INT = 0
-	, @@invisible INT = 0
+	, @@invisible INT = NULL
 	, @@required INT = NULL
 	, @@limerequiredforedit INT = 0
 	, @@width INT = NULL
 	, @@height INT = NULL
 	, @@length INT = NULL
 	, @@newline INT = 2 -- Default value 2 means Fixed width
-	, @@sql NVARCHAR(MAX) = N''
-	, @@onsqlupdate NVARCHAR(MAX) = N''
-	, @@onsqlinsert NVARCHAR(MAX) = N''
+	, @@sql NVARCHAR(MAX) = NULL
+	, @@onsqlupdate NVARCHAR(MAX) = NULL
+	, @@onsqlinsert NVARCHAR(MAX) = NULL
 	, @@fieldorder INT = 0 -- Default value 0 means it will be put last
 	, @@isnullable INT = 0
 	, @@type INT = 0
@@ -69,8 +69,8 @@ BEGIN
 	SET @currentOption =N''
 	SET @nextOptionStarts = 0
 	SET @nextOptionEnds = 0
-	SET @supportedFieldtypes = N'string;integer;decimal;time;link;yesno;set;option;formatedstring;color;relation'
-	--Not supported: geography;html;xml;file;user;sql
+	SET @supportedFieldtypes = N'string;integer;decimal;time;link;yesno;set;option;formatedstring;color;relation;xml;file;sql'
+	--Not supported: geography;html;user;
 	
 	--Make sure @@length is set to NULL if fieldtype is not string
 	IF @@fieldtype <> N'string' AND @@length IS NOT NULL
@@ -179,7 +179,10 @@ BEGIN
 					END
 					
 					--Set invisible/visible
-					EXEC @return_value = [dbo].[lsp_setattributevalue] @@owner = N'field', @@idrecord = @@idfield, @@name = N'invisible', @@valueint = @@invisible
+					IF @@invisible IS NOT NULL
+					BEGIN
+						EXEC @return_value = [dbo].[lsp_setattributevalue] @@owner = N'field', @@idrecord = @@idfield, @@name = N'invisible', @@valueint = @@invisible
+					END
 					
 					--Set required attribute
 					IF @@required IS NOT NULL
@@ -205,13 +208,22 @@ BEGIN
 					EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'newline', @@valueint = @@newline
 					
 					--Set SQL Expression
-					EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'sql', @@value = @@sql
+					IF @@sql IS NOT NULL
+					BEGIN
+						EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'sql', @@value = @@sql
+					END
 					
 					--Set SQL for update
-					EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'onsqlupdate', @@value = @@onsqlupdate
+					IF @@onsqlupdate IS NOT NULL
+					BEGIN
+						EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'onsqlupdate', @@value = @@onsqlupdate
+					END
 					
 					--Set SQL for new
-					EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'onsqlinsert', @@value = @@onsqlinsert
+					IF @@onsqlinsert IS NOT NULL
+					BEGIN
+						EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'onsqlinsert', @@value = @@onsqlinsert
+					END
 					
 					--Set fieldorder, if not provided we use default value 0 which means it will be put last
 					EXEC @return_value = [dbo].[lsp_setfieldorder] @@idfield = @@idfield, @@fieldorder = @@fieldorder
