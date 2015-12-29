@@ -132,9 +132,18 @@ On Error GoTo ErrorHandler
             Dim Package As Object
             Dim sJSON As String
             Dim sLine As String
-
-            Open ThisApplication.WebFolder & DefaultInstallPath & PackageName & "\" & "app.json" For Input As #1
-            'TODO: Catch if app.json is missing
+    
+            'Look for package.json or app.json
+            If VBA.Dir(ThisApplication.WebFolder & DefaultInstallPath & PackageName & "\" & "package.json") <> "" Then
+                Open ThisApplication.WebFolder & DefaultInstallPath & PackageName & "\" & "package.json" For Input As #1
+                
+            ElseIf VBA.Dir(ThisApplication.WebFolder & DefaultInstallPath & PackageName & "\" & "app.json") <> "" Then
+                Open ThisApplication.WebFolder & DefaultInstallPath & PackageName & "\" & "app.json" For Input As #1
+                
+            Else
+                Debug.Print (Indent + "Installation failed: couldn't find any package.json or app.json in the zip-file")
+                Exit Sub
+            End If
 
             Do Until EOF(1)
                 Line Input #1, sLine
