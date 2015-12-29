@@ -17,10 +17,10 @@ CREATE PROCEDURE [dbo].[csp_lip_createfield]
 	, @@fieldtype NVARCHAR(64)
 	, @@defaultvalue NVARCHAR(64) = NULL
 	, @@limedefaultvalue NVARCHAR(64) = NULL
-	, @@limereadonly INT = 0
+	, @@limereadonly INT = NULL
 	, @@invisible INT = NULL
 	, @@required INT = NULL
-	, @@limerequiredforedit INT = 0
+	, @@limerequiredforedit INT = NULL
 	, @@width INT = NULL
 	, @@height INT = NULL
 	, @@length INT = NULL
@@ -69,8 +69,8 @@ BEGIN
 	SET @currentOption =N''
 	SET @nextOptionStarts = 0
 	SET @nextOptionEnds = 0
-	SET @supportedFieldtypes = N'string;integer;decimal;time;link;yesno;set;option;formatedstring;color;relation;xml;file;sql'
-	--Not supported: geography;html;user;
+	SET @supportedFieldtypes = N'string;integer;decimal;time;link;yesno;set;option;formatedstring;color;relation;xml;file;sql;geography;html'
+	--Not supported: user
 	
 	--Make sure @@length is set to NULL if fieldtype is not string
 	IF @@fieldtype <> N'string' AND @@length IS NOT NULL
@@ -170,7 +170,10 @@ BEGIN
 					END	
 					
 					--Set limereadonly attribute
-					EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'limereadonly', @@valueint = @@limereadonly
+					IF @@limereadonly IS NOT NULL
+					BEGIN
+						EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'limereadonly', @@valueint = @@limereadonly
+					END
 					
 					--Set Default value (interpreted by LIME)
 					IF @@limedefaultvalue IS NOT NULL
@@ -190,7 +193,10 @@ BEGIN
 						EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'required', @@valueint = @@required
 					END
 					--Set attribute Required for editing in Lime
-					EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'limerequiredforedit', @@valueint = @@limerequiredforedit
+					IF @@limerequiredforedit IS NOT NULL
+					BEGIN
+						EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'limerequiredforedit', @@valueint = @@limerequiredforedit
+					END
 					
 					--Set width
 					IF @@width IS NOT NULL
