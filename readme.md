@@ -406,7 +406,7 @@ Valid attributes:
 Attribute | Mandatory |  Possible values | Value if not provided
 ------- | -------- | ------- | --------
 fieldtype|Yes|string/integer/decimal/time/ xml/link/yesno/file/relation/ set/option/formatedstring/color/sql|-
-invisible|No|0/1/2/65535 (No/On forms/In lists/Everywhere)|Default value for fieldtype
+invisible|No|0/1/2/65535 (No/On forms/In lists/Everywhere)|Default
 length|No|integer (can only be set for textfields)|nvarchar(max)
 required|No|0/1|0
 sql (sql expression)|No|text|<empty>
@@ -419,8 +419,8 @@ newline (width properties)|No|0/1/2/3 ("Variable width"/ "Variable width on New 
 defaultvalue|No|text|Default
 limedefaultvalue|No|text|Default
 isnullable|No|0/1|0
-limereadonly|No|0/1|0
-required_for_editing|No|0/1|0
+limereadonly|No|0/1|Default
+limerequiredforedit|No|0/1|Default
 type|No|**Timefields:** 0/1/2/3/4/5/6/7/8/9 ("Date" / "Date and Time" / "Time" / "Year" / "Half a Year" / "Four Months" / "Quarter" / "Month" / "Week" / "Date and Time (with Seconds)" **Optionlists:** 0/1 ("Color and Text"/"Only Color")|0
 relationtab|No|0/1 (relationfield / relationtab, only valid when creating a relation)|0 (relationfield)
 
