@@ -405,7 +405,7 @@ Valid attributes:
 
 Attribute | Mandatory |  Possible values | Value if not provided
 ------- | -------- | ------- | --------
-fieldtype|Yes|string/integer/decimal/time/ xml/link/yesno/file/relation/ set/option/formatedstring/color/sql|-
+fieldtype|Yes|string/integer/decimal/time/html xml/link/yesno/file/relation/geography set/option/formatedstring/color/sql|-
 invisible|No|0/1/2/65535 (No/On forms/In lists/Everywhere)|Default
 length|No|integer (can only be set for textfields)|nvarchar(max)
 required|No|0/1|0
