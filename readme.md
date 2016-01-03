@@ -160,31 +160,42 @@ An example of how the app.json-file could look like:
                             "fieldorder": "4",
                             "isnullable": "0",
                             "type": "1",
-                            "relationtab": "1"
+                            "relationtab": "1",
+                            "syscomment": "My private comment",
+                            "formatsql": "0",
+                            "limevalidationrule": "My validation rule"
                         },
                         "separator": {
                             "sv": "Testseparator",
                             "en_us": "Test separator"
                         },
-						"tooltip": {
-			                            "sv": "Min beskrivning",
-			                            "en_us": "My tooltip"
-						},
-						"options": [
-							{
-								"sv": "Alt 1",
-								"en_us": "Alt 1",
-								"key": "alt1",
-								"color": "65535",
-								"default": "true"
-							},
-							{
-								"sv": "Alt 2",
-								"en_us": "Alt 2",
-								"key": "alt2",
-								"color": "255"
-							}
-						]
+                        "limevalidationtext": {
+                        	"sv": "Min valideringstext",
+                        	"en_us": "My validation text"
+                        },
+                        "comment": {
+                        	"sv": "Min kommentar",
+                        	"en_us": "My comment"
+                        },
+                        "description": {
+                        	"sv": "Min beskrivning",
+                        	"en_us": "My tooltip"
+                        },
+                        "options": [
+                        	{
+                        		"sv": "Alt 1",
+                        		"en_us": "Alt 1",
+                        		"key": "alt1",
+                        		"color": "65535",
+                        		"default": "true"
+                        	},
+                        	{
+                        		"sv": "Alt 2",
+                        		"en_us": "Alt 2",
+                        		"key": "alt2",
+                        		"color": "255"
+                			}
+        				]
                     }
                 ]
             }
@@ -341,11 +352,29 @@ Adds a separator to the field. The separator is placed BEFORE the field. Specify
 "en_us": "Administrative information"
 }
 ```
-###### tooltip
+###### limevalidationtext
+Adds validation text to the field. Specify the localnames for the validation text inside this node.
+Example:
+```
+"limevalidationtext": {
+    "sv": "Min valideringstext",
+    "en_us": "My validation text"
+}
+```
+###### comment
+Adds a comment to the field. Specify the localnames for the comment inside this node.
+Example:
+```
+"comment": {
+    "sv": "Min kommentar",
+    "en_us": "My comment"
+}
+```
+###### description
 Adds tooltip to the field. Specify the localnames for the tooltip inside this node.
 Example:
 ```
-"tooltip": {
+"description": {
     "sv": "Min beskrivning",
     "en_us": "My tooltip"
 }
@@ -398,7 +427,10 @@ Sets attributes for the field. Each line in this node represent an attribute.
     "fieldorder": "4",
     "isnullable": "0",
     "type": "1",
-    "relationtab": "1"
+    "relationtab": "1",
+    "syscomment": "My private comment",
+    "formatsql": "0",
+    "limevalidationrule": "My validation rule"
 }
 ```
 Valid attributes:
@@ -423,6 +455,9 @@ limereadonly|No|0/1|Default
 limerequiredforedit|No|0/1|Default
 type|No|**Timefields:** 0/1/2/3/4/5/6/7/8/9 ("Date" / "Date and Time" / "Time" / "Year" / "Half a Year" / "Four Months" / "Quarter" / "Month" / "Week" / "Date and Time (with Seconds)" **Optionlists:** 0/1 ("Color and Text"/"Only Color")|0
 relationtab|No|0/1 (relationfield / relationtab, only valid when creating a relation)|0 (relationfield)
+syscomment (private comment)|No|text|<empty>
+formatsql|No|0/1 (False/True)|Default
+limevalidationrule|No|text|<empty>
 
 #### relations
 Here you specify which relations to create. This section only contains information about which fields/tabs to create a relation between, the rest of the information about each field you specify in the field-section. There you also specify whether the field should be an actual field or a tab (attribute 'relationtab' set to 0 or 1). Example:
