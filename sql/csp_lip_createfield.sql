@@ -12,7 +12,7 @@ CREATE PROCEDURE [dbo].[csp_lip_createfield]
 	, @@fieldname NVARCHAR(64)
 	, @@localname NVARCHAR(MAX)
 	, @@separator NVARCHAR(MAX) = N''
-	, @@tooltip NVARCHAR(MAX) = N''
+	, @@description NVARCHAR(MAX) = N'' --Tooltip
 	, @@optionlist NVARCHAR(MAX) = N''
 	, @@fieldtype NVARCHAR(64)
 	, @@defaultvalue NVARCHAR(64) = NULL
@@ -28,6 +28,11 @@ CREATE PROCEDURE [dbo].[csp_lip_createfield]
 	, @@sql NVARCHAR(MAX) = NULL
 	, @@onsqlupdate NVARCHAR(MAX) = NULL
 	, @@onsqlinsert NVARCHAR(MAX) = NULL
+	, @@formatsql BIT = NULL
+	, @@comment NVARCHAR(MAX) = N''
+	, @@syscomment NVARCHAR(MAX) = NULL
+	, @@limevalidationrule NVARCHAR(MAX) = NULL
+	, @@limevalidationtext NVARCHAR(MAX) = N''
 	, @@fieldorder INT = 0 -- Default value 0 means it will be put last
 	, @@isnullable INT = 0
 	, @@type INT = 0
@@ -231,6 +236,24 @@ BEGIN
 						EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'onsqlinsert', @@value = @@onsqlinsert
 					END
 					
+					--Set formatsql
+					IF @@formatsql IS NOT NULL
+					BEGIN
+						EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'formatsql', @@valueint = @@formatsql
+					END
+					
+					--Set syscomment (private comment)
+					IF @@syscomment IS NOT NULL
+					BEGIN
+						EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'syscomment', @@value = @@syscomment
+					END
+					
+					--Set limevalidationrule
+					IF @@limevalidationrule IS NOT NULL
+					BEGIN
+						EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'limevalidationrule', @@value = @@limevalidationrule
+					END
+					
 					--Set fieldorder, if not provided we use default value 0 which means it will be put last
 					EXEC @return_value = [dbo].[lsp_setfieldorder] @@idfield = @@idfield, @@fieldorder = @@fieldorder
 					
@@ -245,17 +268,18 @@ BEGIN
 					END
 					
 					--Create separator
+					SET @idstring = -1
+					EXEC @return_value = [dbo].[lsp_setattributevalue] @@owner = N'field'
+												, @@idrecord = @@idfield
+												, @@name = N'separatorlocalname'
+												, @@value = @idstring output
 					IF @@separator <> N''
 					BEGIN
-						SET @idstring = -1
 						EXEC @return_value = [dbo].[lsp_setattributevalue] @@owner = N'field'
 									, @@idrecord = @@idfield
 									, @@name = 'separator'
 									, @@value = 1
-						EXEC @return_value = [dbo].[lsp_setattributevalue] @@owner = N'field'
-													, @@idrecord = @@idfield
-													, @@name = N'separatorlocalname'
-													, @@value = @idstring output
+
 													
 						--Make sure @@localname ends with ; in order to avoid infinite loop
 						IF RIGHT(@@separator, 1) <> N';'
@@ -284,46 +308,122 @@ BEGIN
 					END
 					--End of creating separator
 					
-					--Create tooltip
-					IF @@tooltip <> N''
+					
+					--Create limevalidationtext
+					IF @@fieldtype <> N'file' AND @@fieldtype <> N'sql' AND @@fieldtype <> N'geography' AND @@fieldtype <> N'html'
 					BEGIN
-						--Check if a string for description/tooltip already exists for this field
-						SET @idstring = (SELECT TOP 1 s.idstring 
-										FROM string s 
-											INNER JOIN attributedata a 
-												ON s.idstring=a.value 
-												AND a.name=N'description' 
-												AND a.idrecord=@@idfield)
-						
-																
-						IF @idstring IS NULL OR @idstring = -1
-						BEGIN
-							--Create a new description string if it doesn't exists. Make sure it is of "type" description, i.e. choose correct idcategory	
-							DECLARE @idcategoryDescription INT
-							SET @idcategoryDescription = (SELECT TOP 1 idcategory FROM category WHERE name = N'description')
-							EXEC @return_value = [dbo].[lsp_addstring] @@idcategory = @idcategoryDescription, @@idstring = @idstring OUTPUT
+						SET @idstring = -1
+						EXEC @return_value = [dbo].[lsp_setattributevalue] @@owner = N'field'
+													, @@idrecord = @@idfield
+													, @@name = N'limevalidationtext'
+													, @@value = @idstring output
+						IF @@limevalidationtext <> N''
+						BEGIN	
+							--Make sure @@limevalidationtext ends with ; in order to avoid infinite loop
+							IF RIGHT(@@limevalidationtext, 1) <> N';'
+							BEGIN
+								SET @@limevalidationtext=@@limevalidationtext + N';'
+							END
 							
-							EXEC @return_value = [dbo].[lsp_addattributedata] @@owner = N'field'
-										, @@idrecord = @@idfield
-										, @@name = 'description'
-										, @@value = @idstring
-						END	
-													
-						--Make sure @@localname ends with ; in order to avoid infinite loop
-						IF RIGHT(@@tooltip, 1) <> N';'
+							SET @currentPosition = 0
+							
+							--Loop through localnames
+							WHILE @currentPosition <= LEN(@@limevalidationtext) AND @return_value = 0
+							BEGIN
+								SET @nextOccurance = CHARINDEX(';', @@limevalidationtext, @currentPosition)
+								IF @nextOccurance <> 0
+								BEGIN
+									SET @currentString = SUBSTRING(@@limevalidationtext, @currentPosition, @nextOccurance - @currentPosition)
+									SET @currentLanguage=SUBSTRING(@currentString,0,CHARINDEX(':', @currentString))
+									SET @currentLocalize=SUBSTRING(@currentString,CHARINDEX(':', @currentString)+1,LEN(@currentString)-CHARINDEX(':', @currentString))
+									EXEC @return_value = [dbo].[lsp_setattributevalue] @@owner = N'string'
+													, @@idrecord = @idstring
+													, @@name = @currentLanguage
+													, @@value = @currentLocalize
+									SET @currentPosition = @nextOccurance+1
+								END
+							END								
+						END
+					END
+					--End of creating limevalidationtext
+					
+					--Create comment
+					SET @idstring = -1
+					EXEC @return_value = [dbo].[lsp_setattributevalue] @@owner = N'field'
+												, @@idrecord = @@idfield
+												, @@name = N'comment'
+												, @@value = @idstring output
+					IF @@comment <> N''
+					BEGIN	
+						--Make sure @@comment ends with ; in order to avoid infinite loop
+						IF RIGHT(@@comment, 1) <> N';'
 						BEGIN
-							SET @@tooltip=@@tooltip + N';'
+							SET @@comment=@@comment + N';'
 						END
 						
 						SET @currentPosition = 0
 						
 						--Loop through localnames
-						WHILE @currentPosition <= LEN(@@tooltip) AND @return_value = 0
+						WHILE @currentPosition <= LEN(@@comment) AND @return_value = 0
 						BEGIN
-							SET @nextOccurance = CHARINDEX(';', @@tooltip, @currentPosition)
+							SET @nextOccurance = CHARINDEX(';', @@comment, @currentPosition)
 							IF @nextOccurance <> 0
 							BEGIN
-								SET @currentString = SUBSTRING(@@tooltip, @currentPosition, @nextOccurance - @currentPosition)
+								SET @currentString = SUBSTRING(@@comment, @currentPosition, @nextOccurance - @currentPosition)
+								SET @currentLanguage=SUBSTRING(@currentString,0,CHARINDEX(':', @currentString))
+								SET @currentLocalize=SUBSTRING(@currentString,CHARINDEX(':', @currentString)+1,LEN(@currentString)-CHARINDEX(':', @currentString))
+								EXEC @return_value = [dbo].[lsp_setattributevalue] @@owner = N'string'
+												, @@idrecord = @idstring
+												, @@name = @currentLanguage
+												, @@value = @currentLocalize
+								SET @currentPosition = @nextOccurance+1
+							END
+						END								
+					END
+					--End of creating comment
+					
+					
+					--Create tooltip (description)
+					
+					--Check if a string for description/tooltip already exists for this field
+					SET @idstring = (SELECT TOP 1 s.idstring 
+									FROM string s 
+										INNER JOIN attributedata a 
+											ON s.idstring=a.value 
+											AND a.name=N'description' 
+											AND a.idrecord=@@idfield)
+					
+															
+					IF @idstring IS NULL OR @idstring = -1
+					BEGIN
+						--Create a new description string if it doesn't exists. Make sure it is of "type" description, i.e. choose correct idcategory	
+						DECLARE @idcategoryDescription INT
+						SET @idcategoryDescription = (SELECT TOP 1 idcategory FROM category WHERE name = N'description')
+						EXEC @return_value = [dbo].[lsp_addstring] @@idcategory = @idcategoryDescription, @@idstring = @idstring OUTPUT
+						
+						EXEC @return_value = [dbo].[lsp_addattributedata] @@owner = N'field'
+									, @@idrecord = @@idfield
+									, @@name = 'description'
+									, @@value = @idstring
+					END	
+					IF @@description <> N''
+					BEGIN
+													
+						--Make sure @@description ends with ; in order to avoid infinite loop
+						IF RIGHT(@@description, 1) <> N';'
+						BEGIN
+							SET @@description=@@description + N';'
+						END
+						
+						SET @currentPosition = 0
+						
+						--Loop through localnames
+						WHILE @currentPosition <= LEN(@@description) AND @return_value = 0
+						BEGIN
+							SET @nextOccurance = CHARINDEX(';', @@description, @currentPosition)
+							IF @nextOccurance <> 0
+							BEGIN
+								SET @currentString = SUBSTRING(@@description, @currentPosition, @nextOccurance - @currentPosition)
 								SET @currentLanguage=SUBSTRING(@currentString,0,CHARINDEX(':', @currentString))
 								SET @currentLocalize=SUBSTRING(@currentString,CHARINDEX(':', @currentString)+1,LEN(@currentString)-CHARINDEX(':', @currentString))
 								EXEC @return_value = [dbo].[lsp_setattributevalue] @@owner = N'string'
