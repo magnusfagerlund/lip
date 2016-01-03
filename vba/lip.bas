@@ -671,6 +671,8 @@ On Error GoTo ErrorHandler
     Dim errormessage As String
     Dim fieldLocalnames As String
     Dim separatorLocalnames As String
+    Dim limevalidationtextLocalnames As String
+    Dim commentLocalnames As String
     Dim tooltipLocalnames As String
     Dim oItem As Variant
     Dim optionItems As Variant
@@ -678,6 +680,8 @@ On Error GoTo ErrorHandler
     errormessage = ""
     fieldLocalnames = ""
     separatorLocalnames = ""
+    limevalidationtextLocalnames = ""
+    commentLocalnames = ""
     tooltipLocalnames = ""
     
     Set oProc = Database.Procedures("csp_lip_createfield")
@@ -717,12 +721,28 @@ On Error GoTo ErrorHandler
             oProc.Parameters("@@separator").InputValue = separatorLocalnames
         End If
         
-        'Add tooltip
-        If field.Exists("tooltip") Then
-            For Each oItem In field.Item("tooltip")
-                tooltipLocalnames = tooltipLocalnames + VBA.Trim(oItem) + ":" + VBA.Trim(field.Item("tooltip").Item(oItem)) + ";"
+        'Add limevalidationtext
+        If field.Exists("limevalidationtext") Then
+            For Each oItem In field.Item("limevalidationtext")
+                limevalidationtextLocalnames = limevalidationtextLocalnames + VBA.Trim(oItem) + ":" + VBA.Trim(field.Item("limevalidationtext").Item(oItem)) + ";"
             Next
-            oProc.Parameters("@@tooltip").InputValue = tooltipLocalnames
+            oProc.Parameters("@@limevalidationtext").InputValue = limevalidationtextLocalnames
+        End If
+        
+        'Add comment
+        If field.Exists("comment") Then
+            For Each oItem In field.Item("comment")
+                commentLocalnames = commentLocalnames + VBA.Trim(oItem) + ":" + VBA.Trim(field.Item("comment").Item(oItem)) + ";"
+            Next
+            oProc.Parameters("@@comment").InputValue = commentLocalnames
+        End If
+        
+        'Add tooltip (description)
+        If field.Exists("description") Then
+            For Each oItem In field.Item("description")
+                tooltipLocalnames = tooltipLocalnames + VBA.Trim(oItem) + ":" + VBA.Trim(field.Item("description").Item(oItem)) + ";"
+            Next
+            oProc.Parameters("@@description").InputValue = tooltipLocalnames
         End If
 
         Dim strOptions As String
