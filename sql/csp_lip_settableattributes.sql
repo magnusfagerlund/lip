@@ -12,6 +12,10 @@ CREATE PROCEDURE [dbo].[csp_lip_settableattributes]
 	, @@descriptive NVARCHAR(MAX) = N''
 	, @@tableorder INT = 0
 	, @@invisible INT = 0 --Default value 0 means not invisible
+	, @@syscomment NVARCHAR(MAX) = NULL
+	, @@label INT = NULL
+	, @@actionpad NVARCHAR(MAX) = NULL
+	, @@log BIT = NULL
 	, @@errorMessage NVARCHAR(512) OUTPUT
 AS
 BEGIN
@@ -42,6 +46,46 @@ BEGIN
 			, @@idrecord = @@idtable
 			, @@name = N'invisible'
 			, @@valueint = @@invisible
+	END
+	
+	--Set comment
+	IF @@syscomment IS NOT NULL
+	BEGIN
+		EXEC @return_value = [dbo].[lsp_setattributevalue]
+			@@owner = N'table'
+			, @@idrecord = @@idtable
+			, @@name = N'syscomment'
+			, @@value = @@syscomment
+	END
+	
+	--Set label
+	IF @@label IS NOT NULL
+	BEGIN
+		EXEC @return_value = [dbo].[lsp_setattributevalue]
+			@@owner = N'table'
+			, @@idrecord = @@idtable
+			, @@name = N'label'
+			, @@valueint = @@label
+	END
+	
+	--Set actionpad
+	IF @@actionpad IS NOT NULL
+	BEGIN
+		EXEC @return_value = [dbo].[lsp_setattributevalue]
+			@@owner = N'table'
+			, @@idrecord = @@idtable
+			, @@name = N'actionpad'
+			, @@value = @@actionpad
+	END
+	
+	--Set logging option
+	IF @@log IS NOT NULL
+	BEGIN
+		EXEC @return_value = [dbo].[lsp_setattributevalue]
+			@@owner = N'table'
+			, @@idrecord = @@idtable
+			, @@name = N'log'
+			, @@value = @@log
 	END
 	
 	EXEC lsp_refreshldc
