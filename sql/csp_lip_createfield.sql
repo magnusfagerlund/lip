@@ -36,6 +36,8 @@ CREATE PROCEDURE [dbo].[csp_lip_createfield]
 	, @@fieldorder INT = 0 -- Default value 0 means it will be put last
 	, @@isnullable INT = 0
 	, @@type INT = 0
+	, @@label INT = NULL
+	, @@adlabel INT = NULL
 	, @@relationtab BIT = 0
 	, @@errorMessage NVARCHAR(512) OUTPUT
 	, @@idfield INT OUTPUT
@@ -252,6 +254,18 @@ BEGIN
 					IF @@limevalidationrule IS NOT NULL
 					BEGIN
 						EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'limevalidationrule', @@value = @@limevalidationrule
+					END
+					
+					--Set label
+					IF @@label IS NOT NULL
+					BEGIN
+						EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'label', @@valueint = @@label
+					END
+					
+					--Set AD-label
+					IF @@adlabel IS NOT NULL
+					BEGIN
+						EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'adlabel', @@valueint = @@adlabel
 					END
 					
 					--Set fieldorder, if not provided we use default value 0 which means it will be put last
