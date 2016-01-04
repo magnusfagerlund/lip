@@ -133,7 +133,11 @@ An example of how the app.json-file could look like:
                 "attributes": {
                     "tableorder": "3",
                     "invisible": "2",
-                    "descriptive":"[test].[title]"
+                    "descriptive":"[test].[title]",
+                    "syscomment": "My comment",
+                    "label": "15",
+                    "log": "1",
+                    "actionpad": "lbs.html"
                 },
                 "fields": [
                     {
@@ -163,7 +167,9 @@ An example of how the app.json-file could look like:
                             "relationtab": "1",
                             "syscomment": "My private comment",
                             "formatsql": "0",
-                            "limevalidationrule": "My validation rule"
+                            "limevalidationrule": "My validation rule",
+                            "label": "18",
+                            "adlabel": "31"
                         },
                         "separator": {
                             "sv": "Testseparator",
@@ -316,7 +322,11 @@ Sets attributes for the table. Each line in this node represent an attribute.
 "attributes": {
                     "tableorder": "3",
                     "invisible": "2",
-                    "descriptive": "[test].[title]"
+                    "descriptive": "[test].[title]",
+                    "syscomment": "My comment",
+                    "label": "15",
+                    "log": "1",
+                    "actionpad": "lbs.html"
                 }
 ```
 Valid attributes:
@@ -326,6 +336,10 @@ Attribute | Mandatory |  Possible values | Value if not provided
 tableorder|No|Integer|Placed last
 descriptive|No|text|Record ID
 invisible|No|1/2 ("Yes"/"Yes, for everyone but administrators")|"No"
+syscomment ("Comment")|No|text|<empty>
+label|No|Integer|No label
+log ("Log all changes")|No|0/1 (No/Yes)|Default
+actionpad|No|text|<empty>
 
 #####fields
     
@@ -430,7 +444,9 @@ Sets attributes for the field. Each line in this node represent an attribute.
     "relationtab": "1",
     "syscomment": "My private comment",
     "formatsql": "0",
-    "limevalidationrule": "My validation rule"
+    "limevalidationrule": "My validation rule",
+    "label": "18",
+    "adlabel": "31"
 }
 ```
 Valid attributes:
@@ -458,6 +474,8 @@ relationtab|No|0/1 (relationfield / relationtab, only valid when creating a rela
 syscomment (private comment)|No|text|<empty>
 formatsql|No|0/1 (False/True)|Default
 limevalidationrule|No|text|<empty>
+label|No|Integer|No label
+adlabel|No|Integer|No AD-label
 
 #### relations
 Here you specify which relations to create. This section only contains information about which fields/tabs to create a relation between, the rest of the information about each field you specify in the field-section. There you also specify whether the field should be an actual field or a tab (attribute 'relationtab' set to 0 or 1). Example:
