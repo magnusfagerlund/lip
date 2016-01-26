@@ -1,0 +1,15 @@
+{
+	"name": "LIPPackageBuilder",
+	"author":"JKA",
+	"status":"Development",
+	"versions":[
+		{
+			"version":"0.1",
+			"date":"2016-01-25",
+			"comments":"Creation"
+		}
+	],
+	"install":{
+		
+	}
+}
