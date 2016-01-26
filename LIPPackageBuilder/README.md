@@ -7,18 +7,18 @@ Some of the features are:
   - Easy installation
   - Magic
 
-![Add package information](/blob/master/images/general.png)  
+![Add package information](/../../images/general.png)  
 *Select meta information about the LIP package*
 
 
 
 
 
-![Select tables and fields](/blob/master/images/tables.png)  
+![Select tables and fields](/../../images/tables.png)  
 *Choose tables and fields*
 
 Lastly save the entire package by clicking Generate Package.
 
 
 
-CREATED BY: JKA, BOS, FER and PDE
+CREATED BY: JKA, BOS, LJE, FER and PDE
