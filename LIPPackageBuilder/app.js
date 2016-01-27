@@ -138,10 +138,12 @@ lbs.apploader.register('LIPPackageBuilder', function () {
                     var localNameField = localNameTable.Fields.filter(function(f){
                         return f.name == field.name;
                     })[0];
-                    
+
+
+                    field.options = localNameField.option;
                     // Set local names for current field
                     field.localname = localNameField;
-                
+                    
                     if(field.localname && field.localname.name)
                         delete field.localname.name;
 
@@ -153,6 +155,7 @@ lbs.apploader.register('LIPPackageBuilder', function () {
 
                     if(field.localname && field.localname.option)
                         delete field.localname.option;
+
 
                     // Push field to fields
                     fields.push(field);

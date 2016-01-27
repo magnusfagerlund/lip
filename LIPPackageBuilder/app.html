@@ -1,18 +1,13 @@
 
 <nav class="navbar navbar-default navbar-fixed-top">
-	<div class="container-fluid">
 		<div class="navbar-header">
 			<a class="navbar-brand" href="#">LIP Package Builder</a>
 		</div>
 		<ul class="nav navbar-nav">
 			<li role="presentation" data-bind="css: {'active' : activeTab() == 'details'}, click: function(){showTab('details')}"><a href="#">Details</a></li>
 			<li role="presentation" data-bind="css: {'active' : activeTab() == 'database'}, click: function(){showTab('database')}"><a href="#">Database objects</a></li>
-			<!-- <li role="presentation" data-bind="css: {'active' : activeTab() == 'generate'}, click: function(){showTab('generate')}"><a href="#">Generate package</a></li>  -->
 		</ul>
 		<button type="button" class="btn btn-default pull-right navbar-btn" data-bind="click: serializePackage">Generate package</button>
-	</div>
-
-	<!-- <button class="btn btn-default pull-right" data-bind="click: serializePackage"><span>Generate package</span></button> -->
 </nav>
 <div class="package-container row col-md-12">
 	<div class="row col-md-10 col-md-offset-1" data-bind="visible: activeTab() == 'details'">
@@ -47,7 +42,6 @@
 		  	</div>
 		  	
 		</form>
-
 	</div>
 	<div class="row col-md-10 col-md-offset-1" data-bind="visible: activeTab() == 'database'">
 		<div class="row">
