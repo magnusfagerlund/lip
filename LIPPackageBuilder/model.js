@@ -148,3 +148,22 @@ var StatusOption = function(o){
         vm.status(this.text);
     }
 }
+
+var VbaComponent = function(c){
+	var self = this;
+	self.name = c.name;
+	self.type = c.type;
+	self.selected = ko.observable(false);
+	self.extension = function(){
+		if(self.type == "Module"){
+			return ".bas";
+		}
+		else if(self.type=="Class Module"){
+			return ".cls";
+		}
+		else if(self.type == "Form"){
+			return ".frm";
+		}
+		else return "";
+	}
+}

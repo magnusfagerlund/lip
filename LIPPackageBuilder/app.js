@@ -58,7 +58,8 @@ lbs.apploader.register('LIPPackageBuilder', function () {
             "26" : "color",
             "27" : "sql",
             "255" : "system"
-        }
+        };
+        
         // Attributes for tables
         vm.tableAttributes = [
             "tableorder",
@@ -95,30 +96,66 @@ lbs.apploader.register('LIPPackageBuilder', function () {
             "limevalidationrule",
             "label",
             "adlabel"
-        ]
+        ];
         
         // Checkbox to select all tables
         vm.selectTables = ko.observable(false);
+        
         vm.selectTables.subscribe(function(newValue){
             ko.utils.arrayForEach(vm.filteredTables(),function(item){
                 item.selected(newValue);
             });
         });
+		vm.getVbaComponents = function(){
+            try{
+                var components = lbs.common.executeVba('LIPPackageBuilder.GetVBAComponents');
+                components = $.parseJSON(components);
+			
+				vm.vbaComponents(ko.utils.arrayMap(components,function(c){
+					if (c.type !== '100')
+						return new VbaComponent(c);
+				}));
+			
+			vm.vbaComponents.sort(function(left,right){
+				return left.type == right.type ? 0 : (left.type < right.type ? -1 : 1);
+			});
+            }catch(e){alert(e);}
+			vm.componentFilter("");
+			vm.filteredComponents(vm.vbaComponents());
+            vm.showComponents(true);
+        }
+		
 
         // Navbar function to change tab
         vm.showTab = function(t){
-            vm.activeTab(t);
+            try{
+				if (t == 'vba'){
+					vm.getVbaComponents();
+				}
+				vm.activeTab(t);
+				
+			}
+			catch(e){alert(e);}
         }
-
+		
         // Set default tab to details
         vm.activeTab = ko.observable("details");
-
-
+        
+        // Array with VBA components
+        vm.vbaComponents = ko.observableArray();
+        vm.showComponents = ko.observable(false);
+        
+        
         // Serialize selected tables and fields and combine with localization data
         vm.serializePackage = function(){
             var data = {};
             var tables = [];
-
+		
+		
+			if (vm.name() == ""){
+				alert("Package name is required");
+				return;
+			}
             // For each selected table
             $.each(vm.selectedTables(),function(i,table){
                 
@@ -138,12 +175,10 @@ lbs.apploader.register('LIPPackageBuilder', function () {
                     var localNameField = localNameTable.Fields.filter(function(f){
                         return f.name == field.name;
                     })[0];
-
-
-                    field.options = localNameField.option;
+                    
                     // Set local names for current field
                     field.localname = localNameField;
-                    
+                
                     if(field.localname && field.localname.name)
                         delete field.localname.name;
 
@@ -156,7 +191,6 @@ lbs.apploader.register('LIPPackageBuilder', function () {
                     if(field.localname && field.localname.option)
                         delete field.localname.option;
 
-
                     // Push field to fields
                     fields.push(field);
                 });
@@ -167,30 +201,68 @@ lbs.apploader.register('LIPPackageBuilder', function () {
                 // Push table to tables
                 tables.push(table);
             });
-
-            // Build package json from details and database structure
-            data = {
-                "name": vm.name(),
-                "author": vm.author(),
-                "status": vm.status(),
-                "shortDesc": vm.description(),
-                "versions":[
-                    {
-                    "version": vm.versionNumber(),
-                    "date": moment().format("YYYY-MM-DD"),
-                    "comments": vm.comment()
-                }],
-                "install" : {
-                    "tables" : tables
-
-                }
-            }
-
-            // Save to file using microsofts weird ass self developedd file saving stuff
-            var blobObject = new Blob([JSON.stringify(data)]); 
-            window.navigator.msSaveBlob(blobObject, 'package.json')
+			try {
+				arrComponents = [];
+				$.each(vm.selectedVbaComponents(), function(i, component){
+					arrComponents.push({"name": component.name, "relPath": "Install\\" + component.name + component.extension() })
+					lbs.common.executeVba('LIPPackageBuilder.ExportVbaModule', component.name);
+				});
+				
+				// Build package json from details and database structure
+				data = {
+					"name": vm.name(),
+					"author": vm.author(),
+					"status": vm.status(),
+					"shortDesc": vm.description(),
+					"versions":[
+						{
+						"version": vm.versionNumber(),
+						"date": moment().format("YYYY-MM-DD"),
+						"comments": vm.comment()
+					}],
+					"install" : {
+						"tables" : tables,
+						"vba" : arrComponents
+					}
+				}
+				lbs.log.debug(JSON.stringify(data));
+			}catch(e) {alert("Error serializing LIP Package:\n\n" + e);}
+			
+			// Save using VBA Method
+			try{
+				if(data.install.vba){
+					
+					lbs.common.executeVba('LIPPackageBuilder.CreatePackage', JSON.stringify(data));
+					
+				}
+			}catch(e){alert(e);}
+            // Save to file using microsofts weird ass self developed file saving stuff
+            //var blobObject = new Blob([JSON.stringify(data)]); 
+            //window.navigator.msSaveBlob(blobObject, 'package.json')
         }
+            
+        
+        vm.filterComponents = function(){
+            if(vm.componentFilter() != ""){
+                vm.filteredComponents.removeAll(); 
 
+                // Filter on the three visible columns (name, localname, timestamp)
+                vm.filteredComponents(ko.utils.arrayFilter(vm.vbaComponents(), function(item) {
+                    if(item.name.toLowerCase().indexOf(vm.componentFilter().toLowerCase()) != -1){
+                        return true;
+                    }
+                    if(item.type.toLowerCase().indexOf(vm.componentFilter().toLowerCase()) != -1){
+                        return true;
+                    }
+                    return false;
+                }));
+            }else{  
+                vm.filteredComponents(vm.vbaComponents().slice());
+            }
+        }
+    
+        
+    
         // Function to filter tables
         vm.filterTables = function(){
             if(vm.tableFilter() != ""){
@@ -217,7 +289,9 @@ lbs.apploader.register('LIPPackageBuilder', function () {
         // Filter observables
         vm.tableFilter = ko.observable("");
         vm.fieldFilter = ko.observable("");
-
+        vm.componentFilter = ko.observable("");
+        
+        
         // Load databas structure
         try{
             var db = {};
@@ -256,6 +330,10 @@ lbs.apploader.register('LIPPackageBuilder', function () {
         vm.tables = ko.observableArray();
         // Filtered tables. These are the ones loaded into the view
         vm.filteredTables = ko.observableArray();
+        
+        // Filtered Components
+        vm.filteredComponents = ko.observableArray();
+        
         // Load model objects
         initModel(vm);
 
@@ -263,7 +341,16 @@ lbs.apploader.register('LIPPackageBuilder', function () {
         vm.tables(ko.utils.arrayMap(vm.datastructure.table,function(t){
             return new Table(t);
         }));
-  
+        
+        // Computed with all selected vba components
+        vm.selectedVbaComponents = ko.computed(function(){
+            if(vm.vbaComponents()){
+				return ko.utils.arrayFilter(vm.vbaComponents(),function(c){
+					return c.selected() | false;
+				});
+			}
+        });
+        
         // Computed with all selected tables
         vm.selectedTables = ko.computed(function(){
             return ko.utils.arrayFilter(vm.tables(), function(t){
@@ -279,6 +366,11 @@ lbs.apploader.register('LIPPackageBuilder', function () {
             vm.filterTables();
         });
         
+        vm.componentFilter.subscribe(function(newValue){
+            vm.filterComponents();
+        });
+        
+        vm.filterComponents();
         // Set default filter
         vm.filterTables();
 

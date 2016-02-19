@@ -1,13 +1,18 @@
 
 <nav class="navbar navbar-default navbar-fixed-top">
+	<div class="container-fluid">
 		<div class="navbar-header">
 			<a class="navbar-brand" href="#">LIP Package Builder</a>
 		</div>
 		<ul class="nav navbar-nav">
 			<li role="presentation" data-bind="css: {'active' : activeTab() == 'details'}, click: function(){showTab('details')}"><a href="#">Details</a></li>
 			<li role="presentation" data-bind="css: {'active' : activeTab() == 'database'}, click: function(){showTab('database')}"><a href="#">Database objects</a></li>
+			<li role="presentation" data-bind="css: {'active' : activeTab() == 'vba'}, click: function(){showTab('vba')}"><a href="#">VBA</a></li>
+
 		</ul>
 		<button type="button" class="btn btn-default pull-right navbar-btn" data-bind="click: serializePackage">Generate package</button>
+	</div>
+
 </nav>
 <div class="package-container row col-md-12">
 	<div class="row col-md-10 col-md-offset-1" data-bind="visible: activeTab() == 'details'">
@@ -42,6 +47,7 @@
 		  	</div>
 		  	
 		</form>
+
 	</div>
 	<div class="row col-md-10 col-md-offset-1" data-bind="visible: activeTab() == 'database'">
 		<div class="row">
@@ -116,5 +122,42 @@
 				<!-- /ko -->
 			</div>
 		</div>
+	</div>
+	
+	<div class="row col-md-10 col-md-offset-1" data-bind="visible: activeTab() == 'vba'">
+		<h4>VBA</h4>
+		<!-- ko if: showComponents() -->
+		<div class="row">
+			<div class="col-md-5 col-margined">
+				<div class="input-group">
+			      	<div class="input-group-addon">
+			      		<span class="fa fa-search"/>
+			      	</div>
+					<input type="text" class="form-control" id="searchComponentInput" placeholder="Quick filter..." data-bind="value: componentFilter, valueUpdate: 'afterkeydown'">
+			    </div>
+				<div class="list-group col-md-12">
+					<div class="list-group-item disabled">
+						<span class="col-md-1 col-sm-1 col-md-1 col-sm-1 list-header overflowed">
+							<input class="select-all" type="checkbox" data-bind="checked: selectedVbaComponents, popover: 'Select all'" >
+						</span>
+
+				  		<span class="col-md-4 list-header" data-bind="text: 'Name'"/>
+				  		<span class="col-md-5 list-header" data-bind="text: 'Type'"/>
+				  	</div>
+					<!-- ko foreach: filteredComponents() -->
+					<a class="list-group-item">
+						<span class="col-md-1 col-sm-1 col-md-1" >
+							<input type="checkbox" data-bind="checked: selected, stopBubble: true" >
+						</span>
+
+						<span class="col-md-4" data-bind="text: name"/>
+						<span class="col-md-5" data-bind="text: type"/>
+						
+					</a>
+					<!-- /ko -->
+				</div>
+			</div>
+		</div>
+		<!-- /ko -->
 	</div>
 </div>
