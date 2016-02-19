@@ -7,17 +7,13 @@ Some of the features are:
   - Easy installation
   - Magic
 
-![Add package information](/LIPPackageBuilder/images/general.png)  
-*Select meta information about the LIP package*
-
-
-
-
-
-![Select tables and fields](/LIPPackageBuilder/images/tables.png)  
-*Choose tables and fields*
-
 Lastly save the entire package by clicking Generate Package.
+
+##Installation:
+1. Install by using lip.InstallFromZipFile and point out this zip file.
+2. Move the file Install\packagebuilder.html to the main Actionpadfolder
+
+Open the packagebuilder by calling the function LIPPackageBuilder.OpenPackageBuilder
 
 
 # Wanted future features
@@ -35,11 +31,10 @@ These are some of the future features of LIP Package Builder
 
 #### Other
 - SQL procedures and functions 
-- VBA modules 
 - Dependencies 
 
 # What works then?
-Fields.Plain old fields and tables baby. Oooh yeah.
+Fields And VBA Modules
 
 
 CREATED BY JKA, FER, BOS, LJE and PDE
