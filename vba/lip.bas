@@ -937,11 +937,20 @@ On Error GoTo ErrorHandler
 
         Set VBComps = Application.VBE.ActiveVBProject.VBComponents
         If ComponentExists(ModuleName, VBComps) = True Then
-            tempModuleName = LCO.GenerateGUID
-            tempModuleName = VBA.Replace(VBA.Mid(tempModuleName, 2, VBA.Len(tempModuleName) - 2), "-", "")
-            tempModuleName = VBA.Left("temp" & tempModuleName, 30)
-            VBComps.Item(ModuleName).Name = tempModuleName
-            Call VBComps.Remove(VBComps.Item(tempModuleName))
+            If vbYes = Lime.MessageBox("Do you want to replace existing VBA-module " & ModuleName & "?", vbYesNo + vbDefaultButton2 + vbQuestion) Then
+                tempModuleName = LCO.GenerateGUID
+                tempModuleName = VBA.Replace(VBA.Mid(tempModuleName, 2, VBA.Len(tempModuleName) - 2), "-", "")
+                tempModuleName = VBA.Left("OLD_" & tempModuleName, 30)
+                VBComps.Item(ModuleName).Name = tempModuleName
+                If vbYes = Lime.MessageBox("Do you want to delete the old module?", vbYesNo + vbDefaultButton2 + vbQuestion) Then
+                    Call VBComps.Remove(VBComps.Item(tempModuleName))
+                Else
+                    Call Lime.MessageBox("Old module is saved with the name " & tempModuleName, vbInformation)
+                    Debug.Print ("Old module is saved with the name " & tempModuleName)
+                End If
+            Else
+                Debug.Print ("Module " & ModuleName & " already exists and have not been replaced.")
+            End If
         End If
         Path = InstallPath + PackageName + "\" + Replace(RelPath, "/", "\")
 
