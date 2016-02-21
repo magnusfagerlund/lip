@@ -914,8 +914,6 @@ On Error GoTo ErrorHandler
     For Each VBAModule In VBAModules
         If addModule(PackageName, VBAModule.Item("name"), VBAModule.Item("relPath"), InstallPath) = False Then
             bOk = False
-        Else
-            Debug.Print Indent + "Added " + VBAModule.Item("name")
         End If
     Next VBAModule
     DecreaseIndent
@@ -937,24 +935,30 @@ On Error GoTo ErrorHandler
 
         Set VBComps = Application.VBE.ActiveVBProject.VBComponents
         If ComponentExists(ModuleName, VBComps) = True Then
-            If vbYes = Lime.MessageBox("Do you want to replace existing VBA-module " & ModuleName & "?", vbYesNo + vbDefaultButton2 + vbQuestion) Then
+            If vbYes = Lime.MessageBox("Do you want to replace existing VBA-module """ & ModuleName & """?", vbYesNo + vbDefaultButton2 + vbQuestion) Then
                 tempModuleName = LCO.GenerateGUID
                 tempModuleName = VBA.Replace(VBA.Mid(tempModuleName, 2, VBA.Len(tempModuleName) - 2), "-", "")
                 tempModuleName = VBA.Left("OLD_" & tempModuleName, 30)
                 VBComps.Item(ModuleName).Name = tempModuleName
+                
                 If vbYes = Lime.MessageBox("Do you want to delete the old module?", vbYesNo + vbDefaultButton2 + vbQuestion) Then
                     Call VBComps.Remove(VBComps.Item(tempModuleName))
                 Else
-                    Call Lime.MessageBox("Old module is saved with the name " & tempModuleName, vbInformation)
-                    Debug.Print ("Old module is saved with the name " & tempModuleName)
+                    Call Lime.MessageBox("Old module is saved with the name """ & tempModuleName & """", vbInformation)
+                    Debug.Print ("Old module is saved with the name """ & tempModuleName & """")
                 End If
+                
+                Path = InstallPath + PackageName + "\" + Replace(RelPath, "/", "\")
+                Call Application.VBE.ActiveVBProject.VBComponents.Import(Path)
+                Debug.Print Indent + "Added " + ModuleName
             Else
-                Debug.Print ("Module " & ModuleName & " already exists and have not been replaced.")
+                Debug.Print ("Module """ & ModuleName & """ already exists and have not been replaced.")
             End If
+        Else
+            Path = InstallPath + PackageName + "\" + Replace(RelPath, "/", "\")
+            Call Application.VBE.ActiveVBProject.VBComponents.Import(Path)
+            Debug.Print Indent + "Added " + ModuleName
         End If
-        Path = InstallPath + PackageName + "\" + Replace(RelPath, "/", "\")
-
-        Call Application.VBE.ActiveVBProject.VBComponents.Import(Path)
     Else
         bOk = False
         Debug.Print (Indent + "Detected invalid package- or modulename while installing """ + RelPath + """")
@@ -964,6 +968,7 @@ On Error GoTo ErrorHandler
 ErrorHandler:
     addModule = False
     Call UI.ShowError("lip.addModule")
+    Debug.Print ("Couldn't add module " & ModuleName)
 End Function
 
 Private Function ComponentExists(ComponentName As String, VBComps As Object) As Boolean
