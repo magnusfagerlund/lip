@@ -240,13 +240,13 @@ On Error GoTo ErrorHandler
         DecreaseIndent
     End If
 
-    If Package.Item("install").Exists("sql") = True Then
-        IncreaseIndent
-        If InstallSQL(Package.Item("install").Item("sql"), PackageName, InstallPath) = False Then
-            bOk = False
-        End If
-        DecreaseIndent
-    End If
+'    If Package.Item("install").Exists("sql") = True Then
+'        IncreaseIndent
+'        If InstallSQL(Package.Item("install").Item("sql"), PackageName, InstallPath) = False Then
+'            bOk = False
+'        End If
+'        DecreaseIndent
+'    End If
 
     If Package.Item("install").Exists("files") = True Then
         IncreaseIndent
@@ -483,78 +483,78 @@ ErrorHandler:
     Call UI.ShowError("lip.InstallFiles")
 End Function
 
-Private Function InstallSQL(oJSON As Object, PackageName As String, InstallPath As String) As Boolean
-On Error GoTo ErrorHandler
-    Dim bOk As Boolean
-    Dim SQL As Variant
-    Dim Path As String
-    Dim RelPath As String
-    
-    bOk = True
-
-    Debug.Print Indent + "Installing SQL..."
-    IncreaseIndent
-    For Each SQL In oJSON
-        RelPath = Replace(SQL.Item("relPath"), "/", "\")
-        Path = InstallPath & PackageName & "\" & RelPath
-        If CreateSQLProcedure(Path, SQL.Item("name"), SQL.Item("type")) = False Then
-            bOk = False
-        End If
-    Next SQL
-    DecreaseIndent
-    InstallSQL = bOk
-Exit Function
-ErrorHandler:
-    InstallSQL = False
-    Call UI.ShowError("lip.InstallSQL")
-End Function
-
-Private Function CreateSQLProcedure(Path As String, Name As String, ProcType As String) As Boolean
-    Dim bOk As Boolean
-    Dim oProc As New LDE.Procedure
-    Dim strSQL As String
-    Dim sLine As String
-    Dim sErrormessage As String
-
-    bOk = True
-    strSQL = ""
-    sErrormessage = ""
-
-    Open Path For Input As #1
-        Do Until EOF(1)
-            Line Input #1, sLine
-            strSQL = strSQL & sLine & vbNewLine
-        Loop
-        Close #1
-
-        Set oProc = Database.Procedures("csp_lip_installSQL")
-        If Not oProc Is Nothing Then
-            oProc.Parameters("@@sql") = strSQL
-            oProc.Parameters("@@name") = Name
-            oProc.Parameters("@@type") = ProcType
-            oProc.Execute (False)
-
-            sErrormessage = oProc.Parameters("@@errormessage").OutputValue
-
-            If sErrormessage <> "" Then
-                Debug.Print Indent + (sErrormessage)
-                bOk = False
-            Else
-                Debug.Print Indent + ("'" & Name & "'" & " added.")
-            End If
-
-        Else
-            bOk = False
-            Call Lime.MessageBox("Couldn't find SQL-procedure 'csp_lip_installSQL'. Please make sure this procedure exists in the database and restart LDC.")
-        End If
-        
-        CreateSQLProcedure = bOk
-
-Exit Function
-ErrorHandler:
-    CreateSQLProcedure = False
-    Call UI.ShowError("lip.CreateSQLProcedure")
-End Function
+'Private Function InstallSQL(oJSON As Object, PackageName As String, InstallPath As String) As Boolean
+'On Error GoTo ErrorHandler
+'    Dim bOk As Boolean
+'    Dim SQL As Variant
+'    Dim Path As String
+'    Dim RelPath As String
+'
+'    bOk = True
+'
+'    Debug.Print Indent + "Installing SQL..."
+'    IncreaseIndent
+'    For Each SQL In oJSON
+'        RelPath = Replace(SQL.Item("relPath"), "/", "\")
+'        Path = InstallPath & PackageName & "\" & RelPath
+'        If CreateSQLProcedure(Path, SQL.Item("name"), SQL.Item("type")) = False Then
+'            bOk = False
+'        End If
+'    Next SQL
+'    DecreaseIndent
+'    InstallSQL = bOk
+'Exit Function
+'ErrorHandler:
+'    InstallSQL = False
+'    Call UI.ShowError("lip.InstallSQL")
+'End Function
+'
+'Private Function CreateSQLProcedure(Path As String, Name As String, ProcType As String) As Boolean
+'    Dim bOk As Boolean
+'    Dim oProc As New LDE.Procedure
+'    Dim strSQL As String
+'    Dim sLine As String
+'    Dim sErrormessage As String
+'
+'    bOk = True
+'    strSQL = ""
+'    sErrormessage = ""
+'
+'    Open Path For Input As #1
+'        Do Until EOF(1)
+'            Line Input #1, sLine
+'            strSQL = strSQL & sLine & vbNewLine
+'        Loop
+'        Close #1
+'
+'        Set oProc = Database.Procedures("csp_lip_installSQL")
+'        If Not oProc Is Nothing Then
+'            oProc.Parameters("@@sql") = strSQL
+'            oProc.Parameters("@@name") = Name
+'            oProc.Parameters("@@type") = ProcType
+'            oProc.Execute (False)
+'
+'            sErrormessage = oProc.Parameters("@@errormessage").OutputValue
+'
+'            If sErrormessage <> "" Then
+'                Debug.Print Indent + (sErrormessage)
+'                bOk = False
+'            Else
+'                Debug.Print Indent + ("'" & Name & "'" & " added.")
+'            End If
+'
+'        Else
+'            bOk = False
+'            Call Lime.MessageBox("Couldn't find SQL-procedure 'csp_lip_installSQL'. Please make sure this procedure exists in the database and restart LDC.")
+'        End If
+'
+'        CreateSQLProcedure = bOk
+'
+'Exit Function
+'ErrorHandler:
+'    CreateSQLProcedure = False
+'    Call UI.ShowError("lip.CreateSQLProcedure")
+'End Function
 
 Private Function InstallFieldsAndTables(oJSON As Object) As Boolean
 On Error GoTo ErrorHandler
