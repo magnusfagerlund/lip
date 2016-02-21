@@ -1,6 +1,6 @@
 #LIP - Package Management for LIME Pro
 
-LIP is a package management tool for LIME Pro. A package can currently contain declarations for fields and tables, VBA modules, localizations, LIME Bootstrap Apps and SQL-procedures. LIP downloads and installs packages from Package Stores. A Package Store is any valid source which serves correct JSON-files and package.zip files. You can configure which stores to use in the packages.json-file in your actionpad-folder.
+LIP is a package management tool for LIME Pro. A package can currently contain declarations for fields and tables, VBA modules, localizations and LIME Bootstrap Apps. LIP downloads and installs packages from Package Stores. A Package Store is any valid source which serves correct JSON-files and package.zip files. You can configure which stores to use in the packages.json-file in your actionpad-folder.
 
 LIP is inspired from Pythons PIP and Nodes NPM but adapted for LIME Pro.
 
@@ -108,13 +108,6 @@ An example of how the app.json-file could look like:
             {
                 "relPath": "Install/Test.bas",
                 "name": "Checklist"
-            }
-        ],
-        "sql":[
-        	{
-                "relPath": "test.sql",
-                "name": "csp_mypackage_test",
-                "type": "procedure"
             }
         ],
         "tables": [
@@ -245,36 +238,6 @@ Here you can specify posts to be added in the localize-table of LIME Pro. Exampl
         "fi": "A short description"
     }
 ]
-```
-####sql
-With this node you can add SQL-procedures and -functions by letting LIP run a SQL-file.
-```
-"sql":[
-	{
-        "relPath": "test.sql",
-        "name": "csp_mypackage_test",
-        "type": "procedure"
-    }
-]
-```
-#####relPath (mandatory)
-Specify the relative path to the SQL-file to run. Don't forget to include the SQL-file in your package.
-
-#####name (mandatory)
-Name of the procedure/function to add. When naming your procedure, remember to include your packagename (e.g. csp_mypackage_addGoals) in the name to distinguish the procedure from others.
-
-#####type (mandatory)
-"procedure" or "function"
-
-IMPORTANT: in your SQL-file you CAN'T include the rows before the "CREATE PROCEDURE"-row. The reason for this is how the procedure is added to the database. One SQL-file can also only include one procedure. Example of an SQL-file:
-```
-CREATE PROCEDURE [dbo].[csp_mypackage_addGoals]
-    @@myVariable INT = NULL
-AS
-BEGIN
-    SELECT 0
-    --My code here
-END
 ```
 #### vba
 Here you can specify VBA-modules (Forms and Class Modules are also supported) that should be installed. Please note that the VBA-file MUST be included in the zip-file of your package. Please specify the relative path to the VBA-file and the name of the VBA-module. When adding forms, please include both form-files (.frm and .frx) and specify the .frm-file in "relPath". Example:
