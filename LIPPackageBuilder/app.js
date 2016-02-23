@@ -184,8 +184,18 @@ lbs.apploader.register('LIPPackageBuilder', function () {
 
                     if(field.localname && field.localname.order)
                         delete field.localname.order;
-
-                    if(field.separator && field.separator.order)
+					
+					//The separator is added correctly as a property on a field, instead of localname.
+                    if(field.localname && field.localname.separator){
+						field.separator = field.localname.separator;
+						
+						delete field.localname.separator;
+							
+					}
+					
+				
+					
+					if(field.separator && field.separator.order)
                         delete field.separator.order;   
 
                     if(field.localname && field.localname.option)
@@ -205,7 +215,6 @@ lbs.apploader.register('LIPPackageBuilder', function () {
 				arrComponents = [];
 				$.each(vm.selectedVbaComponents(), function(i, component){
 					arrComponents.push({"name": component.name, "relPath": "Install\\" + component.name + component.extension() })
-					lbs.common.executeVba('LIPPackageBuilder.ExportVbaModule', component.name);
 				});
 				
 				// Build package json from details and database structure
@@ -225,18 +234,16 @@ lbs.apploader.register('LIPPackageBuilder', function () {
 						"vba" : arrComponents
 					}
 				}
-				lbs.log.debug(JSON.stringify(data));
+				//lbs.log.debug(JSON.stringify(data));
 			}catch(e) {alert("Error serializing LIP Package:\n\n" + e);}
 			
 			// Save using VBA Method
 			try{
-				if(data.install.vba){
-					
-					lbs.common.executeVba('LIPPackageBuilder.CreatePackage', JSON.stringify(data));
-					
-				}
+				//Base64 encode the entire string, commas don't do well in VBA calls.
+				lbs.common.executeVba('LIPPackageBuilder.CreatePackage', window.btoa(JSON.stringify(data)));
 			}catch(e){alert(e);}
-            // Save to file using microsofts weird ass self developed file saving stuff
+            
+			// Save to file using microsofts weird ass self developed file saving stuff
             //var blobObject = new Blob([JSON.stringify(data)]); 
             //window.navigator.msSaveBlob(blobObject, 'package.json')
         }
@@ -291,12 +298,25 @@ lbs.apploader.register('LIPPackageBuilder', function () {
         vm.fieldFilter = ko.observable("");
         vm.componentFilter = ko.observable("");
         
+		function b64_to_utf8(str) {
+			return unescape(window.atob(str));
+		}
+	
+		
         
         // Load databas structure
         try{
             var db = {};
-            lbs.loader.loadDataSource(db, { type: 'storedProcedure', source: 'csp_lip_getxmldatabase_wrapper', alias: 'structure' }, false);
-            vm.datastructure = db.structure.data;
+            //lbs.loader.loadDataSource(db, { type: 'storedProcedure', source: 'csp_lip_getxmldatabase_wrapper', alias: 'structure' }, false);
+			db = window.external.run('LIPPackageBuilder.LoadDataStructure', 'csp_lip_getxmldatabase_wrapper');
+            db = db.replace(/\r?\n|\r/g,"");
+			db = b64_to_utf8(db);
+			
+			var json = xml2json($.parseXML(db),''); 
+			//replace double backslashes with single ones.
+			//json = json.replace(/\\/g,"\\\\");
+			json = $.parseJSON(json);
+			vm.datastructure = json.data;
         }
         catch(err){
             alert(err)
@@ -317,9 +337,18 @@ lbs.apploader.register('LIPPackageBuilder', function () {
         
         // Load localization data
         try{
-            var localData = {};
+            /*var localData = {};
             lbs.loader.loadDataSource(localData, { type: 'storedProcedure', source: 'csp_lip_getlocalnames', alias: 'localNames' }, false);
-            vm.localNames = localData.localNames.data;
+            vm.localNames = localData.localNames.data;*/
+			var localData = "";
+			localData = lbs.common.executeVba('LIPPackageBuilder.LoadDataStructure, csp_lip_getlocalnames');
+            localData = localData.replace(/\r?\n|\r/g,"");
+			localData = b64_to_utf8(localData);
+			
+			var json = xml2json($.parseXML(localData),''); 
+			json = json.replace(/\\/g,"\\\\");
+			json = $.parseJSON(json);
+			vm.localNames = json.data;
         }
         catch(err){
             alert(err)

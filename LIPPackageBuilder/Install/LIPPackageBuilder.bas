@@ -19,10 +19,32 @@ ErrorHandler:
     Call UI.ShowError("Globals.OpenPackageBuilder")
 End Sub
 
+Public Function LoadDataStructure(strProcedureName As String) As String
+On Error GoTo ErrorHandler
+    Dim oProcedure As LDE.Procedure
+    Dim sXml As String
+    Set oProcedure = Database.Procedures.Lookup(strProcedureName, lkLookupProcedureByName)
+    If Not oProcedure Is Nothing Then
+        oProcedure.Parameters("@@lang").InputValue = Database.Locale
+        oProcedure.Parameters("@@idcoworker").InputValue = ActiveUser.Record.ID
+        Call oProcedure.Execute(False)
+    Else
+        Call Application.MessageBox("The procedure """ & strProcedureName & """ does not exist in the client metadata.")
+    End If
+    sXml = oProcedure.result
+   sXml = XMLEncodeBase64(sXml)
+    
+    LoadDataStructure = sXml
+    'MsgBox sXml
+    'MsgBox StrConv(DecodeBase64(sXml), vbUnicode)
+Exit Function
+ErrorHandler:
+Call UI.ShowError("LIPPackageBuilder.LoadDatastructure")
+End Function
 
 Public Function GetVBAComponents() As String
 On Error GoTo ErrorHandler
-    Dim oComp As VBComponent
+    Dim oComp As Object
     Dim strComponents As String
     strComponents = "["
     For Each oComp In Application.VBE.ActiveVBProject.VBComponents
@@ -31,7 +53,6 @@ On Error GoTo ErrorHandler
             strComponents = strComponents & "{"
             strComponents = strComponents & """name"": """ & oComp.Name & ""","
             strComponents = strComponents & """type"": """ & GetModuleTypeName(oComp.Type) & """},"
-            
         End If
     Next
     
@@ -64,20 +85,65 @@ ErrorHandler:
 Call UI.ShowError("LIPPackageBuilder.GetModuleTypeName")
 End Function
 
+Public Function XMLEncodeBase64(text As String) As String
+     
+    If text = "" Then XMLEncodeBase64 = "": Exit Function
+     
+    Dim arrData() As Byte
+    arrData = StrConv(text, vbFromUnicode)
+     
+    Dim objXML As MSXML2.DOMDocument60
+    Dim objNode As MSXML2.IXMLDOMElement
+     
+    Set objXML = New MSXML2.DOMDocument60
+    Set objNode = objXML.createElement("b64")
+     
+    objNode.DataType = "bin.base64"
+    objNode.nodeTypedValue = arrData
+    XMLEncodeBase64 = objNode.text
+     
+    Set objNode = Nothing
+    Set objXML = Nothing
+     
+End Function
 
-Public Sub CreatePackage(strPackageJson As String)
+Private Function DecodeBase64(ByVal strData As String) As Byte()
+ 
+    Dim objXML As MSXML2.DOMDocument60
+    Dim objNode As MSXML2.IXMLDOMElement
+    
+    ' help from MSXML
+    Set objXML = New MSXML2.DOMDocument60
+    Set objNode = objXML.createElement("b64")
+    objNode.DataType = "bin.base64"
+    objNode.text = strData
+    DecodeBase64 = objNode.nodeTypedValue
+    
+    ' thanks, bye
+    Set objNode = Nothing
+    Set objXML = Nothing
+ 
+End Function
+
+
+Public Sub CreatePackage(strPackageJsonBase64 As String)
 On Error GoTo ErrorHandler
     Dim strTempFolder As String
     Dim oPackage As Object
     Dim bResult As Boolean
+    Dim strPackageJson As String
+    Dim strOldTempFolder2 As String
     bResult = True
+    strPackageJson = StrConv(DecodeBase64(strPackageJsonBase64), vbUnicode)
     'Create temporary folder
     strTempFolder = CreateTemporaryFolder()
+    'Used for later
+    strOldTempFolder2 = strTempFolder
     Set oPackage = JsonConverter.ParseJson(strPackageJson)
     
     'Export VBA modules
     If bResult Then
-        bResult = ExportVBA(oPackage)
+        bResult = ExportVBA(oPackage, strTempFolder)
     End If
     If bResult = False Then
         Call Application.MessageBox("Couldn't export VBA Modules.")
@@ -92,10 +158,14 @@ On Error GoTo ErrorHandler
         Call Application.MessageBox("Couldn't save the package.json file.")
         Exit Sub
     End If
-    'Rename Temporary folder
+    'Rename Temporary folder to package name
+    Dim NewFolderName
     If bResult Then
         bResult = RenameTemporaryFolder(oPackage, strTempFolder)
     End If
+    'save the new folder name
+    Dim NewTempFolderName As String
+    NewTempFolderName = strTempFolder
     
     If bResult = False Then
         Call Application.MessageBox("Couldn't Rename the temporary folder.")
@@ -113,13 +183,18 @@ On Error GoTo ErrorHandler
         Exit Sub
     End If
     
+    'Open containing folder
     Call Application.Shell(ZipPath)
     
     'Delete Temporary folder
     If bResult Then
-        bResult = DeleteTemporaryFolder(strTempFolder)
+        bResult = DeleteTemporaryFolder(NewTempFolderName)
+        bResult = DeleteTemporaryFolder(strOldTempFolder2)
     End If
     
+    If Not bResult Then
+        Call Application.MessageBox("Couldn't remove the temporary folder %1", vbExclamation, NewTempFolderName)
+    End If
     
 Exit Sub
 ErrorHandler:
@@ -133,7 +208,7 @@ On Error GoTo ErrorHandler
     
     GetFolder = ""
         
-    fldr.Text = "Select a Folder to save the package file."
+    fldr.text = "Select a Folder to save the package file."
     If fldr.show = vbOK Then
         GetFolder = fldr.Folder
     End If
@@ -219,10 +294,22 @@ On Error GoTo ErrorHandler
         NewFolderName = strTempFolder
     End If
     
-    NewFolderName = VBA.Left(NewFolderName, InStrRev(NewFolderName, "\")) & oPackage.Item("name")
+        
     
+    NewFolderName = VBA.Left(NewFolderName, InStrRev(NewFolderName, "\")) & oPackage.Item("name")
+'    If Dir(NewFolderName, vbDirectory) = "" Then
+'        Call Application.MessageBox("The folder """ & NewFolderName & """ already exists.")
+'        RenameTemporaryFolder = False
+'        Exit Function
+'    End If
     '-- Rename them
+    If VBA.Dir(NewFolderName, vbDirectory) <> "" Then
+        DeleteTemporaryFolder (NewFolderName)
+        
+        bResult = True
+    Else
     Name strTempFolder As NewFolderName
+    End If
     
     strTempFolder = NewFolderName
 
@@ -255,6 +342,7 @@ On Error GoTo ErrorHandler
     End If
 
     If FSO.FolderExists(strTempFolder) = False Then
+        DeleteTemporaryFolder = True
         Exit Function
     End If
 
@@ -262,7 +350,8 @@ On Error GoTo ErrorHandler
     'Delete files
     FSO.DeleteFile strTempFolder & "\*.*", True
     'Delete subfolders
-    FSO.DeleteFolder strTempFolder & "\*.*", True
+    FSO.DeleteFolder strTempFolder & "\*.", True
+    Call RmDir(strTempFolder)
     On Error GoTo 0
     
     DeleteTemporaryFolder = True
@@ -270,6 +359,7 @@ On Error GoTo ErrorHandler
     Exit Function
 ErrorHandler:
     DeleteTemporaryFolder = False
+    Debug.Print Err.Number & vbCrLf & Err.Description
 End Function
 
 Public Function SavePackageFile(oPackage As Object, strTempPath As String) As Boolean
@@ -282,7 +372,7 @@ On Error GoTo ErrorHandler
     'Set FSO = CreateObject("Scripting.FileSystemObject")
     
     Dim oFile As Object
-    Set oFile = FSO.CreateTextFile(filePath, True, True)
+    Set oFile = FSO.CreateTextFile(filePath, True, False)
     'Convert to a string and save
     Call oFile.WriteLine(JsonConverter.ConvertToJson(oPackage))
     oFile.Close
@@ -298,7 +388,7 @@ End Function
 
 
 'Exports all VBA-Modules marked in the Package JSON
-Public Function ExportVBA(oPackage As Object) As Boolean
+Public Function ExportVBA(oPackage As Object, strTempFolder As String) As Boolean
 On Error GoTo ErrorHandler
     Dim bResult As Boolean
     bResult = True
@@ -307,7 +397,7 @@ On Error GoTo ErrorHandler
         
         If Not oPackage.Item("install").Item("vba") Is Nothing Then
             For Each oModule In oPackage.Item("install").Item("vba")
-                bResult = ExportVBAModule(oModule.Item("name"))
+                bResult = ExportVBAModule(oModule.Item("name"), strTempFolder)
                 If bResult = False Then
                     ExportVBA = False
                     Exit Function
@@ -322,17 +412,18 @@ ErrorHandler:
 End Function
 
 'Exporterar alla VBA-objekt till fil
-Public Function ExportVBAModule(ModuleName As String) As Boolean
+Public Function ExportVBAModule(ModuleName As String, Optional strTempFolder As String = "") As Boolean
 On Error GoTo ErrorHandler
-    Dim Component As VBIDE.VBComponent
+    Dim Component As Object
     Dim strInstallFolder As String
-    Dim strTempFolder As String
+    
     Dim bResult As Boolean
     bResult = True
     Set Component = ThisApplication.VBE.ActiveVBProject.VBComponents(ModuleName)
-    If strTempFolder = "" Then
-        strTempFolder = CreateTemporaryFolder()
-        strInstallFolder = CreateTemporaryFolder("Install")
+    If VBA.Dir(strTempFolder & "\" & "Install", vbDirectory) = "" Then
+        strInstallFolder = CreateTemporaryFolder(strTempFolder, "Install")
+    Else
+        strInstallFolder = strTempFolder & "\" & "Install"
     End If
     Dim strFileName As String
     
@@ -360,21 +451,22 @@ ErrorHandler:
     bResult = False
 End Function
 
-Private Function CreateTemporaryFolder(Optional Subfolder As String = "") As String
+Private Function CreateTemporaryFolder(Optional strTempFolder As String = "", Optional Subfolder As String = "") As String
 On Error GoTo ErrorHandler
     'Kolla om sökvägen finns och skapar mappen
     Dim strTempPath As String
-    strTempPath = Application.WebFolder & "apps\LIPPackageBuilder\LIPTemp"
+    
+    strTempPath = IIf(strTempFolder = "", Application.WebFolder & "apps\LIPPackageBuilder\" & VBA.Replace(VBA.Replace(LCO.GenerateGUID, "{", ""), "}", ""), strTempFolder)
     
     Dim strExists As String
-    strExists = VBA.Dir(WebFolder & "apps\LIPPackageBuilder\LIPTemp", vbDirectory)
+    strExists = VBA.Dir(strTempPath, vbDirectory)
     If strExists = "" Then
         Call MkDir(strTempPath)
     End If
     
     If Subfolder <> "" Then
-        strTempPath = WebFolder & "apps\LIPPackageBuilder\LIPTemp\" & Subfolder
-        strExists = VBA.Dir(WebFolder & "apps\LIPPackageBuilder\LIPTemp\" & Subfolder, vbDirectory)
+        strTempPath = strTempPath & "\" & Subfolder
+        strExists = VBA.Dir(strTempPath & Subfolder, vbDirectory)
         If strExists = "" Then
             Call MkDir(strTempPath)
         End If

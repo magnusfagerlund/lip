@@ -7,10 +7,6 @@
 		"version": "0.2",
 		"date": "2016-02-11",
 		"comments": "Added VBA support"
-	}, {
-		"version": "0.1",
-		"date": "2016-01-25",
-		"comments": "Creation"
 	}],
 	"install": {
 		"tables": [],

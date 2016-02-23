@@ -205,17 +205,17 @@ Public Function Find(ByVal sToFind As String, _
 End Function
 
 Public Sub HeapMinimize()
-   Dim iLen As Long
+   Dim ILen As Long
    
    ' Reduce the string size so only the minimal chunks
    ' are allocated:
    If (m_iLen - m_iPos) > m_iChunkSize Then
-      iLen = m_iLen
-      Do While (iLen - m_iPos) > m_iChunkSize
-         iLen = iLen - m_iChunkSize
+      ILen = m_iLen
+      Do While (ILen - m_iPos) > m_iChunkSize
+         ILen = ILen - m_iChunkSize
       Loop
-      m_sString = Left$(m_sString, iLen \ 2)
-      m_iLen = iLen
+      m_sString = Left$(m_sString, ILen \ 2)
+      m_iLen = ILen
    End If
    
 End Sub
