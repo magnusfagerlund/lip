@@ -149,68 +149,75 @@ lbs.apploader.register('LIPPackageBuilder', function () {
         // Serialize selected tables and fields and combine with localization data
         vm.serializePackage = function(){
             var data = {};
-            var tables = [];
-		
+            var packageTables = [];
+			var tables = [];
+			
 		
 			if (vm.name() == ""){
 				alert("Package name is required");
 				return;
 			}
-            // For each selected table
-            $.each(vm.selectedTables(),function(i,table){
-                
-                // Fetch local names from table with same name
-                var localNameTable  = vm.localNames.Tables.filter(function(t){
-                    return t.name == table.name;
-                })[0];
+			try{
+				// For each selected table
+				$.each(vm.selectedTables(),function(i,table){
+					var packageTable = {};
+					// Fetch local names from table with same name
+					var localNameTable  = vm.localNames.Tables.filter(function(t){
+						return t.name == table.name;
+					})[0];
 
-                // Set singular and plural local names for table
-                table.localname_singular = localNameTable.localname_singular;
-                table.localname_plural = localNameTable.localname_plural;
-                
-                // For each selected field in current table
-                var fields = [];
-                $.each(table.selectedFields(),function(j,field){
-                    // Fetch local names from field with same name
-                    var localNameField = localNameTable.Fields.filter(function(f){
-                        return f.name == field.name;
-                    })[0];
-                    
-                    // Set local names for current field
-                    field.localname = localNameField;
-                
-                    if(field.localname && field.localname.name)
-                        delete field.localname.name;
-
-                    if(field.localname && field.localname.order)
-                        delete field.localname.order;
+					// Set singular and plural local names for table
+					packageTable.localname_singular = localNameTable.localname_singular;
+					packageTable.localname_plural = localNameTable.localname_plural;
 					
-					//The separator is added correctly as a property on a field, instead of localname.
-                    if(field.localname && field.localname.separator){
-						field.separator = field.localname.separator;
+					// For each selected field in current table
+					var fields = [];
+					var packageFields = [];
+					$.each(table.selectedFields(),function(j,field){
+						// Fetch local names from field with same name
+						var localNameField = localNameTable.Fields.filter(function(f){
+							return f.name == field.name;
+						})[0];
+						var packageField = jQuery.extend(true,{},field);
+						// Set local names for current field
+						packageField.localname = localNameField;
+					
+						if(packageField.localname && packageField.localname.name)
+							delete packageField.localname.name;
+
+						if(packageField.localname && packageField.localname.order)
+							delete packageField.localname.order;
 						
-						delete field.localname.separator;
+						//The separator is added correctly as a property on a field, instead of localname.
+						if(packageField.localname && packageField.localname.separator){
+							packageField.separator = packageField.localname.separator;
 							
-					}
+							delete packageField.localname.separator;
+								
+						}
+						
 					
-				
-					
-					if(field.separator && field.separator.order)
-                        delete field.separator.order;   
+						
+						if(packageField.separator && packageField.separator.order)
+							delete packageField.separator.order;   
 
-                    if(field.localname && field.localname.option)
-                        delete field.localname.option;
+						if(packageField.localname && packageField.localname.option)
+							delete packageField.localname.option;
 
-                    // Push field to fields
-                    fields.push(field);
-                });
+						// Push field to fields
+						fields.push(packageField);
+					});
 
-                // Set fields to the current table
-                table.fields = fields;
+					// Set fields to the current table
+					table.fields = fields;
 
-                // Push table to tables
-                tables.push(table);
-            });
+					// Push table to tables
+					packageTables.push(table);
+				});
+			}
+			catch(e){
+				alert(e);
+			}
 			try {
 				arrComponents = [];
 				$.each(vm.selectedVbaComponents(), function(i, component){
@@ -230,7 +237,7 @@ lbs.apploader.register('LIPPackageBuilder', function () {
 						"comments": vm.comment()
 					}],
 					"install" : {
-						"tables" : tables,
+						"tables" : packageTables,
 						"vba" : arrComponents
 					}
 				}
