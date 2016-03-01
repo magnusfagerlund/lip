@@ -19,7 +19,6 @@ Open the packagebuilder by calling the function LIPPackageBuilder.OpenPackageBui
 # Wanted future features
 These are some of the future features of LIP Package Builder
 #### Fields
-- Relation fields
 - Option fields
 - Set fields
 
@@ -35,6 +34,7 @@ These are some of the future features of LIP Package Builder
 
 # What works then?
 Fields And VBA Modules
+
 
 
 CREATED BY JKA, FER, BOS, LJE and PDE
