@@ -95,7 +95,8 @@ lbs.apploader.register('LIPPackageBuilder', function () {
             "formatsql",
             "limevalidationrule",
             "label",
-            "adlabel"
+            "adlabel",
+			"idrelation"
         ];
         
         // Checkbox to select all tables
@@ -145,13 +146,16 @@ lbs.apploader.register('LIPPackageBuilder', function () {
         vm.vbaComponents = ko.observableArray();
         vm.showComponents = ko.observable(false);
         
+		//Relation container
+		vm.relations = ko.observableArray();
         
         // Serialize selected tables and fields and combine with localization data
         vm.serializePackage = function(){
             var data = {};
             var packageTables = [];
 			var tables = [];
-			
+			var packageRelations = [];
+			var relations = {};
 		
 			if (vm.name() == ""){
 				alert("Package name is required");
@@ -181,7 +185,29 @@ lbs.apploader.register('LIPPackageBuilder', function () {
 						var packageField = jQuery.extend(true,{},field);
 						// Set local names for current field
 						packageField.localname = localNameField;
-					
+						
+						//create relations
+						try{
+							if(field.attributes.fieldtype == "relation"){
+								//Lookup if relation already added
+								var existingRelation = relations[field.attributes.idrelation];
+								
+								if(existingRelation == null || existingRelation == undefined){
+									var packageRelation = new Relation(field.attributes.idrelation,table.name, field.name);
+									relations[field.attributes.idrelation] = packageRelation;
+									
+									
+								}
+								else{
+									existingRelation.table2 = table.name;
+									existingRelation.field2 = field.name;
+								}
+							}
+						}
+						catch(e){
+							alert(e);
+						}
+						
 						if(packageField.localname && packageField.localname.name)
 							delete packageField.localname.name;
 
@@ -206,14 +232,27 @@ lbs.apploader.register('LIPPackageBuilder', function () {
 
 						// Push field to fields
 						fields.push(packageField);
+						
+						
 					});
-
+					for(idrelation in relations){
+						if(relations[idrelation].table2 != ""){
+							packageRelations.push({"table1": relations[idrelation].table1,
+													"field1": relations[idrelation].field1,
+													"table2": relations[idrelation].table2,
+													"field2": relations[idrelation].field2
+													})
+						}
+						
+					}
+					
 					// Set fields to the current table
 					table.fields = fields;
-
+					
 					// Push table to tables
 					packageTables.push(table);
 				});
+				
 			}
 			catch(e){
 				alert(e);
@@ -238,7 +277,8 @@ lbs.apploader.register('LIPPackageBuilder', function () {
 					}],
 					"install" : {
 						"tables" : packageTables,
-						"vba" : arrComponents
+						"vba" : arrComponents,
+						"relations": packageRelations
 					}
 				}
 				//lbs.log.debug(JSON.stringify(data));

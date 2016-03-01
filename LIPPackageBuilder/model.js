@@ -106,14 +106,16 @@ var Field = function(f, tablename){
     self.timestamp = ko.observable(moment(f.timestamp).format("YYYY-MM-DD"));
     self.localname = f.localname;
     // self.fieldtype = vm.fieldTypes[f.fieldtype];
-
+	
+	
     self.attributes = {};
     $.each(vm.fieldAttributes, function(i, a){
         if(a == 'fieldtype'){
             self.attributes[a] = vm.fieldTypes[f[a]];
         }
         else{
-            self.attributes[a] = f[a];
+			if(f[a])
+				self.attributes[a] = f[a];
         }
     });
 
@@ -166,4 +168,23 @@ var VbaComponent = function(c){
 		}
 		else return "";
 	}
+}
+
+var Relation = function(idrelation, tablename, fieldname){
+	var self = this;
+	self.idrelation = idrelation;
+	self.table1 =  tablename;
+	self.field1 =  fieldname;
+	self.table2 =  "";
+	self.field2 = "";
+	
+	self.serialize = function(){
+			return {	"table1": self.table1,
+						"field1": self.field1,
+						"table2": self.table2,
+						"field2": self.field2
+					};
+	
+	}
+	
 }
