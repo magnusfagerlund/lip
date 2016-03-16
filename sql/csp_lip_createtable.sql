@@ -8,6 +8,7 @@ CREATE PROCEDURE [dbo].[csp_lip_createtable]
 	, @@errorMessage NVARCHAR(512) OUTPUT
 	, @@idtable INT OUTPUT
 	, @@iddescriptiveexpression INT OUTPUT
+	, @@simulate BIT
 AS
 BEGIN
 	-- FLAG_EXTERNALACCESS --
@@ -35,6 +36,8 @@ BEGIN
 	SET @isFirstLocalize = 1
 	SET @@errorMessage = N''
 	
+	BEGIN TRANSACTION createTable
+	
 	--Check if table already exists
 	EXEC lsp_gettable @@name = @@tablename, @@count = @count OUTPUT
 	
@@ -55,6 +58,7 @@ BEGIN
 			, @@user = 1
 			
 		-- Refresh ldc to make sure table is visible in LIME later on
+		EXEC lsp_setdatabasetimestamp
 		EXEC lsp_refreshldc
 
 		--If return value is not 0, something went wrong and the table wasn't created
@@ -145,6 +149,7 @@ BEGIN
 				@@value	=  @idstring
 			--End localnames plural
 			
+			EXEC lsp_setdatabasetimestamp
 			EXEC lsp_refreshldc
 			
 			--If return value is not 0, something went wrong while setting table attributes
@@ -153,5 +158,14 @@ BEGIN
 				SET @@errorMessage = N'Something went wrong while setting localnames for table ''' + @@tablename + N'''. Please check that table properties are correct.'
 			END
 		END
+	END
+	
+	IF @@simulate = 1
+	BEGIN
+		ROLLBACK TRANSACTION createTable
+	END
+	ELSE
+	BEGIN
+		COMMIT TRANSACTION createTable
 	END
 END
