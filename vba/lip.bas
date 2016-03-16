@@ -1,5 +1,6 @@
 Attribute VB_Name = "lip"
 
+
 Option Explicit
 
 'Lundalogik Package Store, DO NOT CHANGE, used to download system files for LIP
@@ -27,7 +28,7 @@ ErrorHandler:
 End Sub
 
 'Install package/app. Selects packagestore from packages.json
-Public Sub Install(PackageName As String, Optional Upgrade As Boolean)
+Public Sub Install(PackageName As String, Optional upgrade As Boolean)
 On Error GoTo ErrorHandler
     Dim Package As Object
     Dim PackageVersion As Double
@@ -41,20 +42,39 @@ On Error GoTo ErrorHandler
         Debug.Print Indent + "No packages.json found, assuming fresh install"
         Call InstallLIP
     End If
-
+    
+    'TODO Check if LIP has a new version
+    If NewVersionOfLIPExists Then
+        Debug.Print Indent + "Updating LIP"
+        Dim sUpgrade As String
+        sUpgrade = ""
+        If upgrade = True Then
+            sUpgrade = ", True"
+        End If
+            
+        Debug.Print Indent + "Install command will need to be run again: lip.install " + PackageName + sUpgrade
+        
+        Call UpdateLIP
+        Debug.Print Indent + "LIP updated"
+    End If
+    
     PackageName = LCase(PackageName)
-
+    
     Debug.Print Indent + "====== LIP Install: " + PackageName + " ======"
 
     Debug.Print Indent + "Looking for package: '" + PackageName + "'"
-    Set Package = SearchForPackageOnStores(PackageName)
+    Set Package = SearchForPackageInStores(PackageName)
     If Package Is Nothing Then
         Exit Sub
     End If
-
+    'LJE How to handle local stores?
     If Package.Exists("source") Then
         downloadURL = VBA.Replace(Package.Item("source"), "\/", "/") 'Replace \/ with only / since JSON escapes frontslash with a backslash which causes problems with URLs
     Else
+        'Handle local source
+        If Package.Exists("localsource") Then
+            downloadURL = Package.Item("source")
+        End If
         downloadURL = BaseURL & ApiURL & PackageName & "/download/"  'Use Lundalogik Packagestore if source-node wasn't found
     End If
 
@@ -70,7 +90,7 @@ On Error GoTo ErrorHandler
     PackageVersion = findNewestVersion(Package.Item("versions"))
 
     'Check if package already exsists
-    If Not Upgrade Then
+    If Not upgrade Then
         If CheckForLocalInstalledPackage(PackageName, PackageVersion) = True Then
             Exit Sub
         End If
@@ -240,13 +260,13 @@ On Error GoTo ErrorHandler
         DecreaseIndent
     End If
 
-'    If Package.Item("install").Exists("sql") = True Then
-'        IncreaseIndent
-'        If InstallSQL(Package.Item("install").Item("sql"), PackageName, InstallPath) = False Then
-'            bOk = False
-'        End If
-'        DecreaseIndent
-'    End If
+    If Package.Item("install").Exists("sql") = True Then
+        IncreaseIndent
+        If InstallSQL(Package.Item("install").Item("sql"), PackageName, InstallPath) = False Then
+            bOk = False
+        End If
+        DecreaseIndent
+    End If
 
     If Package.Item("install").Exists("files") = True Then
         IncreaseIndent
@@ -293,25 +313,48 @@ ErrorHandler:
 End Sub
 
 
-Private Function SearchForPackageOnStores(PackageName As String) As Object
+Private Function SearchForPackageInStores(PackageName As String) As Object
+On Error GoTo ErrorHandler
+        
+    Set SearchForPackageInStores = SearchForPackageInOnlineStores(PackageName)
+    
+    If SearchForPackageInStores Is Nothing Then
+        Set SearchForPackageInStores = SearchForPackageInLocalStores(PackageName)
+        If SearchForPackageInStores Is Nothing Then
+            'If we've reached this code, package wasn't found
+            Debug.Print Indent + ("Package '" & PackageName & "' not found!")
+            Set SearchForPackageInStores = Nothing
+        End If
+    End If
+
+Exit Function
+ErrorHandler:
+    Set SearchForPackageInStores = Nothing
+    Call UI.ShowError("lip.SearchForPackageInStores")
+End Function
+
+'LJE Search for package in online stores
+'LJE TEST
+Public Function SearchForPackageInOnlineStores(PackageName As String) As Object
 On Error GoTo ErrorHandler
     Dim sJSON As String
     Dim oJSON As Object
-    Dim oPackages As Object
+    Dim oStores As Object
     Dim Path As String
-    Dim oPackage As Variant
-
-    Set oPackages = ReadPackageFile.Item("stores")
+    Dim oStore As Variant
+    'LJE changed to onlinestores
+    'Set oPackages = ReadPackageFile.Item("stores")
+    Set oStores = ReadPackageFile.Item("onlinestores")
 
     'Loop through packagestores from packages.json
-    For Each oPackage In oPackages
+    For Each oStore In oStores
 
-        Path = oPackages.Item(oPackage)
-        Debug.Print Indent + ("Looking for package at store '" & oPackage & "'")
+        Path = oStores.Item(oStore)
+        Debug.Print Indent + ("Looking for package at store '" & oStore & "'")
         sJSON = getJSON(Path + PackageName + "/")
 
         If sJSON <> "" Then
-            sJSON = VBA.Left(sJSON, VBA.Len(sJSON) - 1) & ",""source"":""" & oPackages.Item(oPackage) & """}" 'Add a source node so we know where the package exists
+            sJSON = VBA.Left(sJSON, VBA.Len(sJSON) - 1) & ",""source"":""" & oStores.Item(oStore) & """}" 'Add a source node so we know where the package exists
         End If
 
         Set oJSON = parseJSON(sJSON) 'Create a JSON object from the string
@@ -320,26 +363,103 @@ On Error GoTo ErrorHandler
             If oJSON.Item("error") = "" Then
                 'Package found, make sure the install node exists
                 If Not oJSON.Item("install") Is Nothing Then
-                    Debug.Print Indent + ("Package '" & PackageName & "' found on store '" & oPackage & "'")
-                    Set SearchForPackageOnStores = oJSON
+                    Debug.Print Indent + ("Package '" & PackageName & "' found on onlinestore '" & oStore & "'")
+                    Set SearchForPackageInOnlineStores = oJSON
                     Exit Function
                 Else
-                    Debug.Print Indent + ("Package '" & PackageName & "' found on store '" & oPackage & "' but has no valid install instructions!")
-                    Set SearchForPackageOnStores = Nothing
+                    Debug.Print Indent + ("Package '" & PackageName & "' found on onlinestore '" & oStore & "' but has no valid install instructions!")
+                    Set SearchForPackageInOnlineStores = Nothing
                     Exit Function
                 End If
             End If
         End If
     Next
-
+    
     'If we've reached this code, package wasn't found
-    Debug.Print Indent + ("Package '" & PackageName & "' not found!")
-    Set SearchForPackageOnStores = Nothing
+    Debug.Print Indent + ("Package '" & PackageName & "' not found in online stores!")
+    Set SearchForPackageInOnlineStores = Nothing
 
-Exit Function
+    Exit Function
 ErrorHandler:
-    Set SearchForPackageOnStores = Nothing
-    Call UI.ShowError("lip.SearchForPackageOnStores")
+    Set SearchForPackageInOnlineStores = Nothing
+    Call UI.ShowError("lip.SearchForPackageInOnlineStores")
+End Function
+
+
+'LJE Search for package in local stores
+'Should be a local path where folders are named after packages
+'LJE TEST
+Public Function SearchForPackageInLocalStores(PackageName As String) As Object
+On Error GoTo ErrorHandler
+    Dim oStores As Object
+    Dim oStore As Variant
+    Dim Path As String
+    Dim FileSystem As Object
+    Dim oJSON As Object
+    
+    Set oStores = ReadPackageFile.Item("localstores")
+    'TODO Test if the oStores is ok
+    'TODO Test with multiple local stores
+    
+    'Loop through localstores from packages.json
+    For Each oStore In oStores
+        
+        Path = oStores.Item(oStore)
+        Debug.Print Indent + ("Looking for package at store '" & oStore & "'")
+        
+        Dim FileSystemObj As Object
+        Dim startFolder As Object
+        Dim fld As Object
+        
+        Set FileSystemObj = CreateObject("Scripting.FileSystemObject")
+        'LJE backslash needs to be handled - see trello item. CHECK Install Package and install nodes
+        'LJE TODO Check if store path is ok
+        'Set startFolder = FileSystemObj.GetFolder(Path)
+        Set startFolder = FileSystemObj.GetFolder("c:\temp\localstore\")
+        
+        For Each fld In startFolder.SubFolders
+            If LCase(fld.Name) = LCase(PackageName) Then
+                Dim sJSON As String
+                Dim sLine As String
+                
+                Open fld.Path & "\" & "app.json" For Input As #1
+                        
+                Do Until EOF(1)
+                    Line Input #1, sLine
+                    sJSON = sJSON & sLine
+                Loop
+                
+                
+                If sJSON <> "" Then
+                    sJSON = VBA.Left(sJSON, VBA.Len(sJSON) - 1) & ",""localsource"":""" & fld.Path + "\" + fld.Name + """}"   'Add a source node so we know where the package exists
+                End If
+    
+                Close #1
+                
+                Set oJSON = parseJSON(sJSON) 'Create a JSON object from the string
+                
+                If Not oJSON.Item("install") Is Nothing Then
+                    Debug.Print Indent + ("Package '" & PackageName & "' found in local store'" & oStore & "'")
+                    Set SearchForPackageInLocalStores = oJSON
+                    Exit Function
+                Else
+                    Debug.Print Indent + ("Package '" & PackageName & "' found in local store'" & oStore & "' but has no valid install instructions!")
+                    Set SearchForPackageInLocalStores = Nothing
+                    Exit Function
+                End If
+                
+            End If
+        Next
+    Next
+       
+    'If we've reached this code, package wasn't found
+    Debug.Print Indent + ("Package '" & PackageName & "' not found in local stores!")
+    Set SearchForPackageInLocalStores = Nothing
+    
+    Exit Function
+ErrorHandler:
+    Set SearchForPackageInLocalStores = Nothing
+    Call UI.ShowError("lip.SearchForPackageInLocalStores")
 End Function
 
 Private Function CheckForLocalInstalledPackage(PackageName As String, PackageVersion As Double) As Boolean
@@ -483,78 +603,78 @@ ErrorHandler:
     Call UI.ShowError("lip.InstallFiles")
 End Function
 
-'Private Function InstallSQL(oJSON As Object, PackageName As String, InstallPath As String) As Boolean
-'On Error GoTo ErrorHandler
-'    Dim bOk As Boolean
-'    Dim SQL As Variant
-'    Dim Path As String
-'    Dim RelPath As String
-'
-'    bOk = True
-'
-'    Debug.Print Indent + "Installing SQL..."
-'    IncreaseIndent
-'    For Each SQL In oJSON
-'        RelPath = Replace(SQL.Item("relPath"), "/", "\")
-'        Path = InstallPath & PackageName & "\" & RelPath
-'        If CreateSQLProcedure(Path, SQL.Item("name"), SQL.Item("type")) = False Then
-'            bOk = False
-'        End If
-'    Next SQL
-'    DecreaseIndent
-'    InstallSQL = bOk
-'Exit Function
-'ErrorHandler:
-'    InstallSQL = False
-'    Call UI.ShowError("lip.InstallSQL")
-'End Function
-'
-'Private Function CreateSQLProcedure(Path As String, Name As String, ProcType As String) As Boolean
-'    Dim bOk As Boolean
-'    Dim oProc As New LDE.Procedure
-'    Dim strSQL As String
-'    Dim sLine As String
-'    Dim sErrormessage As String
-'
-'    bOk = True
-'    strSQL = ""
-'    sErrormessage = ""
-'
-'    Open Path For Input As #1
-'        Do Until EOF(1)
-'            Line Input #1, sLine
-'            strSQL = strSQL & sLine & vbNewLine
-'        Loop
-'        Close #1
-'
-'        Set oProc = Database.Procedures("csp_lip_installSQL")
-'        If Not oProc Is Nothing Then
-'            oProc.Parameters("@@sql") = strSQL
-'            oProc.Parameters("@@name") = Name
-'            oProc.Parameters("@@type") = ProcType
-'            oProc.Execute (False)
-'
-'            sErrormessage = oProc.Parameters("@@errormessage").OutputValue
-'
-'            If sErrormessage <> "" Then
-'                Debug.Print Indent + (sErrormessage)
-'                bOk = False
-'            Else
-'                Debug.Print Indent + ("'" & Name & "'" & " added.")
-'            End If
-'
-'        Else
-'            bOk = False
-'            Call Lime.MessageBox("Couldn't find SQL-procedure 'csp_lip_installSQL'. Please make sure this procedure exists in the database and restart LDC.")
-'        End If
-'
-'        CreateSQLProcedure = bOk
-'
-'Exit Function
-'ErrorHandler:
-'    CreateSQLProcedure = False
-'    Call UI.ShowError("lip.CreateSQLProcedure")
-'End Function
+Private Function InstallSQL(oJSON As Object, PackageName As String, InstallPath As String) As Boolean
+On Error GoTo ErrorHandler
+    Dim bOk As Boolean
+    Dim SQL As Variant
+    Dim Path As String
+    Dim RelPath As String
+    
+    bOk = True
+
+    Debug.Print Indent + "Installing SQL..."
+    IncreaseIndent
+    For Each SQL In oJSON
+        RelPath = Replace(SQL.Item("relPath"), "/", "\")
+        Path = InstallPath & PackageName & "\" & RelPath
+        If CreateSQLProcedure(Path, SQL.Item("name"), SQL.Item("type")) = False Then
+            bOk = False
+        End If
+    Next SQL
+    DecreaseIndent
+    InstallSQL = bOk
+Exit Function
+ErrorHandler:
+    InstallSQL = False
+    Call UI.ShowError("lip.InstallSQL")
+End Function
+
+Private Function CreateSQLProcedure(Path As String, Name As String, ProcType As String) As Boolean
+    Dim bOk As Boolean
+    Dim oProc As New LDE.Procedure
+    Dim strSQL As String
+    Dim sLine As String
+    Dim sErrormessage As String
+
+    bOk = True
+    strSQL = ""
+    sErrormessage = ""
+
+    Open Path For Input As #1
+        Do Until EOF(1)
+            Line Input #1, sLine
+            strSQL = strSQL & sLine & vbNewLine
+        Loop
+        Close #1
+
+        Set oProc = Database.Procedures("csp_lip_installSQL")
+        If Not oProc Is Nothing Then
+            oProc.Parameters("@@sql") = strSQL
+            oProc.Parameters("@@name") = Name
+            oProc.Parameters("@@type") = ProcType
+            oProc.Execute (False)
+
+            sErrormessage = oProc.Parameters("@@errormessage").OutputValue
+
+            If sErrormessage <> "" Then
+                Debug.Print Indent + (sErrormessage)
+                bOk = False
+            Else
+                Debug.Print Indent + ("'" & Name & "'" & " added.")
+            End If
+
+        Else
+            bOk = False
+            Call Lime.MessageBox("Couldn't find SQL-procedure 'csp_lip_installSQL'. Please make sure this procedure exists in the database and restart LDC.")
+        End If
+        
+        CreateSQLProcedure = bOk
+
+Exit Function
+ErrorHandler:
+    CreateSQLProcedure = False
+    Call UI.ShowError("lip.CreateSQLProcedure")
+End Function
 
 Private Function InstallFieldsAndTables(oJSON As Object) As Boolean
 On Error GoTo ErrorHandler
@@ -914,6 +1034,8 @@ On Error GoTo ErrorHandler
     For Each VBAModule In VBAModules
         If addModule(PackageName, VBAModule.Item("name"), VBAModule.Item("relPath"), InstallPath) = False Then
             bOk = False
+        Else
+            Debug.Print Indent + "Added " + VBAModule.Item("name")
         End If
     Next VBAModule
     DecreaseIndent
@@ -935,30 +1057,15 @@ On Error GoTo ErrorHandler
 
         Set VBComps = Application.VBE.ActiveVBProject.VBComponents
         If ComponentExists(ModuleName, VBComps) = True Then
-            If vbYes = Lime.MessageBox("Do you want to replace existing VBA-module """ & ModuleName & """?", vbYesNo + vbDefaultButton2 + vbQuestion) Then
-                tempModuleName = LCO.GenerateGUID
-                tempModuleName = VBA.Replace(VBA.Mid(tempModuleName, 2, VBA.Len(tempModuleName) - 2), "-", "")
-                tempModuleName = VBA.Left("OLD_" & tempModuleName, 30)
-                VBComps.Item(ModuleName).Name = tempModuleName
-                
-                If vbYes = Lime.MessageBox("Do you want to delete the old module?", vbYesNo + vbDefaultButton2 + vbQuestion) Then
-                    Call VBComps.Remove(VBComps.Item(tempModuleName))
-                Else
-                    Call Lime.MessageBox("Old module is saved with the name """ & tempModuleName & """", vbInformation)
-                    Debug.Print ("Old module is saved with the name """ & tempModuleName & """")
-                End If
-                
-                Path = InstallPath + PackageName + "\" + Replace(RelPath, "/", "\")
-                Call Application.VBE.ActiveVBProject.VBComponents.Import(Path)
-                Debug.Print Indent + "Added " + ModuleName
-            Else
-                Debug.Print ("Module """ & ModuleName & """ already exists and have not been replaced.")
-            End If
-        Else
-            Path = InstallPath + PackageName + "\" + Replace(RelPath, "/", "\")
-            Call Application.VBE.ActiveVBProject.VBComponents.Import(Path)
-            Debug.Print Indent + "Added " + ModuleName
+            tempModuleName = LCO.GenerateGUID
+            tempModuleName = VBA.Replace(VBA.Mid(tempModuleName, 2, VBA.Len(tempModuleName) - 2), "-", "")
+            tempModuleName = VBA.Left("temp" & tempModuleName, 30)
+            VBComps.Item(ModuleName).Name = tempModuleName
+            Call VBComps.Remove(VBComps.Item(tempModuleName))
         End If
+        Path = InstallPath + PackageName + "\" + Replace(RelPath, "/", "\")
+
+        Call Application.VBE.ActiveVBProject.VBComponents.Import(Path)
     Else
         bOk = False
         Debug.Print (Indent + "Detected invalid package- or modulename while installing """ + RelPath + """")
@@ -968,7 +1075,6 @@ On Error GoTo ErrorHandler
 ErrorHandler:
     addModule = False
     Call UI.ShowError("lip.addModule")
-    Debug.Print ("Couldn't add module " & ModuleName)
 End Function
 
 Private Function ComponentExists(ComponentName As String, VBComps As Object) As Boolean
@@ -1114,17 +1220,24 @@ ErrorHandler:
     Set FindPackageLocally = Nothing
     Call UI.ShowError("lip.FindPackageLocally")
 End Function
-
-Private Sub CreateANewPackageFile()
+'LJE TODO Refactor with helper method to write json
+'TEST
+Public Sub CreateANewPackageFile()
 On Error GoTo ErrorHandler
     Dim fs As Object
     Dim a As Object
     Set fs = CreateObject("Scripting.FileSystemObject")
     Set a = fs.CreateTextFile(WebFolder + "packages.json", True)
     a.WriteLine ("{")
-    a.WriteLine ("    ""stores"":{")
+    'LJE VersionHandling
+    'TODO write to GitHub
+    a.WriteLine ("    ""lipversion"":0.5,")
+    'LJE Should perhaps have two different objects - one onlinestore and one localstore
+    a.WriteLine ("    ""onlinestores"":{")
     a.WriteLine ("        ""PackageStore"":""http://api.lime-bootstrap.com/packages/"",")
     a.WriteLine ("        ""Bootstrap Appstore"":""http://api.lime-bootstrap.com/apps/""")
+    a.WriteLine ("    },")
+    a.WriteLine ("    ""localstores"":{")
     a.WriteLine ("    },")
     a.WriteLine ("    ""dependencies"":{")
     a.WriteLine ("    }")
@@ -1167,6 +1280,7 @@ On Error GoTo ErrorHandler
     Debug.Print Indent + "Installing JSON-lib..."
     Call DownloadFile("vba_json", BaseURL + ApiURL, InstallPath)
     Call Unzip("vba_json", InstallPath)
+    'TODO JSON.bas has been renamed to JsonConverter.bas
     Call addModule("vba_json", "JSON", "JSON.bas", InstallPath)
     Call addModule("vba_json", "cStringBuilder", "cStringBuilder.cls", InstallPath)
 
@@ -1305,3 +1419,75 @@ ErrorHandler:
     Call UI.ShowError("lip.InstallRelations")
 End Function
 
+'LJE 20160212 Check if a new version of LIP exists
+Public Function NewVersionOfLIPExists() As Boolean
+On Error GoTo ErrorHandler
+    Dim Package As Object
+    Dim PackageVersion As Double
+    Dim downloadURL As String
+    Dim InstallPath As String
+    Dim PackageName As String
+    
+    Dim oPackageFile As Object
+    Set oPackageFile = ReadPackageFile
+    
+    NewVersionOfLIPExists = False
+    
+    IndentLenght = "  "
+    
+    PackageName = "lip"
+    Debug.Print Indent + "Checking version for LIP"
+    Set Package = SearchForPackageInStores("lip")
+    
+    If Package Is Nothing Then
+        Exit Function
+    End If
+   
+    PackageVersion = findNewestVersion(Package.Item("versions"))
+    If PackageVersion > CDbl(VBA.Replace(oPackageFile.Item("lipversion"), ".", ",")) Then
+        Debug.Print Indent + "Newer version of lip found"
+        NewVersionOfLIPExists = True
+    End If
+    Exit Function
+ErrorHandler:
+    Call UI.ShowError("lip.NewVersionOfLIPExists")
+End Function
+'LJE 20160212 Upgrade LIP if new version exists
+Private Sub UpdateLIP()
+On Error GoTo ErrorHandler
+'Q: How to handle the remove of lip.bas.
+'Separate lip functions in separate modules, an interface with functions which calls another bas which can be replaced.
+
+'1. Replace lip.bas
+'2. Replace csp (this is done manually now)
+'3. Tell user what happened and what needs to be done.
+
+ Dim VBComps As Object
+ Dim Path As String
+ Dim tempModuleName As String
+
+ Set VBComps = Application.VBE.ActiveVBProject.VBComponents
+ VBComps.Item("lip").Name = "lip_old"
+
+ Call Application.VBE.ActiveVBProject.VBComponents.Import("C:\Temp\LocalStore\lip\Install\VBA\lip.bas")
+
+ Call lip.RemoveModule("lip_old")
+
+'Call VBComps.Remove(VBComps.Item(tempModuleName)
+ Exit Sub
+ErrorHandler:
+    Call UI.ShowError("lip.UpdateLIP")
+End Sub
+
+'LJE Remove temporary lip.bas after update
+Private Sub RemoveModule(sModuleName As String)
+Dim VBComps As Object
+On Error GoTo ErrorHandler
+
+Set VBComps = Application.VBE.ActiveVBProject.VBComponents
+
+Call VBComps.Remove(VBComps.Item(sModuleName))
+Exit Sub
+ErrorHandler:
+    Call UI.ShowError("lip.RemoveModule")
+End Sub
