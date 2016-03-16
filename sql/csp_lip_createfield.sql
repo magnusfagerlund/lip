@@ -41,6 +41,7 @@ CREATE PROCEDURE [dbo].[csp_lip_createfield]
 	, @@relationtab BIT = 0
 	, @@errorMessage NVARCHAR(512) OUTPUT
 	, @@idfield INT OUTPUT
+	, @@simulate BIT
 AS
 BEGIN
 
@@ -64,7 +65,9 @@ BEGIN
 	DECLARE @nextOptionEnds INT
 	DECLARE @currentPositionInOption INT
 	DECLARE @supportedFieldtypes NVARCHAR(MAX)
-
+	
+	BEGIN TRANSACTION createField
+	
 	SET @return_value = NULL
 	SET @@idfield = NULL
 	SET @idstringlocalname = NULL
@@ -129,6 +132,7 @@ BEGIN
 
 				
 				-- Refresh ldc to make sure field is visible in LIME later on
+				EXEC lsp_setdatabasetimestamp
 				EXEC lsp_refreshldc
 					
 				--If return value is not 0, something went wrong and the field wasn't created
@@ -562,6 +566,7 @@ BEGIN
 						EXEC [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'type', @@valueint = @@type
 					END
 					
+					EXEC lsp_setdatabasetimestamp
 					EXEC lsp_refreshldc
 					
 					--If return value is not 0, something went wrong while setting field attributes
@@ -573,4 +578,14 @@ BEGIN
 			END
 		END
 	END	
+	
+	IF @@simulate = 1
+	BEGIN
+		ROLLBACK TRANSACTION createField
+	END
+	ELSE
+	BEGIN
+		COMMIT TRANSACTION createField
+	END
+	
 END
