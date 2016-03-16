@@ -6,9 +6,8 @@ CREATE PROCEDURE [dbo].[csp_lip_createtable]
 	, @@localname_singular NVARCHAR(MAX)
 	, @@localname_plural NVARCHAR(MAX)
 	, @@errorMessage NVARCHAR(512) OUTPUT
-	, @@idtable INT OUTPUT
+	, @@idtable INT OUTPUT --idtable is set to -1 if table already exists
 	, @@iddescriptiveexpression INT OUTPUT
-	, @@simulate BIT
 AS
 BEGIN
 	-- FLAG_EXTERNALACCESS --
@@ -35,8 +34,6 @@ BEGIN
 	SET @sql = N''
 	SET @isFirstLocalize = 1
 	SET @@errorMessage = N''
-	
-	BEGIN TRANSACTION createTable
 	
 	--Check if table already exists
 	EXEC lsp_gettable @@name = @@tablename, @@count = @count OUTPUT
@@ -158,14 +155,5 @@ BEGIN
 				SET @@errorMessage = N'Something went wrong while setting localnames for table ''' + @@tablename + N'''. Please check that table properties are correct.'
 			END
 		END
-	END
-	
-	IF @@simulate = 1
-	BEGIN
-		ROLLBACK TRANSACTION createTable
-	END
-	ELSE
-	BEGIN
-		COMMIT TRANSACTION createTable
 	END
 END
