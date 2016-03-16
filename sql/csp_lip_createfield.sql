@@ -40,8 +40,7 @@ CREATE PROCEDURE [dbo].[csp_lip_createfield]
 	, @@adlabel INT = NULL
 	, @@relationtab BIT = 0
 	, @@errorMessage NVARCHAR(512) OUTPUT
-	, @@idfield INT OUTPUT
-	, @@simulate BIT
+	, @@idfield INT OUTPUT --idfield is set to -1 if field already exists
 AS
 BEGIN
 
@@ -65,8 +64,6 @@ BEGIN
 	DECLARE @nextOptionEnds INT
 	DECLARE @currentPositionInOption INT
 	DECLARE @supportedFieldtypes NVARCHAR(MAX)
-	
-	BEGIN TRANSACTION createField
 	
 	SET @return_value = NULL
 	SET @@idfield = NULL
@@ -93,6 +90,7 @@ BEGIN
 	
 	IF  @count > 0 --Fieldname already exists
 	BEGIN
+		SET @@idfield = -1
 		SET @@errorMessage = N'Field ''' + @@fieldname + N''' already exists and will not be re-created. Please verify that properties for the field are correct.'
 	END
 	ELSE --Field doesn't exist
@@ -577,15 +575,5 @@ BEGIN
 				END	
 			END
 		END
-	END	
-	
-	IF @@simulate = 1
-	BEGIN
-		ROLLBACK TRANSACTION createField
-	END
-	ELSE
-	BEGIN
-		COMMIT TRANSACTION createField
-	END
-	
+	END		
 END
