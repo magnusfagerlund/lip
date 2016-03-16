@@ -164,6 +164,7 @@ lbs.apploader.register('LIPPackageBuilder', function () {
             }
             try{
                 // For each selected table
+                
                 $.each(vm.selectedTables(),function(i,table){
                     var packageTable = {};
                     // Fetch local names from table with same name
@@ -178,7 +179,9 @@ lbs.apploader.register('LIPPackageBuilder', function () {
                     // For each selected field in current table
                     var fields = [];
                     var packageFields = [];
-                    $.each(table.selectedFields(),function(j,field){
+                    
+                    var selectedFields = jQuery.extend(true,{},table.selectedFields());
+                    $.each(selectedFields,function(j,field){
                         // Fetch local names from field with same name
                         var localNameField = localNameTable.Fields.filter(function(f){
                             return f.name == field.name;
@@ -299,7 +302,6 @@ lbs.apploader.register('LIPPackageBuilder', function () {
                                 });
                                 //remove field from package
                                 if(indexOfObjectToRemove){
-                                    alert(indexOfObjectToRemove);
                                     packageTable.fields.splice(indexOfObjectToRemove,1);
                                 }
                             }
