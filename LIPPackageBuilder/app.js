@@ -29,7 +29,7 @@ lbs.apploader.register('LIPPackageBuilder', function () {
     */
     self.initialize = function (node, vm) {
 
-        $('title').html('LIP');
+        $('title').html('LIP Package builder');
 
 
         vm.fieldTypes = {
@@ -96,7 +96,7 @@ lbs.apploader.register('LIPPackageBuilder', function () {
             "limevalidationrule",
             "label",
             "adlabel",
-			"idrelation"
+            "idrelation"
         ];
         
         // Checkbox to select all tables
@@ -107,38 +107,39 @@ lbs.apploader.register('LIPPackageBuilder', function () {
                 item.selected(newValue);
             });
         });
-		vm.getVbaComponents = function(){
+        vm.getVbaComponents = function(){
             try{
                 var components = lbs.common.executeVba('LIPPackageBuilder.GetVBAComponents');
                 components = $.parseJSON(components);
-			
-				vm.vbaComponents(ko.utils.arrayMap(components,function(c){
-					if (c.type !== '100')
-						return new VbaComponent(c);
-				}));
-			
-			vm.vbaComponents.sort(function(left,right){
-				return left.type == right.type ? 0 : (left.type < right.type ? -1 : 1);
-			});
+            
+                vm.vbaComponents(ko.utils.arrayMap(components,function(c){
+                    if (c.type !== '100'){
+                        return new VbaComponent(c);
+                    }
+                }));
+            
+            vm.vbaComponents.sort(function(left,right){
+                return left.type == right.type ? 0 : (left.type < right.type ? -1 : 1);
+            });
             }catch(e){alert(e);}
-			vm.componentFilter("");
-			vm.filteredComponents(vm.vbaComponents());
+            vm.componentFilter("");
+            vm.filteredComponents(vm.vbaComponents());
             vm.showComponents(true);
         }
-		
+        
 
         // Navbar function to change tab
         vm.showTab = function(t){
             try{
-				if (t == 'vba'){
-					vm.getVbaComponents();
-				}
-				vm.activeTab(t);
-				
-			}
-			catch(e){alert(e);}
+                if (t == 'vba'){
+                    vm.getVbaComponents();
+                }
+                vm.activeTab(t);
+                
+            }
+            catch(e){alert(e);}
         }
-		
+        
         // Set default tab to details
         vm.activeTab = ko.observable("details");
         
@@ -146,151 +147,209 @@ lbs.apploader.register('LIPPackageBuilder', function () {
         vm.vbaComponents = ko.observableArray();
         vm.showComponents = ko.observable(false);
         
-		//Relation container
-		vm.relations = ko.observableArray();
+        //Relation container
+        vm.relations = ko.observableArray();
         
         // Serialize selected tables and fields and combine with localization data
         vm.serializePackage = function(){
             var data = {};
             var packageTables = [];
-			var tables = [];
-			var packageRelations = [];
-			var relations = {};
-		
-			if (vm.name() == ""){
-				alert("Package name is required");
-				return;
-			}
-			try{
-				// For each selected table
-				$.each(vm.selectedTables(),function(i,table){
-					var packageTable = {};
-					// Fetch local names from table with same name
-					var localNameTable  = vm.localNames.Tables.filter(function(t){
-						return t.name == table.name;
-					})[0];
+            var tables = [];
+            var packageRelations = [];
+            var relations = {};
+        
+            if (vm.name() == ""){
+                alert("Package name is required");
+                return;
+            }
+            try{
+                // For each selected table
+                $.each(vm.selectedTables(),function(i,table){
+                    var packageTable = {};
+                    // Fetch local names from table with same name
+                    var localNameTable  = vm.localNames.Tables.filter(function(t){
+                        return t.name == table.name;
+                    })[0];
 
-					// Set singular and plural local names for table
-					packageTable.localname_singular = localNameTable.localname_singular;
-					packageTable.localname_plural = localNameTable.localname_plural;
-					
-					// For each selected field in current table
-					var fields = [];
-					var packageFields = [];
-					$.each(table.selectedFields(),function(j,field){
-						// Fetch local names from field with same name
-						var localNameField = localNameTable.Fields.filter(function(f){
-							return f.name == field.name;
-						})[0];
-						var packageField = jQuery.extend(true,{},field);
-						// Set local names for current field
-						packageField.localname = localNameField;
-						
-						//create relations
-						try{
-							if(field.attributes.fieldtype == "relation"){
-								//Lookup if relation already added
-								var existingRelation = relations[field.attributes.idrelation];
-								
-								if(existingRelation == null || existingRelation == undefined){
-									var packageRelation = new Relation(field.attributes.idrelation,table.name, field.name);
-									relations[field.attributes.idrelation] = packageRelation;
-									
-									
-								}
-								else{
-									existingRelation.table2 = table.name;
-									existingRelation.field2 = field.name;
-								}
-							}
-						}
-						catch(e){
-							alert(e);
-						}
-						
-						if(packageField.localname && packageField.localname.name)
-							delete packageField.localname.name;
+                    // Set singular and plural local names for table
+                    packageTable.localname_singular = localNameTable.localname_singular;
+                    packageTable.localname_plural = localNameTable.localname_plural;
+                    
+                    // For each selected field in current table
+                    var fields = [];
+                    var packageFields = [];
+                    $.each(table.selectedFields(),function(j,field){
+                        // Fetch local names from field with same name
+                        var localNameField = localNameTable.Fields.filter(function(f){
+                            return f.name == field.name;
+                        })[0];
+                        //Clone the field
+                        var packageField = jQuery.extend(true,{},field);
+                        // Set local names for current field
+                        packageField.localname = localNameField;
+                        
+                        //create relations
+                        try{
+                            if(field.attributes.fieldtype == "relation"){
+                                //Lookup if relation already added
+                                var existingRelation = relations[field.attributes.idrelation];
+                                
+                                if(existingRelation == null || existingRelation == undefined){
+                                    var packageRelation = new Relation(field.attributes.idrelation,table.name, field.name);
+                                    relations[field.attributes.idrelation] = packageRelation;
+                                    
+                                    
+                                }
+                                else{
+                                    existingRelation.table2 = table.name;
+                                    existingRelation.field2 = field.name;
+                                }
+                            }
+                        }
+                        catch(e){
+                            alert(e);
+                        }
+                        
+                        if(packageField.localname && packageField.localname.name){
+                            delete packageField.localname.name;
+                        }
 
-						if(packageField.localname && packageField.localname.order)
-							delete packageField.localname.order;
-						
-						//The separator is added correctly as a property on a field, instead of localname.
-						if(packageField.localname && packageField.localname.separator){
-							packageField.separator = packageField.localname.separator;
-							
-							delete packageField.localname.separator;
-								
-						}
-						
-					
-						
-						if(packageField.separator && packageField.separator.order)
-							delete packageField.separator.order;   
+                        if(packageField.localname && packageField.localname.order){
+                            delete packageField.localname.order;
+                        }
+                        
+                        //The separator is added correctly as a property on a field, instead of localname.
+                        if(packageField.localname && packageField.localname.separator){
+                            packageField.separator = packageField.localname.separator;
+                            
+                            delete packageField.localname.separator;
+                                
+                        }
+                        
+                        if(packageField.separator && packageField.separator.order)
+                            delete packageField.separator.order;   
 
-						if(packageField.localname && packageField.localname.option)
-							delete packageField.localname.option;
+                        if(packageField.localname && packageField.localname.option)
+                            delete packageField.localname.option;
 
-						// Push field to fields
-						fields.push(packageField);
-						
-						
-					});
-					for(idrelation in relations){
-						if(relations[idrelation].table2 != ""){
-							packageRelations.push({"table1": relations[idrelation].table1,
-													"field1": relations[idrelation].field1,
-													"table2": relations[idrelation].table2,
-													"field2": relations[idrelation].field2
-													})
-						}
-						
-					}
-					
-					// Set fields to the current table
-					table.fields = fields;
-					
-					// Push table to tables
-					packageTables.push(table);
-				});
-				
-			}
-			catch(e){
-				alert(e);
-			}
-			try {
-				arrComponents = [];
-				$.each(vm.selectedVbaComponents(), function(i, component){
-					arrComponents.push({"name": component.name, "relPath": "Install\\" + component.name + component.extension() })
-				});
-				
-				// Build package json from details and database structure
-				data = {
-					"name": vm.name(),
-					"author": vm.author(),
-					"status": vm.status(),
-					"shortDesc": vm.description(),
-					"versions":[
-						{
-						"version": vm.versionNumber(),
-						"date": moment().format("YYYY-MM-DD"),
-						"comments": vm.comment()
-					}],
-					"install" : {
-						"tables" : packageTables,
-						"vba" : arrComponents,
-						"relations": packageRelations
-					}
-				}
-				//lbs.log.debug(JSON.stringify(data));
-			}catch(e) {alert("Error serializing LIP Package:\n\n" + e);}
-			
-			// Save using VBA Method
-			try{
-				//Base64 encode the entire string, commas don't do well in VBA calls.
-				lbs.common.executeVba('LIPPackageBuilder.CreatePackage', window.btoa(JSON.stringify(data)));
-			}catch(e){alert(e);}
+                        // Push field to fields
+                        fields.push(packageField);
+                        
+                        
+                    });
+                    
+                    
+                    
+                    //Add relations as the package expects
+                    
+                    for(idrelation in relations){
+                        if(relations[idrelation].table2 != ""){
+                            packageRelations.push({"table1": relations[idrelation].table1,
+                                                    "field1": relations[idrelation].field1,
+                                                    "table2": relations[idrelation].table2,
+                                                    "field2": relations[idrelation].field2
+                                                    })
+                        }
+                        
+                    }
+                    
+                    // Set fields to the current table
+                    table.fields = fields;
+                    
+                    // Push table to tables
+                    packageTables.push(table);
+                });
+                
+                var packageRelationFields = [];
+                //Fetch all relationfields in package
+                var index;
+                for(index = 0;index < packageTables.length; ++index){
+                    var j;
+                    for (j = 0;j <  packageTables[index].fields.length; j++){
+                      var f = packageTables[index].fields[j];
+                      if (f.attributes.fieldtype == "relation"){
+                        packageRelationFields.push({ "name":packageTables[index].name + '.' + f.name, "remove": 1});   
+                      }
+                    }
+                }
+                
+                //Check if field is existing in an relation (ugliest code)
+                for (index = 0;index < packageRelationFields.length; index++){
+                    var rf = packageRelationFields[index];
+                    var j;
+                    for (j = 0; j < packageRelations.length;j++){
+                        var rel = packageRelations[j];
+                        if (rel.table1 + '.' + rel.field1 == rf.name || rel.table2 + '.' + rel.field2 == rf.name){
+                            rf.remove = 0;
+                        }
+                    }
+                }
+                
+                //remove unpaired relationfields (This code might be cleaner...)
+                $.each(packageRelationFields,function(i,relField){
+                    if(relField.remove == 1){
+                        $.each(packageTables, function(j,packageTable){
+                            if(packageTable.name == relField.name.substring(0, relField.name.indexOf("."))){
+                                var indexOfObjectToRemove;
+                                //find the field to remove
+                                $.each(packageTable.fields, function(k, packageField){
+                                    if (packageField.name == relField.name.substring(relField.name.indexOf(".") + 1)){
+                                        indexOfObjectToRemove = k;
+                                    }
+                                });
+                                //remove field from package
+                                if(indexOfObjectToRemove){
+                                    alert(indexOfObjectToRemove);
+                                    packageTable.fields.splice(indexOfObjectToRemove,1);
+                                }
+                            }
+                        
+                        
+                    });
+                }
+                });
+                
+                
+                
+            }
+            catch(e){
+                alert(e);
+            }
             
-			// Save to file using microsofts weird ass self developed file saving stuff
+            try {
+                arrComponents = [];
+                $.each(vm.selectedVbaComponents(), function(i, component){
+                    arrComponents.push({"name": component.name, "relPath": "Install\\" + component.name + component.extension() })
+                });
+                
+                // Build package json from details and database structure
+                data = {
+                    "name": vm.name(),
+                    "author": vm.author(),
+                    "status": vm.status(),
+                    "shortDesc": vm.description(),
+                    "versions":[
+                        {
+                        "version": vm.versionNumber(),
+                        "date": moment().format("YYYY-MM-DD"),
+                        "comments": vm.comment()
+                    }],
+                    "install" : {
+                        "tables" : packageTables,
+                        "vba" : arrComponents
+                        //"relations": packageRelations
+                    }
+                }
+                //lbs.log.debug(JSON.stringify(data));
+            }catch(e) {alert("Error serializing LIP Package:\n\n" + e);}
+            
+            // Save using VBA Method
+            try{
+                //Base64 encode the entire string, commas don't do well in VBA calls.
+                lbs.common.executeVba('LIPPackageBuilder.CreatePackage', window.btoa(JSON.stringify(data)));
+            }catch(e){alert(e);}
+            
+            // Save to file using microsofts weird ass self developed file saving stuff
             //var blobObject = new Blob([JSON.stringify(data)]); 
             //window.navigator.msSaveBlob(blobObject, 'package.json')
         }
@@ -345,25 +404,25 @@ lbs.apploader.register('LIPPackageBuilder', function () {
         vm.fieldFilter = ko.observable("");
         vm.componentFilter = ko.observable("");
         
-		function b64_to_utf8(str) {
-			return unescape(window.atob(str));
-		}
-	
-		
+        function b64_to_utf8(str) {
+            return unescape(window.atob(str));
+        }
+    
+        
         
         // Load databas structure
         try{
             var db = {};
             //lbs.loader.loadDataSource(db, { type: 'storedProcedure', source: 'csp_lip_getxmldatabase_wrapper', alias: 'structure' }, false);
-			db = window.external.run('LIPPackageBuilder.LoadDataStructure', 'csp_lip_getxmldatabase_wrapper');
+            db = window.external.run('LIPPackageBuilder.LoadDataStructure', 'csp_lip_getxmldatabase_wrapper');
             db = db.replace(/\r?\n|\r/g,"");
-			db = b64_to_utf8(db);
-			
-			var json = xml2json($.parseXML(db),''); 
-			//replace double backslashes with single ones.
-			//json = json.replace(/\\/g,"\\\\");
-			json = $.parseJSON(json);
-			vm.datastructure = json.data;
+            db = b64_to_utf8(db);
+            
+            var json = xml2json($.parseXML(db),''); 
+            
+            json = $.parseJSON(json);
+            
+            vm.datastructure = json.data;
         }
         catch(err){
             alert(err)
@@ -387,15 +446,16 @@ lbs.apploader.register('LIPPackageBuilder', function () {
             /*var localData = {};
             lbs.loader.loadDataSource(localData, { type: 'storedProcedure', source: 'csp_lip_getlocalnames', alias: 'localNames' }, false);
             vm.localNames = localData.localNames.data;*/
-			var localData = "";
-			localData = lbs.common.executeVba('LIPPackageBuilder.LoadDataStructure, csp_lip_getlocalnames');
+            var localData = "";
+            localData = lbs.common.executeVba('LIPPackageBuilder.LoadDataStructure, csp_lip_getlocalnames');
             localData = localData.replace(/\r?\n|\r/g,"");
-			localData = b64_to_utf8(localData);
-			
-			var json = xml2json($.parseXML(localData),''); 
-			json = json.replace(/\\/g,"\\\\");
-			json = $.parseJSON(json);
-			vm.localNames = json.data;
+            localData = b64_to_utf8(localData);
+            
+            var json = xml2json($.parseXML(localData),''); 
+            json = json.replace(/\\/g,"\\\\");
+            
+            json = $.parseJSON(json);
+            vm.localNames = json.data;
         }
         catch(err){
             alert(err)
@@ -421,10 +481,10 @@ lbs.apploader.register('LIPPackageBuilder', function () {
         // Computed with all selected vba components
         vm.selectedVbaComponents = ko.computed(function(){
             if(vm.vbaComponents()){
-				return ko.utils.arrayFilter(vm.vbaComponents(),function(c){
-					return c.selected() | false;
-				});
-			}
+                return ko.utils.arrayFilter(vm.vbaComponents(),function(c){
+                    return c.selected() | false;
+                });
+            }
         });
         
         // Computed with all selected tables
