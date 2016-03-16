@@ -7,7 +7,6 @@ CREATE PROCEDURE [dbo].[csp_lip_addRelations]
 	, @@table2 NVARCHAR(64)
 	, @@field2 NVARCHAR(64) = NULL
 	, @@errorMessage NVARCHAR(512) OUTPUT
-	, @@simulate BIT
 AS
 BEGIN
 
@@ -21,8 +20,6 @@ BEGIN
 	DECLARE @fieldtype2 INT
 	
 	DECLARE @fieldtypeRelation INT
-	
-	BEGIN TRANSACTION addRelations
 	
 	--Get id for fieldtype relation
 	SELECT @fieldtypeRelation = idfieldtype
@@ -91,15 +88,5 @@ BEGIN
 	BEGIN
 		SET @@errorMessage = @@table1 + '.' + @@field1 + N' hasn''t been created, relation to ' + @@table2 + '.' + @@field2 + N' can''t be created.'
 		RETURN
-	END
-	
-	IF @@simulate = 1
-	BEGIN
-		ROLLBACK TRANSACTION addRelations
-	END
-	ELSE
-	BEGIN
-		COMMIT TRANSACTION addRelations
-	END
-	
+	END	
 END
