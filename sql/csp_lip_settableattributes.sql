@@ -17,11 +17,14 @@ CREATE PROCEDURE [dbo].[csp_lip_settableattributes]
 	, @@actionpad NVARCHAR(MAX) = NULL
 	, @@log BIT = NULL
 	, @@errorMessage NVARCHAR(512) OUTPUT
+	, @@simulate BIT
 AS
 BEGIN
 	-- FLAG_EXTERNALACCESS --
 	DECLARE	@return_value INT
 
+	BEGIN TRANSACTION tableAttributes
+	
 	SET @return_value =  NULL
 	SET @@errorMessage = N''
 	
@@ -88,11 +91,21 @@ BEGIN
 			, @@value = @@log
 	END
 	
+	EXEC lsp_setdatabasetimestamp
 	EXEC lsp_refreshldc
 	
 	--If return value is not 0, something went wrong while setting table attributes
 	IF @return_value <> 0
 	BEGIN
 		SET @@errorMessage = N'Something went wrong while setting attributes for table ''' + @@tablename + N'''. Please check that table properties are correct.'
+	END
+	
+	IF @@simulate = 1
+	BEGIN
+		ROLLBACK TRANSACTION tableAttributes
+	END
+	ELSE
+	BEGIN
+		COMMIT TRANSACTION tableAttributes
 	END
 END
