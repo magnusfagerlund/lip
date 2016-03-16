@@ -12,7 +12,6 @@ Private Const DefaultInstallPath = "packages\"
 Private IndentLenght As String
 Private Indent As String
 Private sLog As String
-Private sSimulateMsg As String
 
 Public Sub UpgradePackage(Optional PackageName As String, Optional Path As String)
 On Error GoTo Errorhandler:
@@ -35,10 +34,13 @@ On Error GoTo Errorhandler
     Dim PackageVersion As Double
     Dim downloadURL As String
     Dim InstallPath As String
+    Dim bOk As Boolean
+    
+    Application.MousePointer = 11
 
     IndentLenght = "  "
-    
     sLog = ""
+    bOk = True
 
     'Check if first use ever
     If Dir(WebFolder + "packages.json") = "" Then
@@ -95,21 +97,30 @@ On Error GoTo Errorhandler
     Call Unzip(PackageName, InstallPath)
     sLog = sLog + Indent + "Download complete!" + vbNewLine
 
-    Call InstallPackageComponents(PackageName, PackageVersion, Package, InstallPath, Simulate)
+    If InstallPackageComponents(PackageName, PackageVersion, Package, InstallPath, Simulate) = False Then
+        bOk = False
+    End If
+    
+    If bOk Then
+        sLog = sLog + Indent + "Installation of " + PackageName + " done!" + vbNewLine
+    Else
+        sLog = sLog + Indent + "Errors or warnings were raised while installing " + PackageName + ". Please check the log above." + vbNewLine
+    End If
 
     sLog = sLog + Indent + "===================================" + vbNewLine
     
+    Dim sLogfile As String
+    sLogfile = Application.TemporaryFolder & "\" & PackageName & VBA.Replace(VBA.Replace(VBA.Replace(VBA.Now(), ":", ""), "-", ""), " ", "") & ".txt"
+    Open sLogfile For Output As #1
+    Print #1, sLog
+    Close #1
+    
     If Simulate Then
-        If vbYes = Lime.MessageBox("Simulation of installation process completed. Below you find the result. Do you wish to proceed with the installation?" & vbNewLine & vbNewLine & sLog, vbInformation + vbYesNo + vbDefaultButton2) Then
+        ThisApplication.Shell (sLogfile)
+        If vbYes = Lime.MessageBox("Simulation of installation process completed. Please check the result in the recently opened logfile." & vbNewLine & vbNewLine & "Do you wish to proceed with the installation?", vbInformation + vbYesNo + vbDefaultButton2) Then
             Call lip.Install(PackageName, Upgrade, False)
         End If
     Else
-        Dim sLogfile As String
-        sLogfile = Application.TemporaryFolder & "\" & PackageName & VBA.Replace(VBA.Replace(VBA.Replace(VBA.Now(), ":", ""), "-", ""), " ", "") & ".txt"
-        Open sLogfile For Output As #1
-        Print #1, sLog
-        Close #1
-        
         If vbYes = Lime.MessageBox("Installation process completed. Do you want to open the logfile for the installation?", vbInformation + vbYesNo + vbDefaultButton1) Then
             ThisApplication.Shell (sLogfile)
         Else
@@ -118,6 +129,8 @@ On Error GoTo Errorhandler
     End If
     
     sLog = ""
+    
+    Application.MousePointer = 0
 
 Exit Sub
 Errorhandler:
@@ -127,8 +140,14 @@ End Sub
 'Installs package from a zip-file. Input parameter: complete searchpath to the zip-file, including the filename
 Public Sub InstallFromZip(ZipPath As String, Optional Simulate As Boolean = True)
 On Error GoTo Errorhandler
-
+    
+    Dim bOk As Boolean
+    
+    Application.MousePointer = 11
+    
+    bOk = True
     sLog = ""
+    IndentLenght = "  "
 
     'Check if valid path
     If VBA.Right(ZipPath, 4) = ".zip" Then
@@ -168,7 +187,7 @@ On Error GoTo Errorhandler
                 Open ThisApplication.WebFolder & DefaultInstallPath & PackageName & "\" & "app.json" For Input As #1
                 
             Else
-                sLog = sLog + (Indent + "Installation failed: couldn't find any package.json or app.json in the zip-file") + vbNewLine
+                sLog = sLog + Indent + "Installation failed: couldn't find any package.json or app.json in the zip-file" + vbNewLine
                 Exit Sub
             End If
 
@@ -188,20 +207,30 @@ On Error GoTo Errorhandler
                 DecreaseIndent
             End If
 
-            Call InstallPackageComponents(PackageName, 1, Package, ThisApplication.WebFolder & DefaultInstallPath, Simulate)
+            If InstallPackageComponents(PackageName, 1, Package, ThisApplication.WebFolder & DefaultInstallPath, Simulate) = False Then
+                bOk = False
+            End If
+            
+            If bOk Then
+                sLog = sLog + Indent + "Installation of " + PackageName + " done!" + vbNewLine
+            Else
+                sLog = sLog + Indent + "Errors or warnings were raised while installing " + PackageName + ". Please check the log above." + vbNewLine
+            End If
 
             sLog = sLog + Indent + "===================================" + vbNewLine
             
+            Dim sLogfile As String
+            sLogfile = Application.TemporaryFolder & "\" & PackageName & VBA.Replace(VBA.Replace(VBA.Replace(VBA.Now(), ":", ""), "-", ""), " ", "") & ".txt"
+            Open sLogfile For Output As #1
+            Print #1, sLog
+            Close #1
+            
             If Simulate Then
-                If vbYes = Lime.MessageBox("Simulation of installation process completed. Below you find the result. Do you wish to proceed with the installation?" & vbNewLine & vbNewLine & sLog, vbInformation + vbYesNo + vbDefaultButton2) Then
+                ThisApplication.Shell (sLogfile)
+                If vbYes = Lime.MessageBox("Simulation of installation process completed. Please check the result in the recently opened logfile." & vbNewLine & vbNewLine & "Do you wish to proceed with the installation?", vbInformation + vbYesNo + vbDefaultButton2) Then
                     Call lip.InstallFromZip(ZipPath, False)
                 End If
             Else
-                Dim sLogfile As String
-                sLogfile = Application.TemporaryFolder & "\" & PackageName & VBA.Replace(VBA.Replace(VBA.Replace(VBA.Now(), ":", ""), "-", ""), " ", "") & ".txt"
-                Open sLogfile For Output As #1
-                Print #1, sLog
-                Close #1
                 
                 If vbYes = Lime.MessageBox("Installation process completed. Do you want to open the logfile for the installation?", vbInformation + vbYesNo + vbDefaultButton1) Then
                     ThisApplication.Shell (sLogfile)
@@ -217,6 +246,8 @@ On Error GoTo Errorhandler
     End If
     
     sLog = ""
+    
+    Application.MousePointer = 0
 
 Exit Sub
 Errorhandler:
@@ -243,7 +274,7 @@ Errorhandler:
 End Sub
 
 
-Private Sub InstallPackageComponents(PackageName As String, PackageVersion As Double, Package, InstallPath As String, Simulate As Boolean)
+Private Function InstallPackageComponents(PackageName As String, PackageVersion As Double, Package, InstallPath As String, Simulate As Boolean) As Boolean
 On Error GoTo Errorhandler
     
     Dim bOk As Boolean
@@ -269,10 +300,16 @@ On Error GoTo Errorhandler
         End If
         DecreaseIndent
     End If
+    
+    Dim sCreatedTables As String
+    Dim sCreatedFields As String
+    
+    sCreatedTables = ""
+    sCreatedFields = ""
 
     If Package.Item("install").Exists("tables") = True Then
         IncreaseIndent
-        If InstallFieldsAndTables(Package.Item("install").Item("tables"), Simulate) = False Then
+        If InstallFieldsAndTables(Package.Item("install").Item("tables"), sCreatedTables, sCreatedFields) = False Then
             bOk = False
         End If
         DecreaseIndent
@@ -280,10 +317,14 @@ On Error GoTo Errorhandler
     
     If Package.Item("install").Exists("relations") = True Then
         IncreaseIndent
-        If InstallRelations(Package.Item("install").Item("relations"), Simulate) = False Then
+        If InstallRelations(Package.Item("install").Item("relations")) = False Then
             bOk = False
         End If
         DecreaseIndent
+    End If
+    
+    If Simulate Then
+        Call RollbackFieldsAndTables(sCreatedTables, sCreatedFields)
     End If
 
 '    If Package.Item("install").Exists("sql") = True Then
@@ -306,15 +347,13 @@ On Error GoTo Errorhandler
         bOk = False
     End If
     
-    If bOk Then
-        sLog = sLog + Indent + "Installation of " + PackageName + " done!" + vbNewLine
-    Else
-        sLog = sLog + Indent + "Something went wrong while installing " + PackageName + ". Please check for error messages above." + vbNewLine
-    End If
-Exit Sub
+    InstallPackageComponents = bOk
+    
+Exit Function
 Errorhandler:
+    InstallPackageComponents = False
     Call UI.ShowError("lip.InstallPackageComponents")
-End Sub
+End Function
 
 Private Sub InstallDependencies(Package As Object, Simulate As Boolean)
 On Error GoTo Errorhandler
@@ -607,7 +646,7 @@ End Function
 '    Call UI.ShowError("lip.CreateSQLProcedure")
 'End Function
 
-Private Function InstallFieldsAndTables(oJSON As Object, Simulate As Boolean) As Boolean
+Private Function InstallFieldsAndTables(oJSON As Object, ByRef sCreatedTables As String, ByRef sCreatedFields As String) As Boolean
 On Error GoTo Errorhandler
     Dim bOk As Boolean
     Dim table As Object
@@ -630,6 +669,7 @@ On Error GoTo Errorhandler
         localname_singular = ""
         localname_plural = ""
         errormessage = ""
+        idtable = -1
 
         Set oProc = Database.Procedures("csp_lip_createtable")
 
@@ -638,7 +678,6 @@ On Error GoTo Errorhandler
             sLog = sLog + Indent + "Add table: " + table.Item("name") + vbNewLine
 
             oProc.Parameters("@@tablename").InputValue = table.Item("name")
-            oProc.Parameters("@@simulate").InputValue = Simulate
 
             'Add localnames singular
             If table.Exists("localname_singular") Then
@@ -666,6 +705,10 @@ On Error GoTo Errorhandler
 
             idtable = oProc.Parameters("@@idtable").OutputValue
             iddescriptiveexpression = oProc.Parameters("@@iddescriptiveexpression").OutputValue
+            
+            If idtable <> -1 Then
+                sCreatedTables = sCreatedTables + CStr(idtable) + ";"
+            End If
 
             'If errormessage is set, something went wrong
             If errormessage <> "" Then
@@ -680,7 +723,7 @@ On Error GoTo Errorhandler
             If table.Exists("fields") Then
                 For Each field In table.Item("fields")
                     sLog = sLog + Indent + "Add field: " + field.Item("name") + vbNewLine
-                    If AddField(table.Item("name"), field, Simulate) = False Then
+                    If AddField(table.Item("name"), field, sCreatedFields) = False Then
                         bOk = False
                     End If
                 Next field
@@ -689,7 +732,7 @@ On Error GoTo Errorhandler
             'Set table attributes(must be done AFTER fields has been created in order to be able to set descriptive expression)
             'Only set attributes if table was created
             If idtable <> -1 Then
-                If SetTableAttributes(table, idtable, iddescriptiveexpression, Simulate) = False Then
+                If SetTableAttributes(table, idtable, iddescriptiveexpression) = False Then
                     bOk = False
                 End If
             End If
@@ -716,7 +759,7 @@ Errorhandler:
 End Function
 
 
-Private Function AddField(tableName As String, field As Object, Simulate As Boolean) As Boolean
+Private Function AddField(tableName As String, field As Object, ByRef sCreatedFields As String) As Boolean
 On Error GoTo Errorhandler
     Dim bOk As Boolean
     Dim oProc As New LDE.Procedure
@@ -728,6 +771,8 @@ On Error GoTo Errorhandler
     Dim tooltipLocalnames As String
     Dim oItem As Variant
     Dim optionItems As Variant
+    Dim idfield As Long
+    
     bOk = True
     errormessage = ""
     fieldLocalnames = ""
@@ -735,13 +780,13 @@ On Error GoTo Errorhandler
     limevalidationtextLocalnames = ""
     commentLocalnames = ""
     tooltipLocalnames = ""
+    idfield = -1
     
     Set oProc = Database.Procedures("csp_lip_createfield")
 
     If Not oProc Is Nothing Then
         oProc.Parameters("@@tablename").InputValue = tableName
         oProc.Parameters("@@fieldname").InputValue = field.Item("name")
-        oProc.Parameters("@@simulate").InputValue = Simulate
 
         'Add localnames
         If field.Exists("localname") Then
@@ -814,7 +859,13 @@ On Error GoTo Errorhandler
 
         Call oProc.Execute(False)
         errormessage = oProc.Parameters("@@errorMessage").OutputValue
-
+        
+        idfield = oProc.Parameters("@@idfield").OutputValue
+        
+        If idfield <> -1 Then
+            sCreatedFields = sCreatedFields + CStr(idfield) + ";"
+        End If
+        
         'If errormessage is set, something went wrong
         If errormessage <> "" Then
             sLog = sLog + Indent + (errormessage) + vbNewLine
@@ -836,7 +887,7 @@ Errorhandler:
     Call UI.ShowError("lip.AddField")
 End Function
 
-Private Function SetTableAttributes(ByRef table As Object, idtable As Long, iddescriptiveexpression As Long, Simulate As Boolean) As Boolean
+Private Function SetTableAttributes(ByRef table As Object, idtable As Long, iddescriptiveexpression As Long) As Boolean
 On Error GoTo Errorhandler
 
     Dim bOk As Boolean
@@ -857,7 +908,6 @@ On Error GoTo Errorhandler
             oProcAttributes.Parameters("@@tablename").InputValue = table.Item("name")
             oProcAttributes.Parameters("@@idtable").InputValue = idtable
             oProcAttributes.Parameters("@@iddescriptiveexpression").InputValue = iddescriptiveexpression
-            oProcAttributes.Parameters("@@simulate").InputValue = Simulate
 
             For Each oItem In table.Item("attributes")
                 If oItem <> "" Then
@@ -964,13 +1014,11 @@ On Error GoTo Errorhandler
     Dim bOk As Boolean
     bOk = True
     Dim VBAModule As Variant
-    IncreaseIndent
     For Each VBAModule In VBAModules
         If addModule(PackageName, VBAModule.Item("name"), VBAModule.Item("relPath"), InstallPath, Simulate) = False Then
             bOk = False
         End If
     Next VBAModule
-    DecreaseIndent
     InstallVBAComponents = bOk
     Exit Function
 Errorhandler:
@@ -988,36 +1036,41 @@ On Error GoTo Errorhandler
         Dim tempModuleName As String
 
         Set VBComps = Application.VBE.ActiveVBProject.VBComponents
-        If ComponentExists(ModuleName, VBComps) = True Then
-            If vbYes = Lime.MessageBox("Do you want to replace existing VBA-module """ & ModuleName & """?", vbYesNo + vbDefaultButton2 + vbQuestion) Then
-                tempModuleName = LCO.GenerateGUID
-                tempModuleName = VBA.Replace(VBA.Mid(tempModuleName, 2, VBA.Len(tempModuleName) - 2), "-", "")
-                tempModuleName = VBA.Left("OLD_" & tempModuleName, 30)
-                VBComps.Item(ModuleName).Name = tempModuleName
-                
-                If vbYes = Lime.MessageBox("Do you want to delete the old module?", vbYesNo + vbDefaultButton2 + vbQuestion) Then
-                    If Not Simulate Then
-                        Call VBComps.Remove(VBComps.Item(tempModuleName))
+        Path = InstallPath + PackageName + "\" + Replace(RelPath, "/", "\")
+        
+        If VBA.Dir(Path) <> "" Then
+            If ComponentExists(ModuleName, VBComps) = True Then
+                If vbYes = Lime.MessageBox("Do you want to replace existing VBA-module """ & ModuleName & """?", vbYesNo + vbDefaultButton2 + vbQuestion) Then
+                    tempModuleName = LCO.GenerateGUID
+                    tempModuleName = VBA.Replace(VBA.Mid(tempModuleName, 2, VBA.Len(tempModuleName) - 2), "-", "")
+                    tempModuleName = VBA.Left("OLD_" & tempModuleName, 30)
+                    VBComps.Item(ModuleName).Name = tempModuleName
+                    
+                    If vbYes = Lime.MessageBox("Do you want to delete the old module?", vbYesNo + vbDefaultButton2 + vbQuestion) Then
+                        If Not Simulate Then
+                            Call VBComps.Remove(VBComps.Item(tempModuleName))
+                        End If
+                    Else
+                        Call Lime.MessageBox("Old module is saved with the name """ & tempModuleName & """", vbInformation)
+                        sLog = sLog + Indent + ("Old module is saved with the name """ & tempModuleName & """") + vbNewLine
                     End If
+                    
+                    If Not Simulate Then
+                        Call Application.VBE.ActiveVBProject.VBComponents.Import(Path)
+                    End If
+                    sLog = sLog + Indent + "Added " + ModuleName + vbNewLine
                 Else
-                    Call Lime.MessageBox("Old module is saved with the name """ & tempModuleName & """", vbInformation)
-                    sLog = sLog + ("Old module is saved with the name """ & tempModuleName & """") + vbNewLine
+                    sLog = sLog + Indent + ("Module """ & ModuleName & """ already exists and have not been replaced.") + vbNewLine
                 End If
+            Else
                 
-                Path = InstallPath + PackageName + "\" + Replace(RelPath, "/", "\")
                 If Not Simulate Then
                     Call Application.VBE.ActiveVBProject.VBComponents.Import(Path)
                 End If
                 sLog = sLog + Indent + "Added " + ModuleName + vbNewLine
-            Else
-                sLog = sLog + ("Module """ & ModuleName & """ already exists and have not been replaced.") + vbNewLine
             End If
         Else
-            Path = InstallPath + PackageName + "\" + Replace(RelPath, "/", "\")
-            If Not Simulate Then
-                Call Application.VBE.ActiveVBProject.VBComponents.Import(Path)
-            End If
-            sLog = sLog + Indent + "Added " + ModuleName + vbNewLine
+            sLog = sLog + Indent + "Module """ & ModuleName & """ can't be added. File does not exists." + vbNewLine
         End If
     Else
         bOk = False
@@ -1028,7 +1081,7 @@ On Error GoTo Errorhandler
 Errorhandler:
     addModule = False
     Call UI.ShowError("lip.addModule")
-    sLog = sLog + ("Couldn't add module " & ModuleName) + vbNewLine
+    sLog = sLog + Indent + "Couldn't add module " + ModuleName + vbNewLine
 End Function
 
 Private Function ComponentExists(ComponentName As String, VBComps As Object) As Boolean
@@ -1207,7 +1260,7 @@ On Error GoTo Errorhandler
         GetAllInstalledPackages = JSON.toString(oPackageFile)
     Else
         GetAllInstalledPackages = "{}"
-        sLog = sLog + Indent + ("Couldn't find dependencies in packages.json") + vbNewLine
+        sLog = sLog + Indent + "Couldn't find dependencies in packages.json" + vbNewLine
     End If
 
     Exit Function
@@ -1253,7 +1306,7 @@ On Error GoTo Errorhandler
     Call oFilter.AddOperator(lkOpAnd)
 
     If oFilter.HitCount(Database.Classes("localize")) = 0 Then
-        sLog = sLog + (Indent + "Localization " & sOwner & "." & sCode & " not found, creating new!") + vbNewLine
+        sLog = sLog + Indent + "Localization " & sOwner & "." & sCode & " not found, creating new!" + vbNewLine
         If Not Simulate Then
             Dim oRec As New LDE.record
             Call oRec.Open(Database.Classes("localize"))
@@ -1267,7 +1320,7 @@ On Error GoTo Errorhandler
             Call oRec.Update
         End If
     ElseIf oFilter.HitCount(Database.Classes("localize")) = 1 Then
-        sLog = sLog + (Indent + "Updating localization " & sOwner & "." & sCode) + vbNewLine
+        sLog = sLog + Indent + "Updating localization " + sOwner + "." + sCode + vbNewLine
         
         If Not Simulate Then
             Call oRecs.Open(Database.Classes("localize"), oFilter)
@@ -1282,7 +1335,7 @@ On Error GoTo Errorhandler
         End If
 
     Else
-        sLog = sLog + "There are multiple copies of " & sOwner & "." & sCode & ". Fix this and try again."
+        sLog = sLog + Indent + "There are multiple copies of " & sOwner & "." & sCode & ". Fix this and try again."
     End If
 
     Set Localize.dicLookup = Nothing
@@ -1315,7 +1368,7 @@ Errorhandler:
     Call UI.ShowError("lip.DecreaseIndent")
 End Sub
 
-Private Function InstallRelations(oJSON As Object, Simulate As Boolean) As Boolean
+Private Function InstallRelations(oJSON As Object) As Boolean
 On Error GoTo Errorhandler
     Dim bOk As Boolean
     Dim relation As Object
@@ -1341,7 +1394,6 @@ On Error GoTo Errorhandler
             oProc.Parameters("@@field1").InputValue = relation.Item("field1")
             oProc.Parameters("@@table2").InputValue = relation.Item("table2")
             oProc.Parameters("@@field2").InputValue = relation.Item("field2")
-            oProc.Parameters("@@simulate").InputValue = Simulate
 
             Call oProc.Execute(False)
 
@@ -1376,3 +1428,41 @@ Errorhandler:
     Call UI.ShowError("lip.InstallRelations")
 End Function
 
+
+Private Function RollbackFieldsAndTables(sCreatedTables As String, sCreatedFields As String) As Boolean
+On Error GoTo Errorhandler
+    
+    Dim i As Integer
+    Dim oProc As New LDE.Procedure
+    Set oProc = Database.Procedures("csp_lip_removeTablesAndFields")
+    
+    If Not oProc Is Nothing Then
+        If sCreatedFields <> "" Then
+            Dim fieldArray() As String
+            fieldArray() = VBA.Split(sCreatedFields, ";")
+            
+            For i = UBound(fieldArray) - 1 To LBound(fieldArray) Step -1
+                oProc.Parameters("@@idfield") = CLng(fieldArray(i))
+                Call oProc.Execute(False)
+            Next i
+        End If
+        
+        If sCreatedTables <> "" Then
+            Dim tableArray() As String
+            tableArray() = VBA.Split(sCreatedTables, ";")
+            For i = UBound(tableArray) - 1 To LBound(tableArray) Step -1
+                oProc.Parameters("@@idtable") = CLng(tableArray(i))
+                Call oProc.Execute(False)
+            Next i
+        End If
+    Else
+        Call Lime.MessageBox("Couldn't find SQL-procedure 'csp_lip_removeTablesAndFields'. Please make sure this procedure exists in the database and restart LDC.")
+        RollbackFieldsAndTables = False
+        Exit Function
+    End If
+    
+    RollbackFieldsAndTables = True
+Exit Function
+Errorhandler:
+    Call UI.ShowError("lip.RollbackFieldsAndTables")
+End Function
