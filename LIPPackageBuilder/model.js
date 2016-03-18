@@ -3,7 +3,7 @@ var vm = {};
 
 // Load viewmodel
 initModel = function(viewModel){
-	vm = viewModel;
+    vm = viewModel;
 }
 
 // Table object
@@ -43,12 +43,12 @@ var Table = function(t){
     // Click function to select table
     self.select = function(){
         self.selected(!self.selected());
-    }
+    };
 
     // Click function to show fields
     self.show = function(){
         vm.shownTable(vm.shownTable() ? (vm.shownTable().name == self.name ? null: self) : self);
-    }
+    };
 
     // Computed for keeping track of selected fields
     self.selectedFields = ko.computed(function(){
@@ -106,16 +106,17 @@ var Field = function(f, tablename){
     self.timestamp = ko.observable(moment(f.timestamp).format("YYYY-MM-DD"));
     self.localname = f.localname;
     // self.fieldtype = vm.fieldTypes[f.fieldtype];
-	
-	
+    
+    
     self.attributes = {};
     $.each(vm.fieldAttributes, function(i, a){
         if(a == 'fieldtype'){
             self.attributes[a] = vm.fieldTypes[f[a]];
         }
         else{
-			if(f[a])
-				self.attributes[a] = f[a];
+            if(f[a]){
+                self.attributes[a] = f[a];
+            }
         }
     });
 
@@ -152,39 +153,46 @@ var StatusOption = function(o){
 }
 
 var VbaComponent = function(c){
-	var self = this;
-	self.name = c.name;
-	self.type = c.type;
-	self.selected = ko.observable(false);
-	self.extension = function(){
-		if(self.type == "Module"){
-			return ".bas";
-		}
-		else if(self.type=="Class Module"){
-			return ".cls";
-		}
-		else if(self.type == "Form"){
-			return ".frm";
-		}
-		else return "";
-	}
+    var self = this;
+    self.name = c.name;
+    self.type = c.type;
+    self.selected = ko.observable(false);
+    self.extension = function(){
+        if(self.type == "Module"){
+            return ".bas";
+        }
+        else if(self.type=="Class Module"){
+            return ".cls";
+        }
+        else if(self.type == "Form"){
+            return ".frm";
+        }
+        else return "";
+    }
 }
 
 var Relation = function(idrelation, tablename, fieldname){
-	var self = this;
-	self.idrelation = idrelation;
-	self.table1 =  tablename;
-	self.field1 =  fieldname;
-	self.table2 =  "";
-	self.field2 = "";
-	
-	self.serialize = function(){
-			return {	"table1": self.table1,
-						"field1": self.field1,
-						"table2": self.table2,
-						"field2": self.field2
-					};
-	
-	}
-	
+    var self = this;
+    self.idrelation = idrelation;
+    self.table1 =  tablename;
+    self.field1 =  fieldname;
+    self.table2 =  "";
+    self.field2 = "";
+    
+    self.serialize = function(){
+            return {    "table1": self.table1,
+                        "field1": self.field1,
+                        "table2": self.table2,
+                        "field2": self.field2
+                    };
+    
+    }
+    
 }
+
+var SqlComponent = function(sql){
+    var self = this;
+    self.name = sql.name;
+    self.selected = ko.observable(false);
+}
+

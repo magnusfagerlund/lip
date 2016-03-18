@@ -153,15 +153,18 @@ packagebuilder = {
                             if(packageTable.name == relField.name.substring(0, relField.name.indexOf("."))){
                                 var indexOfObjectToRemove;
                                 //find the field to remove
-                                $.each(packageTable.fields, function(k, packageField){
+                                alert(JSON.stringify(packageTable));
+                                var k = packageTable.fields.length -1;
+                                while(k--){
+                                    var packageField = packageTable.fields[k];
                                     if (packageField.name == relField.name.substring(relField.name.indexOf(".") + 1)){
-                                        indexOfObjectToRemove = k;
+                                        packageTable.fields.splice(k,1);
                                     }
-                                });
-                                //remove field from package
-                                if(indexOfObjectToRemove){
-                                    packageTable.fields.splice(indexOfObjectToRemove,1);
                                 }
+                                //remove field from package
+                                // if(indexOfObjectToRemove){
+                                    // packageTable.fields.splice(indexOfObjectToRemove,1);
+                                // }
                             }
                         
                         
