@@ -100,19 +100,7 @@ packagebuilder = {
                     });
                     
                     
-                    
-                    //Add relations as the package expects
-                    
-                    for(idrelation in relations){
-                        if(relations[idrelation].table2 != ""){
-                            packageRelations.push({"table1": relations[idrelation].table1,
-                                                    "field1": relations[idrelation].field1,
-                                                    "table2": relations[idrelation].table2,
-                                                    "field2": relations[idrelation].field2
-                                                    })
-                        }
-                        
-                    }
+                   
                     
                     // Set fields to the current table
                     packageTable.fields = fields;
@@ -120,6 +108,19 @@ packagebuilder = {
                     // Push table to tables
                     packageTables.push(packageTable);
                 });
+                
+                 
+                //Add relations as the package expects
+                for(idrelation in relations){
+                    if(relations[idrelation].table2 != ""){
+                        packageRelations.push({"table1": relations[idrelation].table1,
+                                                "field1": relations[idrelation].field1,
+                                                "table2": relations[idrelation].table2,
+                                                "field2": relations[idrelation].field2
+                                                })
+                    }
+                    
+                }
                 
                 var packageRelationFields = [];
                 //Fetch all relationfields in package
@@ -153,18 +154,15 @@ packagebuilder = {
                             if(packageTable.name == relField.name.substring(0, relField.name.indexOf("."))){
                                 var indexOfObjectToRemove;
                                 //find the field to remove
-                                alert(JSON.stringify(packageTable));
-                                var k = packageTable.fields.length -1;
-                                while(k--){
-                                    var packageField = packageTable.fields[k];
+                                $.each(packageTable.fields, function(k, packageField){
                                     if (packageField.name == relField.name.substring(relField.name.indexOf(".") + 1)){
-                                        packageTable.fields.splice(k,1);
+                                        indexOfObjectToRemove = k;
                                     }
-                                }
+                                });
                                 //remove field from package
-                                // if(indexOfObjectToRemove){
-                                    // packageTable.fields.splice(indexOfObjectToRemove,1);
-                                // }
+                                if(indexOfObjectToRemove){
+                                    packageTable.fields.splice(indexOfObjectToRemove,1);
+                                }
                             }
                         
                         
