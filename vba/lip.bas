@@ -1,6 +1,7 @@
 Attribute VB_Name = "lip"
 
 
+
 Option Explicit
 
 'Lundalogik Package Store, DO NOT CHANGE, used to download system files for LIP
@@ -44,20 +45,9 @@ On Error GoTo ErrorHandler
     End If
     
     'TODO Check if LIP has a new version
-    If NewVersionOfLIPExists Then
-        Debug.Print Indent + "Updating LIP"
-        Dim sUpgrade As String
-        sUpgrade = ""
-        If upgrade = True Then
-            sUpgrade = ", True"
-        End If
-            
-        Debug.Print Indent + "Install command will need to be run again: lip.install " + PackageName + sUpgrade
+    Debug.Print Indent + "Updating LIP if necessary"
+    Call UpdateLIPOnNewVersion
         
-        Call UpdateLIP
-        Debug.Print Indent + "LIP updated"
-    End If
-    
     PackageName = LCase(PackageName)
     
     Debug.Print Indent + "====== LIP Install: " + PackageName + " ======"
@@ -67,7 +57,7 @@ On Error GoTo ErrorHandler
     If Package Is Nothing Then
         Exit Sub
     End If
-    'LJE How to handle local stores?
+    
     If Package.Exists("source") Then
         downloadURL = VBA.Replace(Package.Item("source"), "\/", "/") 'Replace \/ with only / since JSON escapes frontslash with a backslash which causes problems with URLs
     Else
@@ -412,10 +402,10 @@ On Error GoTo ErrorHandler
         Dim fld As Object
         
         Set FileSystemObj = CreateObject("Scripting.FileSystemObject")
-        'LJE backslash needs to be handled - see trello item. CHECK Install Package and install nodes
+        'LJE backslash needs to be handled - see trello item.
         'LJE TODO Check if store path is ok
-        'Set startFolder = FileSystemObj.GetFolder(Path)
-        Set startFolder = FileSystemObj.GetFolder("c:\temp\localstore\")
+        Set startFolder = FileSystemObj.GetFolder(Path)
+        
         
         For Each fld In startFolder.SubFolders
             If LCase(fld.Name) = LCase(PackageName) Then
@@ -431,7 +421,9 @@ On Error GoTo ErrorHandler
                 
                 
                 If sJSON <> "" Then
-                    sJSON = VBA.Left(sJSON, VBA.Len(sJSON) - 1) & ",""localsource"":""" & fld.Path + "\" + fld.Name + """}"   'Add a source node so we know where the package exists
+                    Dim sPathToLocalPackage As String
+                    sPathToLocalPackage = VBA.Replace(fld.Path, "\", "\\")
+                    sJSON = VBA.Left(sJSON, VBA.Len(sJSON) - 1) & ",""localsource"":""" & sPathToLocalPackage + "\" + fld.Name + """}"   'Add a source node so we know where the package exists
                 End If
     
                 Close #1
@@ -439,11 +431,11 @@ On Error GoTo ErrorHandler
                 Set oJSON = parseJSON(sJSON) 'Create a JSON object from the string
                 
                 If Not oJSON.Item("install") Is Nothing Then
-                    Debug.Print Indent + ("Package '" & PackageName & "' found in local store'" & oStore & "'")
+                    Debug.Print Indent + ("Package '" & PackageName & "' found in local store '" & oStore & "'")
                     Set SearchForPackageInLocalStores = oJSON
                     Exit Function
                 Else
-                    Debug.Print Indent + ("Package '" & PackageName & "' found in local store'" & oStore & "' but has no valid install instructions!")
+                    Debug.Print Indent + ("Package '" & PackageName & "' found in local store '" & oStore & "' but has no valid install instructions!")
                     Set SearchForPackageInLocalStores = Nothing
                     Exit Function
                 End If
@@ -1420,7 +1412,7 @@ ErrorHandler:
 End Function
 
 'LJE 20160212 Check if a new version of LIP exists
-Public Function NewVersionOfLIPExists() As Boolean
+Public Sub UpdateLIPOnNewVersion()
 On Error GoTo ErrorHandler
     Dim Package As Object
     Dim PackageVersion As Double
@@ -1431,8 +1423,6 @@ On Error GoTo ErrorHandler
     Dim oPackageFile As Object
     Set oPackageFile = ReadPackageFile
     
-    NewVersionOfLIPExists = False
-    
     IndentLenght = "  "
     
     PackageName = "lip"
@@ -1440,18 +1430,32 @@ On Error GoTo ErrorHandler
     Set Package = SearchForPackageInStores("lip")
     
     If Package Is Nothing Then
-        Exit Function
+        Exit Sub
     End If
    
     PackageVersion = findNewestVersion(Package.Item("versions"))
     If PackageVersion > CDbl(VBA.Replace(oPackageFile.Item("lipversion"), ".", ",")) Then
         Debug.Print Indent + "Newer version of lip found"
-        NewVersionOfLIPExists = True
+        'LJE TODO Send in the versions
+        Dim VBComps As Object
+        Dim Path As String
+        Dim tempModuleName As String
+        
+        Set VBComps = Application.VBE.ActiveVBProject.VBComponents
+        'LJE TEST
+        'VBComps.Item("lip").Name = "lip_old"
+        'Call Application.VBE.ActiveVBProject.VBComponents.Import("C:\Temp\LocalStore\lip\Install\VBA\lip.bas")
+        
+        'LJE TODO Update packages.json with new version
+        oPackageFile.Item("lipversion") = VBA.Replace(PackageVersion, ",", ".")
+        'LJE TEST
+        'Call lip.RemoveModule("lip_old")
+        Debug.Print Indent + "LIP updated"
     End If
-    Exit Function
+    Exit Sub
 ErrorHandler:
-    Call UI.ShowError("lip.NewVersionOfLIPExists")
-End Function
+    Call UI.ShowError("lip.UpdateLIPOnNewVersion")
+End Sub
 'LJE 20160212 Upgrade LIP if new version exists
 Private Sub UpdateLIP()
 On Error GoTo ErrorHandler
@@ -1470,6 +1474,8 @@ On Error GoTo ErrorHandler
  VBComps.Item("lip").Name = "lip_old"
 
  Call Application.VBE.ActiveVBProject.VBComponents.Import("C:\Temp\LocalStore\lip\Install\VBA\lip.bas")
+ 
+ 'LJE TODO Update packages.json with new version
 
  Call lip.RemoveModule("lip_old")
 
@@ -1490,4 +1496,28 @@ Call VBComps.Remove(VBComps.Item(sModuleName))
 Exit Sub
 ErrorHandler:
     Call UI.ShowError("lip.RemoveModule")
+End Sub
+
+'LJE TODO Refactor with helper method to write json
+Public Sub SetLipVersionInPackageFile(sVersion As String)
+On Error GoTo ErrorHandler
+'    Open ThisApplication.WebFolder & DefaultInstallPath & PackageName & "\" & "package.json" For Input As #1
+'
+'            ElseIf VBA.Dir(ThisApplication.WebFolder & DefaultInstallPath & PackageName & "\" & "app.json") <> "" Then
+'                Open ThisApplication.WebFolder & DefaultInstallPath & PackageName & "\" & "app.json" For Input As #1
+'
+'            Else
+'                Debug.Print (Indent + "Installation failed: couldn't find any package.json or app.json in the zip-file")
+'                Exit Sub
+'            End If
+'
+'            Do Until EOF(1)
+'                Line Input #1, sLine
+'                sJSON = sJSON & sLine
+'            Loop
+'
+'            Close #1
+    Exit Sub
+ErrorHandler:
+    Call UI.ShowError("lip.SetLipVersionInPackageFile")
 End Sub
