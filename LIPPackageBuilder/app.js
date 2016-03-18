@@ -107,6 +107,7 @@ lbs.apploader.register('LIPPackageBuilder', function () {
                 item.selected(newValue);
             });
         });
+        
         vm.getVbaComponents = function(){
             try{
                 var components = lbs.common.executeVba('LIPPackageBuilder.GetVBAComponents');
@@ -150,6 +151,9 @@ lbs.apploader.register('LIPPackageBuilder', function () {
         //Relation container
         vm.relations = ko.observableArray();
         
+        
+        vm.sql = ko.observableArray();
+        
         // Serialize selected tables and fields and combine with localization data
         vm.serializePackage = function(){
             var data = {};
@@ -157,7 +161,7 @@ lbs.apploader.register('LIPPackageBuilder', function () {
             var tables = [];
             var packageRelations = [];
             var relations = {};
-        
+            var sqlObjects = [];
             if (vm.name() == ""){
                 alert("Package name is required");
                 return;
@@ -167,6 +171,8 @@ lbs.apploader.register('LIPPackageBuilder', function () {
                 
                 $.each(vm.selectedTables(),function(i,table){
                     var packageTable = {};
+                    //Clone the table object
+                    packageTable = jQuery.extend(true,{},table);
                     // Fetch local names from table with same name
                     var localNameTable  = vm.localNames.Tables.filter(function(t){
                         return t.name == table.name;
@@ -188,6 +194,7 @@ lbs.apploader.register('LIPPackageBuilder', function () {
                         })[0];
                         //Clone the field
                         var packageField = jQuery.extend(true,{},field);
+                        
                         // Set local names for current field
                         packageField.localname = localNameField;
                         
@@ -229,11 +236,13 @@ lbs.apploader.register('LIPPackageBuilder', function () {
                                 
                         }
                         
-                        if(packageField.separator && packageField.separator.order)
+                        if(packageField.separator && packageField.separator.order){
                             delete packageField.separator.order;   
-
-                        if(packageField.localname && packageField.localname.option)
+                        }
+                        
+                        if(packageField.localname && packageField.localname.option){
                             delete packageField.localname.option;
+                        }
 
                         // Push field to fields
                         fields.push(packageField);
@@ -257,10 +266,10 @@ lbs.apploader.register('LIPPackageBuilder', function () {
                     }
                     
                     // Set fields to the current table
-                    table.fields = fields;
+                    packageTable.fields = fields;
                     
                     // Push table to tables
-                    packageTables.push(table);
+                    packageTables.push(packageTable);
                 });
                 
                 var packageRelationFields = [];
@@ -276,7 +285,7 @@ lbs.apploader.register('LIPPackageBuilder', function () {
                     }
                 }
                 
-                //Check if field is existing in an relation (ugliest code)
+                //Check if field is existing in an relation
                 for (index = 0;index < packageRelationFields.length; index++){
                     var rf = packageRelationFields[index];
                     var j;
@@ -288,7 +297,7 @@ lbs.apploader.register('LIPPackageBuilder', function () {
                     }
                 }
                 
-                //remove unpaired relationfields (This code might be cleaner...)
+                //remove unpaired relationfields 
                 $.each(packageRelationFields,function(i,relField){
                     if(relField.remove == 1){
                         $.each(packageTables, function(j,packageTable){
@@ -309,6 +318,10 @@ lbs.apploader.register('LIPPackageBuilder', function () {
                         
                     });
                 }
+                });
+                
+                $.each(vm.selectedSql(),function(i, sql){
+                    sqlObjects.push({"name": sql.name, "definition": vm.sqlDefinitions()[sql.name]})
                 });
                 
                 
@@ -338,8 +351,10 @@ lbs.apploader.register('LIPPackageBuilder', function () {
                     }],
                     "install" : {
                         "tables" : packageTables,
-                        "vba" : arrComponents
-                        //"relations": packageRelations
+                        "vba" : arrComponents,
+                        "relations": packageRelations,
+                        "sql": sqlObjects
+                        
                     }
                 }
                 //lbs.log.debug(JSON.stringify(data));
@@ -376,7 +391,22 @@ lbs.apploader.register('LIPPackageBuilder', function () {
             }
         }
     
-        
+         vm.filterSql = function(){
+            if(vm.sqlFilter() != ""){
+                vm.filteredSql.removeAll(); 
+
+                // Filter on the three visible columns (name, localname, timestamp)
+                vm.filteredSql(ko.utils.arrayFilter(vm.sql(), function(item) {
+                    if(item.name.toLowerCase().indexOf(vm.sqlFilter().toLowerCase()) != -1){
+                        return true;
+                    }
+                    
+                    return false;
+                }));
+            }else{  
+                vm.filteredSql(vm.sql().slice());
+            }
+        }
     
         // Function to filter tables
         vm.filterTables = function(){
@@ -405,6 +435,7 @@ lbs.apploader.register('LIPPackageBuilder', function () {
         vm.tableFilter = ko.observable("");
         vm.fieldFilter = ko.observable("");
         vm.componentFilter = ko.observable("");
+        vm.sqlFilter = ko.observable("");
         
         function b64_to_utf8(str) {
             return unescape(window.atob(str));
@@ -424,7 +455,24 @@ lbs.apploader.register('LIPPackageBuilder', function () {
             
             json = $.parseJSON(json);
             
-            vm.datastructure = json.data;
+            vm.datastructure = json.data.database.tables;
+            
+            vm.sql(ko.utils.arrayMap(json.data.database.sql.ProcedureOrFunction, function(t){
+                return new SqlComponent(t);
+            }));
+            
+            
+            var sqlDefinitions =  {};
+            var def;
+            $.each(json.data.database.sql.ProcedureOrFunction, function(i, s){
+                def = s.definition.replace(/\r?\n|\r/g,"");
+                sqlDefinitions[s.name] = def;
+                
+            });
+            
+            vm.sqlDefinitions = ko.observable();
+            vm.sqlDefinitions(sqlDefinitions);
+            
         }
         catch(err){
             alert(err)
@@ -472,6 +520,9 @@ lbs.apploader.register('LIPPackageBuilder', function () {
         // Filtered Components
         vm.filteredComponents = ko.observableArray();
         
+        // Filtered SQL
+        vm.filteredSql = ko.observableArray();
+        
         // Load model objects
         initModel(vm);
 
@@ -488,6 +539,16 @@ lbs.apploader.register('LIPPackageBuilder', function () {
                 });
             }
         });
+        
+        // Computed with all selected sql components
+        vm.selectedSql = ko.computed(function(){
+            if(vm.sql()){
+                return ko.utils.arrayFilter(vm.sql(),function(c){
+                    return c.selected() | false;
+                });
+            }
+        });
+        
         
         // Computed with all selected tables
         vm.selectedTables = ko.computed(function(){
@@ -508,10 +569,15 @@ lbs.apploader.register('LIPPackageBuilder', function () {
             vm.filterComponents();
         });
         
-        vm.filterComponents();
+        vm.sqlFilter.subscribe(function(newValue){
+            vm.filterSql();
+        });
+        
         // Set default filter
         vm.filterTables();
-
+        vm.filterSql();
+        vm.filterComponents();
+        
         return vm;
     };
 
