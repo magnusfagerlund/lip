@@ -1420,7 +1420,7 @@ On Error GoTo ErrorHandler
     sLog = sLog + Indent + "Installing JSON-lib..." + vbNewLine
     Call DownloadFile("vba_json", BaseURL + ApiURL, InstallPath)
     Call Unzip("vba_json", InstallPath)
-    'TODO JSON.bas has been renamed to JsonConverter.bas
+
     Call addModule("vba_json", "JSON", "JsonConverter.bas", InstallPath, False)
     Call addModule("vba_json", "cStringBuilder", "cStringBuilder.cls", InstallPath, False)
 
