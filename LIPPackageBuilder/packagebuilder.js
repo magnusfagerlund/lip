@@ -38,17 +38,14 @@ packagebuilder = {
                     var selectedFields = jQuery.extend(true,{},table.selectedFields());
                     $.each(selectedFields,function(j,field){
                         // Fetch local names from field with same name
-                        var localNameFieldTmp = localNameTable.Fields.filter(function(f){                                                        
+                        var localNameField = localNameTable.Fields.filter(function(f){
                             return f.name == field.name;
                         })[0];
-
-                        var localNameField = jQuery.extend(true,{},localNameFieldTmp);
                         //Clone the field
                         var packageField = jQuery.extend(true,{},field);
                         
                         // Set local names for current field
                         packageField.localname = jQuery.extend(true,{},localNameField);
-                        
                         
                         //create relations
                         try{
@@ -72,7 +69,7 @@ packagebuilder = {
                             alert(e);
                         }
                         
-                        if(packageField.localname && packageField.localname.name){                            
+                        if(packageField.localname && packageField.localname.name){
                             delete packageField.localname.name;
                         }
 
