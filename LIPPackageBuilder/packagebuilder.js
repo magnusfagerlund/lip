@@ -47,7 +47,7 @@ packagebuilder = {
                         var packageField = jQuery.extend(true,{},field);
                         
                         // Set local names for current field
-                        packageField.localname = localNameField;
+                        packageField.localname = jQuery.extend(true,{},localNameField);
                         
                         
                         //create relations
