@@ -64,7 +64,21 @@ enums = {
             "limevalidationrule",
             "label",
             "adlabel",
-            "idrelation"
+            "idrelation",
+            "relationsingle"
         ];
+        vm.FieldtTypeDisplayNames = {
+            "string" : "Text",
+            "formatedstring" : "Formatted text",
+            "yesno" : "Yes/No",
+            "link" : "Link",
+            "option" : "Option",
+            "relation" : "Realtion",
+            "time" : "Time",
+            "integer" : "Integer",
+            "decimal" : "Decimal"
+        };
+
+
     }
 }
