@@ -428,7 +428,7 @@ On Error GoTo ErrorHandler
 
 
         Path = oStores.Item(oStore)
-        sLog = sLog + Indent + ("Looking for package at store '" & oPackage & "'") + vbNewLine
+        sLog = sLog + Indent + ("Looking for package at store '" & oStore & "'") + vbNewLine
         
         sJSON = getJSON(Path + PackageName + "/")
 
@@ -442,16 +442,12 @@ On Error GoTo ErrorHandler
             If oJSON.Item("error") = "" Then
                 'Package found, make sure the install node exists
                 If Not oJSON.Item("install") Is Nothing Then
-                    sLog = sLog + Indent + ("Package '" & PackageName & "' found on store '" & oPackage & "'") + vbNewLine
+                    sLog = sLog + Indent + ("Package '" & PackageName & "' found on store '" & oStore & "'") + vbNewLine
                     Set SearchForPackageInOnlineStores = oJSON
                     Exit Function
                 Else
-                    sLog = sLog + Indent + ("Package '" & PackageName & "' found on store '" & oPackage & "' but has no valid install instructions!") + vbNewLine
+                    sLog = sLog + Indent + ("Package '" & PackageName & "' found on store '" & oStore & "' but has no valid install instructions!") + vbNewLine
                     Set SearchForPackageInOnlineStores = oJSON
-                    Exit Function
-                Else
-                    Debug.Print Indent + ("Package '" & PackageName & "' found on onlinestore '" & oStore & "' but has no valid install instructions!")
-                    Set SearchForPackageInOnlineStores = Nothing
                     Exit Function
                 End If
             End If
@@ -545,7 +541,7 @@ On Error GoTo ErrorHandler
 ErrorHandler:
     Set SearchForPackageInLocalStores = Nothing
     Call UI.ShowError("lip.SearchForPackageInLocalStores")
->>>>>>> versionhandling
+
 End Function
 
 Private Function CheckForLocalInstalledPackage(PackageName As String, PackageVersion As Double) As Boolean
@@ -1444,7 +1440,7 @@ On Error GoTo ErrorHandler
     If oFilter.HitCount(Database.Classes("localize")) = 0 Then
         sLog = sLog + Indent + "Localization " & sOwner & "." & sCode & " not found, creating new!" + vbNewLine
         If Not Simulate Then
-            Dim oRec As New LDE.record
+            Dim oRec As New LDE.Record
             Call oRec.Open(Database.Classes("localize"))
             oRec.Value("owner") = sOwner
             oRec.Value("code") = sCode
@@ -1712,4 +1708,6 @@ On Error GoTo ErrorHandler
 ErrorHandler:
     Call UI.ShowError("lip.SetLipVersionInPackageFile")
 End Sub
+
+
 
