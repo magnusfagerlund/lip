@@ -17,16 +17,6 @@ lbs.apploader.register('LIPPackageBuilder', function () {
     };
 
     //initialize
-    /*Initialize
-        Initialize happens after the data and recources are loaded but before the view is rendered.
-        Here it is your job to implement the logic of your app, by attaching data and functions to 'viewModel' and then returning it
-        The data you requested along with localization are delivered in the variable viewModel.
-        You may make any modifications you please to it or replace is with a entirely new one before returning it.
-        The returned viewModel will be used to build your app.
-        
-        Node is a reference to the HTML-node where the app is being initalized form. Frankly we do not know when you'll ever need it,
-        but, well, here you have it.
-    */
     self.initialize = function (node, vm) {
 
         $('title').html('LIP Package builder');
@@ -49,6 +39,7 @@ lbs.apploader.register('LIPPackageBuilder', function () {
                 components = $.parseJSON(components);
             
                 vm.vbaComponents(ko.utils.arrayMap(components,function(c){
+                    //Thisapplication is not supported
                     if (c.type !== '100'){
                         return new VbaComponent(c);
                     }
@@ -92,7 +83,7 @@ lbs.apploader.register('LIPPackageBuilder', function () {
         
         vm.filterComponents = function(){
             if(vm.componentFilter() != ""){
-                vm.filteredComponents.removeAll(); 
+                
 
                 // Filter on the three visible columns (name, localname, timestamp)
                 vm.filteredComponents(ko.utils.arrayFilter(vm.vbaComponents(), function(item) {
@@ -282,9 +273,9 @@ lbs.apploader.register('LIPPackageBuilder', function () {
         // Subscribe to changes in filters
         vm.fieldFilter.subscribe(function(newValue){ 
             vm.shownTable().filterFields();
-        })
+        });
         vm.tableFilter.subscribe(function(newValue){
-            vm.filterTables();
+            vm.filterTables() = Tables();
         });
         
         vm.componentFilter.subscribe(function(newValue){

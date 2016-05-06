@@ -55,6 +55,7 @@ BEGIN
 										@@idtable1 = @idtable1,
 										@@idfield2 = @idfield2,
 										@@idtable2 = @idtable2
+								SET @@errorMessage = N''
 							END
 							ELSE
 							BEGIN

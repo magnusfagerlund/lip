@@ -110,8 +110,12 @@ var Field = function(f, tablename){
     
     self.attributes = {};
     $.each(vm.fieldAttributes, function(i, a){
+        
         if(a == 'fieldtype'){
             self.attributes[a] = vm.fieldTypes[f[a]];
+        }
+        else if(a == 'relationsingle'){
+            self.attributes["relationtab"] = f[a] == '0' ? '1':'0';
         }
         else{
             if(f[a]){
@@ -119,7 +123,29 @@ var Field = function(f, tablename){
             }
         }
     });
-
+    
+    var getFieldTypeDisplayName = function(fieldtypeName, length){
+        
+        var fieldtypeDisplayName = vm.FieldtTypeDisplayNames[fieldtypeName];
+        
+        
+        var lengthString = '';
+        //Handle string fields
+        if(fieldtypeName == "string"){
+            if(length !== undefined && length > 0){
+                lengthString = '(' + length + ')';
+            }
+            else if(length !== undefined && length == 0){
+                lengthString = '(MAX)';
+            }
+        }
+        
+        return fieldtypeDisplayName + ' ' + lengthString;
+        
+    };
+    
+    self.fieldTypeDisplayName = getFieldTypeDisplayName(self.attributes.fieldtype , self.attributes.length);
+    
     // Observable for selecting field
     self.selected = ko.observable(false);
 
