@@ -7,7 +7,8 @@ Option Explicit
 'Lundalogik Package Store, DO NOT CHANGE, used to download system files for LIP
 'Please add your own stores in packages.json
 Private Const BaseURL As String = "http://api.lime-bootstrap.com"
-Private Const ApiURL As String = "/packages/"
+Private Const PackageStoreApiURL As String = "/packages/"
+Private Const AppStoreApiURL As String = "/apps/"
 
 Private Const DefaultInstallPath = "packages\"
 
@@ -73,7 +74,7 @@ On Error GoTo ErrorHandler
         If Package.Exists("localsource") Then
             downloadURL = Package.Item("source")
         End If
-        downloadURL = BaseURL & ApiURL & PackageName & "/download/"  'Use Lundalogik Packagestore if source-node wasn't found
+        downloadURL = BaseURL & PackageStoreApiURL & PackageName & "/download/"  'Use Lundalogik Packagestore if source-node wasn't found
     End If
 
     If Package.Exists("installPath") Then
@@ -1192,9 +1193,7 @@ On Error GoTo ErrorHandler
         Else
             sLog = sLog + Indent + "Module """ & ModuleName & """ can't be added. File does not exists." + vbNewLine
         End If
-        Path = InstallPath + PackageName + "\" + Replace(RelPath, "/", "\")
-
-        Call Application.VBE.ActiveVBProject.VBComponents.Import(Path)
+        
     Else
         bOk = False
         sLog = sLog + (Indent + "Detected invalid package- or modulename while installing """ + RelPath + """") + vbNewLine
@@ -1414,10 +1413,10 @@ On Error GoTo ErrorHandler
     End If
 
     sLog = sLog + Indent + "Installing JSON-lib..." + vbNewLine
-    Call DownloadFile("vba_json", BaseURL + ApiURL, InstallPath)
+    Call DownloadFile("vba_json", BaseURL + AppStoreApiURL, InstallPath)
     Call Unzip("vba_json", InstallPath)
 
-    Call addModule("vba_json", "JSON", "JsonConverter.bas", InstallPath, False)
+    Call addModule("vba_json", "JSON", "JSON.bas", InstallPath, False)
     Call addModule("vba_json", "cStringBuilder", "cStringBuilder.cls", InstallPath, False)
 
     Call WriteToPackageFile("vba_json", "1", False)
