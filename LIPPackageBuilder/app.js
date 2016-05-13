@@ -24,8 +24,16 @@ lbs.apploader.register('LIPPackageBuilder', function () {
         enums.initialize(vm);
         packagebuilder.initialize(vm);
         
+        vm.lastSelectedField = ko.observable({});
+        
+        
+        
+        
+        
         // Checkbox to select all tables
         vm.selectTables = ko.observable(false);
+        
+        
         
         vm.selectTables.subscribe(function(newValue){
             ko.utils.arrayForEach(vm.filteredTables(),function(item){

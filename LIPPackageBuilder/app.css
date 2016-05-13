@@ -57,4 +57,11 @@ body{
 
 .navbar-btn.pull-right{
 	margin-right: 20px;
+} 
+
+.hideOverflow
+{
+    overflow:hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }

@@ -166,6 +166,7 @@ var Field = function(f, tablename){
     // Click function for select
     self.select = function(){
         self.selected(!self.selected());
+        vm.lastSelectedField(self);
     }
 }
 

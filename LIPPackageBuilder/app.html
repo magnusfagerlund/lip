@@ -50,7 +50,7 @@
 		</form>
 
 	</div>
-	<div class="row col-md-10 col-md-offset-1" data-bind="visible: activeTab() == 'database'">
+	<div class="row col-md-12 col-md-offset-1" data-bind="visible: activeTab() == 'database'">
 		<div class="row">
 			<div class="col-md-5">
 				<h4>Tables</h4>
@@ -76,7 +76,7 @@
 						</span>
 
 				  		<span class="col-md-4 list-header" data-bind="text: 'Name'"/>
-				  		<span class="col-md-5 list-header" data-bind="text: 'Localname'"/>
+				  		<span class="col-md-4 list-header" data-bind="text: 'Localname'"/>
 				  		<span class="col-md-2 list-header" data-bind="text: 'Timestamp'"/>
 				  	</div>
 					<!-- ko foreach: filteredTables() -->
@@ -88,12 +88,12 @@
 						<span class="col-md-4" data-bind="text: name"/>
 						<span class="col-md-4" data-bind="text: localname"/>
 						<span class="col-md-2" data-bind="text: timestamp()"/>
-                        <!--span class="col-md-2" data-bind="text: attributes.fieldtype" /-->
+                        
 					</a>
 					<!-- /ko -->
 				</div>
 			</div>
-			<div class="col-md-6 col-margined">
+			<div class="col-md-5 col-margined">
 				<!-- ko if: shownTable() -->
 				<div class="input-group">
 			      	<div class="input-group-addon">
@@ -101,25 +101,28 @@
 			      	</div>
 					<input type="text" class="form-control" id="searchFilterInput" placeholder="Quick filter..." data-bind="value: fieldFilter, valueUpdate: 'afterkeydown'">
 			    </div>
-				<div class="list-group col-md-12">
+				<div class="list-group col-md-13">
 					<div class="list-group-item disabled">
 						<span class="col-md-1 col-sm-1 col-md-1 col-sm-1 list-header overflowed">
 							<input class="select-all" type="checkbox" data-bind="checked: shownTable().selectFields, popover: 'Select all'" >
 						</span>
-				  		<span class="col-md-3 list-header" data-bind="text: 'Name'"/>
-				  		<span class="col-md-2 list-header" data-bind="text: 'Field type'"/>
-                        <span class="col-md-4 list-header" data-bind="text: 'Localname'"/>
-				  		
+				  		<div class="col-md-3 list-header"><span data-bind="text: 'Name'"/></div>
+				  		<span class="col-md-3 list-header" data-bind="text: 'Field type'"/>
+                        <span class="col-md-3 list-header" data-bind="text: 'Localname'"/>
+				  		<span class="col-md-2 list-header" data-bind="text: 'Timestamp'"/>
+                        
 				  	</div>
 					<!-- ko foreach: shownTable().filteredFields() -->
 					<a class="list-group-item"data-bind="click: select">
 						<span class="col-md-1 col-sm-1 col-md-1" >
 							<input type="checkbox" data-bind="checked: selected, stopBubble: true" >
 						</span>
-						<span class="col-md-3" data-bind="text: name"/>
-                        <strong class="col-md-2" data-bind="text: fieldTypeDisplayName" />
-						<span class="col-md-4" data-bind="text: localname"/>
-						
+                        
+						<div class="col-md-3 hideOverflow"><span class="hideOverflow" data-bind="text: name"/></div>
+                        <strong class="col-md-3 hideOverflow" data-bind="text: fieldTypeDisplayName" />
+						<span class="col-md-3 hideOverflow" data-bind="text: localname"/>
+						<span class="col-md-2" data-bind="text: timestamp()"/>
+                        
 					</a>
 					<!-- /ko -->
 				</div>

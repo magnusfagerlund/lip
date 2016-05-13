@@ -139,7 +139,7 @@ On Error GoTo ErrorHandler
     strTempFolder = CreateTemporaryFolder()
     'Used for later
     strOldTempFolder2 = strTempFolder
-    Set oPackage = JsonConverter.ParseJson(strPackageJson)
+    Set oPackage = JsonConverter.parseJSON(strPackageJson)
     
     'Export VBA modules
     If bResult Then
@@ -147,6 +147,16 @@ On Error GoTo ErrorHandler
     End If
     If bResult = False Then
         Call Application.MessageBox("Couldn't export VBA Modules.")
+        Exit Sub
+    End If
+    
+    'Export SQL Procedures and functions
+    If bResult Then
+        bResult = ExportSql(oPackage, strTempFolder)
+        
+    End If
+    If bResult = False Then
+        Call Application.MessageBox("Couldn't export SQL Procedures and functions")
         Exit Sub
     End If
     
@@ -201,6 +211,76 @@ ErrorHandler:
     Call UI.ShowError("LIPPackageBuilder.CreatePackage")
 End Sub
 
+Private Function ExportSql(oPackage As Object, strTempFolder As String) As Boolean
+On Error GoTo ErrorHandler
+    Dim bResult As Boolean
+    If Not oPackage.Item("install") Is Nothing Then
+        Dim oProcedure As Object
+        
+        If Not oPackage.Item("install").Item("sql") Is Nothing Then
+            For Each oProcedure In oPackage.Item("install").Item("sql")
+                bResult = ExportSqlObject(oProcedure.Item("name"), oProcedure.Item("definition"), strTempFolder)
+                If bResult = False Then
+                    ExportSql = False
+                    Exit Function
+                End If
+                Call oProcedure.Remove("definition")
+                Call oProcedure.Add("relPath", "sql\" & oProcedure.Item("name") & ".sql")
+            Next
+        End If
+        
+    End If
+    
+    ExportSql = True
+Exit Function
+ErrorHandler:
+    Call UI.ShowError("LIPPackageBuilder.ExportSql")
+End Function
+
+Private Function ExportSqlObject(ProcedureName As String, Definition As String, strTempFolder As String) As Boolean
+On Error GoTo ErrorHandler
+
+    Dim strSqlFolder As String
+    Dim strDefinition As String
+    Dim strFilename As String
+    strSqlFolder = strTempFolder & "\" & "sql"
+    If VBA.Len(Dir(strSqlFolder, vbDirectory)) = 0 Then
+        MkDir strSqlFolder
+    End If
+    
+    strFilename = strSqlFolder & "\" & ProcedureName & ".sql"
+    
+    strDefinition = StrConv(DecodeBase64(Definition), vbUnicode)
+    
+    'Work-around: conversion adds nullchars since it's Unicode (2 bytes), second byte is always null.
+    strDefinition = VBA.Replace(strDefinition, Chr(0), "")
+    
+    Dim intFileNum As Integer
+    
+    intFileNum = FreeFile
+    ' change Output to Append if you want to add to an existing file
+    ' rather than creating a new file each time
+    Open strFilename For Output As intFileNum
+    Print #intFileNum, strDefinition
+    Close intFileNum
+    
+    ExportSqlObject = True
+
+Exit Function
+ErrorHandler:
+    ExportSqlObject = False
+End Function
+Public Function ByteArrayToString(bytArray() As Byte) As String
+    Dim sAns As String
+    Dim iPos As String
+    
+    sAns = StrConv(bytArray, vbUnicode)
+    iPos = InStr(sAns, Chr(0))
+    If iPos > 0 Then sAns = Left(sAns, iPos - 1)
+    
+    ByteArrayToString = sAns
+ 
+ End Function
 Public Function GetFolder() As String
 On Error GoTo ErrorHandler
     Dim fldr As New LCO.FolderDialog
@@ -247,13 +327,13 @@ On Error GoTo ErrorHandler
     Dim oPackageFolder As Object
     Set oApp = CreateObject("Shell.Application")
     'Create folder object for the zip file
-    Set oZipFile = oApp.NameSpace(FileNameZip)
+    Set oZipFile = oApp.Namespace(FileNameZip)
     
     If Not oZipFile Is Nothing Then
         
         
         'Create folder object for the package folder (different path format, which is messed up...)
-        Set oPackageFolder = oApp.NameSpace(strTempFolder & "\")
+        Set oPackageFolder = oApp.Namespace(strTempFolder & "\")
         If Not oPackageFolder Is Nothing Then
             'Move files from the package folder to the zip file
             oZipFile.CopyHere oPackageFolder.Items
@@ -425,24 +505,24 @@ On Error GoTo ErrorHandler
     Else
         strInstallFolder = strTempFolder & "\" & "Install"
     End If
-    Dim strFileName As String
+    Dim strFilename As String
     
     If Not Component Is Nothing Then
-        strFileName = Component.Name
+        strFilename = Component.Name
         Select Case Component.Type
             Case 1
-                strFileName = strFileName & ".bas"
+                strFilename = strFilename & ".bas"
             Case 2
-                strFileName = strFileName & ".cls"
+                strFilename = strFilename & ".cls"
             Case 3
-                strFileName = strFileName & ".frm"
+                strFilename = strFilename & ".frm"
             
             Case Else
                 bResult = False
                 Exit Function
         End Select
         
-        Call Component.Export(strInstallFolder & "\" & strFileName)
+        Call Component.Export(strInstallFolder & "\" & strFilename)
         bResult = True
     End If
     ExportVBAModule = bResult

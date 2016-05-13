@@ -76,7 +76,8 @@ enums = {
             "relation" : "Realtion",
             "time" : "Time",
             "integer" : "Integer",
-            "decimal" : "Decimal"
+            "decimal" : "Decimal",
+            "user" : "Username"
         };
 
 
