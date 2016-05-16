@@ -99,9 +99,6 @@ packagebuilder = {
                         
                     });
                     
-                    
-                   
-                    
                     // Set fields to the current table
                     packageTable.fields = fields;
                     
@@ -200,22 +197,44 @@ packagebuilder = {
                         "comments": vm.comment()
                     }],
                     "install" : {
-                        "tables" : packageTables,
-                        "vba" : arrComponents,
-                        "relations": packageRelations,
-                        "sql": sqlObjects
                         
                     }
+                }
+                
+                var bSomethingToInstall = false;
+                if(packageTables.length > 0){
+                    data.install.tables = packageTables;
+                    bSomethingToInstall = true;
+                }
+                if(packageRelations.length > 0){
+                    data.install.relations = packageRelations;
+                    bSomethingToInstall = true;
+                }
+                
+                if(sqlObjects.length > 0){
+                    data.install.sql = sqlObjects
+                    bSomethingToInstall = true;
+                }
+                
+                if(arrComponents.length > 0){
+                    data.install.vba = arrComponents;
+                    bSomethingToInstall = true;
                 }
                 //lbs.log.debug(JSON.stringify(data));
             }catch(e) {alert("Error serializing LIP Package:\n\n" + e);}
             
-            // Save using VBA Method
-            try{
-                //Base64 encode the entire string, commas don't do well in VBA calls.
-                lbs.common.executeVba('LIPPackageBuilder.CreatePackage', window.btoa(JSON.stringify(data)));
-            }catch(e){alert(e);}
-            
+            if(bSomethingToInstall){
+                // Save using VBA Method
+                try{
+                    
+                    //Base64 encode the entire string, commas don't do well in VBA calls.
+                    lbs.common.executeVba('LIPPackageBuilder.CreatePackage', window.btoa(JSON.stringify(data)));
+                    
+                }catch(e){alert(e);}
+            }
+            else{
+                alert("You haven't selected anything for your new package...");
+            }
         
     }
 }

@@ -65,7 +65,8 @@ enums = {
             "label",
             "adlabel",
             "idrelation",
-            "relationsingle"
+            "relationsingle",
+            "string"
         ];
         vm.FieldtTypeDisplayNames = {
             "string" : "Text",
@@ -79,6 +80,12 @@ enums = {
             "decimal" : "Decimal",
             "user" : "Username"
         };
+        
+        vm.excludedOptionAttributes = [
+            "idcategory",
+            "timestamp"
+        ]
+            
 
 
     }

@@ -109,20 +109,51 @@ var Field = function(f, tablename){
     
     
     self.attributes = {};
-    $.each(vm.fieldAttributes, function(i, a){
-        
-        if(a == 'fieldtype'){
-            self.attributes[a] = vm.fieldTypes[f[a]];
+    $.each(vm.fieldAttributes, function(index, attributeName){
+        try{
+            if(attributeName == 'fieldtype'){
+                self.attributes[attributeName] = vm.fieldTypes[f[attributeName]];
+            }
+            else if(attributeName == 'relationsingle'){
+                self.attributes["relationtab"] = f[attributeName] == '0' ? '1':'0';
+            }
+            //Create LIP compatible options property
+            else if(attributeName == 'string'){
+                if(f[attributeName]){
+                    self.options = f[attributeName];
+                    //Delete invalid LIP-properties (idcategory, idstring, etc...)
+                    for(var i = 0;i < self.options.length;i++){
+                        $.each(vm.excludedOptionAttributes, function(j, optionAttributeName){
+                            delete self.options[i][optionAttributeName];
+                        });
+                        
+                    }
+                }
+            }
+            else{
+                if(f[attributeName]){
+                    self.attributes[attributeName] = f[attributeName];
+                }
+            }
         }
-        else if(a == 'relationsingle'){
-            self.attributes["relationtab"] = f[a] == '0' ? '1':'0';
+        catch(e){
+            alert("Error fetching attributes: " + e);
         }
-        else{
-            if(f[a]){
-                self.attributes[a] = f[a];
+        //Set option as default value and remove unnecessary attribute idstring
+        if(self.options){
+            for(var i = 0; i < self.options.length;i++){
+                if(self.options[i]["idstring"] == self.attributes["defaultvalue"]){
+                    self.options[i]["default"] = "true";
+                    delete self.options[i]["idstring"];
+                }
+                else{
+                    delete self.options[i]["idstring"];
+                }
             }
         }
     });
+    
+    
     
     var getFieldTypeDisplayName = function(fieldtypeName, length){
         
@@ -144,7 +175,9 @@ var Field = function(f, tablename){
         
     };
     
-    self.fieldTypeDisplayName = getFieldTypeDisplayName(self.attributes.fieldtype , self.attributes.length);
+    self.fieldTypeDisplayName = ko.computed(function(){
+        return getFieldTypeDisplayName(self.attributes.fieldtype , self.attributes.length)
+    });
     
     // Observable for selecting field
     self.selected = ko.observable(false);
