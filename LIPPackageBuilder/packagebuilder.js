@@ -152,12 +152,15 @@ packagebuilder = {
                                 var indexOfObjectToRemove;
                                 //find the field to remove
                                 $.each(packageTable.fields, function(k, packageField){
+                                    alert(relField.name.substring(relField.name.indexOf(".") + 1) + " " + packageField.name);
                                     if (packageField.name == relField.name.substring(relField.name.indexOf(".") + 1)){
+                                        alert("hittad");
                                         indexOfObjectToRemove = k;
                                     }
                                 });
                                 //remove field from package
-                                if(indexOfObjectToRemove){
+                                if(indexOfObjectToRemove >= 0){
+                                    alert("removing " + indexOfObjectToRemove);
                                     packageTable.fields.splice(indexOfObjectToRemove,1);
                                 }
                             }

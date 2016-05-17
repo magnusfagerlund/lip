@@ -105,8 +105,6 @@ var Field = function(f, tablename){
     self.name = f.name;
     self.timestamp = ko.observable(moment(f.timestamp).format("YYYY-MM-DD"));
     self.localname = f.localname;
-    // self.fieldtype = vm.fieldTypes[f.fieldtype];
-    
     
     self.attributes = {};
     $.each(vm.fieldAttributes, function(index, attributeName){
