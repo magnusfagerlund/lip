@@ -105,6 +105,7 @@ var Field = function(f, tablename){
     self.name = f.name;
     self.timestamp = ko.observable(moment(f.timestamp).format("YYYY-MM-DD"));
     self.localname = f.localname;
+   
     
     self.attributes = {};
     $.each(vm.fieldAttributes, function(index, attributeName){
@@ -127,6 +128,18 @@ var Field = function(f, tablename){
                         
                     }
                 }
+            }
+            //Handle option queries
+            else if(attributeName =='optionquery'){
+                if(f[attributeName]){
+                    self.attributes[attributeName] = vm.optionQueries().filter(function(o){
+                        var ownerTable = o.owner.substring(0,o.owner.indexOf("."));
+                        var ownerField = o.owner.substring(o.owner.indexOf(".") + 1);
+                        return ownerTable == self.table && ownerField == self.name;
+                    })[0]["text"];
+                
+                }
+                
             }
             else{
                 if(f[attributeName]){
@@ -258,4 +271,10 @@ var TableIcon = function(icon){
     var self = this;
     self.table = icon.table;
     self.binarydata = icon.iconbinarydata;
+}
+
+var OptionQuery = function(o){
+    var self = this;
+    self.owner = o.owner;
+    self.text = o.text;
 }

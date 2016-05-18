@@ -66,7 +66,8 @@ enums = {
             "adlabel",
             "idrelation",
             "relationsingle",
-            "string"
+            "string",
+            "optionquery"
         ];
         vm.FieldtTypeDisplayNames = {
             "string" : "Text",

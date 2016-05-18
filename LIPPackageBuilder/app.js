@@ -75,7 +75,12 @@ lbs.apploader.register('LIPPackageBuilder', function () {
         // Array with VBA components
         vm.vbaComponents = ko.observableArray();
         vm.showComponents = ko.observable(false);
+        
+        //Store the icons
         vm.tableIcons = ko.observableArray();
+        
+        //Store the optionQueries
+        vm.optionQueries = ko.observableArray();
         
         //Relation container
         vm.relations = ko.observableArray();
@@ -176,8 +181,11 @@ lbs.apploader.register('LIPPackageBuilder', function () {
             //Create tableicon Array
             vm.tableIcons(ko.utils.arrayMap(json.data.database.tableicons.tableicon, function(t){
                 return new TableIcon(t);
-            }))
+            }));
             
+            vm.optionQueries(ko.utils.arrayMap(json.data.database.optionqueries.optionquery, function(o){
+                return new OptionQuery(o);
+            }));
             
             vm.sql(ko.utils.arrayMap(json.data.database.sql.ProcedureOrFunction, function(t){
                 return new SqlComponent(t);
@@ -215,9 +223,7 @@ lbs.apploader.register('LIPPackageBuilder', function () {
         
         // Load localization data
         try{
-            /*var localData = {};
-            lbs.loader.loadDataSource(localData, { type: 'storedProcedure', source: 'csp_lip_getlocalnames', alias: 'localNames' }, false);
-            vm.localNames = localData.localNames.data;*/
+            
             var localData = "";
             localData = lbs.common.executeVba('LIPPackageBuilder.LoadDataStructure, csp_lip_getlocalnames');
             localData = localData.replace(/\r?\n|\r/g,"");

@@ -169,6 +169,16 @@ On Error GoTo ErrorHandler
         bResult = True
     End If
     
+    'Export option queries
+    If bResult Then
+        bResult = SaveOptionQueries(oPackage, strTempFolder)
+    End If
+    If bResult = False Then
+        Call Application.MessageBox("Couldn't export the optionqueries, will continue anyway...", vbInformation)
+        bResult = True
+    End If
+    
+    
     'Save Package.json
     If bResult Then
         bResult = SavePackageFile(oPackage, strTempFolder)
@@ -220,10 +230,82 @@ ErrorHandler:
     Call UI.ShowError("LIPPackageBuilder.CreatePackage")
 End Sub
 
-Private Function SaveIconToDisk(strBinaryData As String, strTableName As String, strFolder As String) As Boolean
+Private Function SaveOptionQueries(oPackage As Object, strTempFolder As String) As Boolean
+On Error GoTo ErrorHandler
+    Dim bResult As Boolean
+    If oPackage.Exists("install") Then
+        If oPackage("install").Exists("tables") Then
+            Dim oTable As Object
+            Dim strOptionQueryFolder As String
+            Dim strFilePath As String
+            strOptionQueryFolder = strTempFolder & "\" & "optionqueries"
+    
+            If VBA.Len(VBA.Dir(strOptionQueryFolder, vbDirectory)) = 0 Then
+                Call VBA.MkDir(strOptionQueryFolder)
+            End If
+            
+            For Each oTable In oPackage.Item("install").Item("tables")
+                If oTable.Exists("fields") Then
+                    Dim oField As Object
+                    For Each oField In oTable.Item("fields")
+                        strFilePath = strOptionQueryFolder & "\" & oTable.Item("name") & "." & oField.Item("name") & ".txt"
+                        If oField.Item("attributes").Item("optionquery") <> "" Then
+                            bResult = SaveTextToDisk(oField.Item("attributes").Item("optionquery"), strFilePath)
+                        End If
+                    Next
+                End If
+            Next
+        End If
+    End If
+    SaveOptionQueries = bResult
+Exit Function
+ErrorHandler:
+    Debug.Print Err.Description
+    SaveOptionQueries = False
+End Function
+
+Private Function SaveTextToDisk(strText As String, strFilePath As String)
+On Error GoTo ErrorHandler
+    Dim oStream
+    Set oStream = CreateObject("ADODB.Stream")
+    
+    If strText = "" Then
+        Call Err.Raise(1, , "Empty text was supplied to the stream")
+    End If
+    
+    oStream.Type = adTypeText
+    
+    oStream.Open
+    
+    On Error GoTo StreamError
+    Call oStream.WriteText(strText)
+    Call oStream.SaveToFile(strFilePath, adSaveCreateNotExist)
+    
+    Call oStream.Close
+    
+    Set oStream = Nothing
+    SaveTextToDisk = True
+Exit Function
+StreamError:
+    If Not oStream Is Nothing Then
+        If oStream.State = adStateOpen Then oStream.Close
+    End If
+    
+    Set oStream = Nothing
+    
+    SaveTextToDisk = False
+    Exit Function
+ErrorHandler:
+    Debug.Print "LIPPackageBuilder.SaveTextToDisk" & Err.Description
+    SaveTextToDisk = False
+End Function
+
+
+
+Private Function SaveIconToDisk(strBinaryBase64Data As String, strTableName As String, strFolder As String) As Boolean
 On Error GoTo ErrorHandler
     Dim binaryData() As Byte
-    binaryData = DecodeBase64(strBinaryData)
+    binaryData = DecodeBase64(strBinaryBase64Data)
     Dim strFilePath As String
     
     If VBA.Right(strFolder, 1) = "\" Then
@@ -315,13 +397,13 @@ On Error GoTo ErrorHandler
 
     Dim strSqlFolder As String
     Dim strDefinition As String
-    Dim strFilename As String
+    Dim strFileName As String
     strSqlFolder = strTempFolder & "\" & "sql"
     If VBA.Len(Dir(strSqlFolder, vbDirectory)) = 0 Then
         MkDir strSqlFolder
     End If
     
-    strFilename = strSqlFolder & "\" & ProcedureName & ".sql"
+    strFileName = strSqlFolder & "\" & ProcedureName & ".sql"
     
     strDefinition = StrConv(DecodeBase64(Definition), vbUnicode)
     
@@ -333,7 +415,7 @@ On Error GoTo ErrorHandler
     intFileNum = FreeFile
     ' change Output to Append if you want to add to an existing file
     ' rather than creating a new file each time
-    Open strFilename For Output As intFileNum
+    Open strFileName For Output As intFileNum
     Print #intFileNum, strDefinition
     Close intFileNum
     
@@ -578,24 +660,24 @@ On Error GoTo ErrorHandler
     Else
         strInstallFolder = strTempFolder & "\" & "Install"
     End If
-    Dim strFilename As String
+    Dim strFileName As String
     
     If Not Component Is Nothing Then
-        strFilename = Component.Name
+        strFileName = Component.Name
         Select Case Component.Type
             Case 1
-                strFilename = strFilename & ".bas"
+                strFileName = strFileName & ".bas"
             Case 2
-                strFilename = strFilename & ".cls"
+                strFileName = strFileName & ".cls"
             Case 3
-                strFilename = strFilename & ".frm"
+                strFileName = strFileName & ".frm"
             
             Case Else
                 bResult = False
                 Exit Function
         End Select
         
-        Call Component.Export(strInstallFolder & "\" & strFilename)
+        Call Component.Export(strInstallFolder & "\" & strFileName)
         bResult = True
     End If
     ExportVBAModule = bResult
