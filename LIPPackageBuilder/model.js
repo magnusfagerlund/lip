@@ -57,7 +57,7 @@ var Table = function(t){
         });
     });
 
-    // Filtere fields. These are the ones shown in the gui (but based on guiFields)
+    // FiltereD fields. These are the ones shown in the gui (but based on guiFields)
     self.filteredFields = ko.observableArray();
 
     // Filter function for fields
@@ -254,3 +254,8 @@ var SqlComponent = function(sql){
     self.selected = ko.observable(false);
 }
 
+var TableIcon = function(icon){
+    var self = this;
+    self.table = icon.table;
+    self.binarydata = icon.iconbinarydata;
+}

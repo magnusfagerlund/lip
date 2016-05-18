@@ -30,14 +30,20 @@ packagebuilder = {
                     // Set singular and plural local names for table
                     packageTable.localname_singular = localNameTable.localname_singular;
                     packageTable.localname_plural = localNameTable.localname_plural;
+                    var icon = vm.tableIcons().filter(function(ti){
+                       return ti.table == table.name; 
+                    })[0];
                     
+                    if(icon != null){
+                            packageTable.attributes.icon = icon.binarydata;
+                    }
                     // For each selected field in current table
                     var fields = [];
                     var packageFields = [];
                     
                     var selectedFields = jQuery.extend(true,{},table.selectedFields());
                     $.each(selectedFields,function(j,field){
-                        // Fetch local names from field with same name
+                        // Fetch local names from field with same name from the other data source
                         var localNameField = localNameTable.Fields.filter(function(f){
                             return f.name == field.name;
                         })[0];

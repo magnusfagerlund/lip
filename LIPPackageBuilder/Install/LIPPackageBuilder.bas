@@ -142,7 +142,7 @@ On Error GoTo ErrorHandler
     Set oPackage = JsonConverter.parseJSON(strPackageJson)
     
     'Export VBA modules
-    If bResult Then
+    If bResult And oPackage("install").Exists("vba") Then
         bResult = ExportVBA(oPackage, strTempFolder)
     End If
     If bResult = False Then
@@ -151,13 +151,22 @@ On Error GoTo ErrorHandler
     End If
     
     'Export SQL Procedures and functions
-    If bResult Then
+    If bResult And oPackage("install").Exists("sql") Then
         bResult = ExportSql(oPackage, strTempFolder)
         
     End If
     If bResult = False Then
         Call Application.MessageBox("Couldn't export SQL Procedures and functions")
         Exit Sub
+    End If
+    
+    'Export Table icons
+    If bResult Then
+        bResult = SaveTableIcons(oPackage, strTempFolder)
+    End If
+    If bResult = False Then
+        Call Application.MessageBox("Couldn't export table icons, will continue anyway...", vbInformation)
+        bResult = True
     End If
     
     'Save Package.json
@@ -210,6 +219,70 @@ Exit Sub
 ErrorHandler:
     Call UI.ShowError("LIPPackageBuilder.CreatePackage")
 End Sub
+
+Private Function SaveIconToDisk(strBinaryData As String, strTableName As String, strFolder As String) As Boolean
+On Error GoTo ErrorHandler
+    Dim binaryData() As Byte
+    binaryData = DecodeBase64(strBinaryData)
+    Dim strFilePath As String
+    
+    If VBA.Right(strFolder, 1) = "\" Then
+        strFilePath = strFolder + strTableName + ".ico"
+    Else
+        strFilePath = strFolder + "\" + strTableName + ".ico"
+    End If
+    
+    If VBA.Len(VBA.Dir(strFolder, vbDirectory)) = 0 Then
+        Call VBA.MkDir(strFolder)
+    End If
+    
+    Dim binaryStream
+    Set binaryStream = CreateObject("ADODB.Stream")
+    binaryStream.Type = adTypeBinary
+    
+    binaryStream.Open
+    
+    On Error GoTo StreamError
+    binaryStream.Write binaryData
+    
+    binaryStream.SaveToFile strFilePath, adSaveCreateNotExist
+    
+    binaryStream.Close
+    Set binaryStream = Nothing
+    SaveIconToDisk = True
+Exit Function
+StreamError:
+    binaryStream.Close
+    Set binaryStream = Nothing
+    SaveIconToDisk = False
+    Exit Function
+ErrorHandler:
+    SaveIconToDisk = False
+End Function
+
+Private Function SaveTableIcons(oPackage As Object, strTempFolder As String) As Boolean
+On Error GoTo ErrorHandler
+    Dim bResult As Boolean
+    If oPackage.Exists("install") Then
+        If oPackage("install").Exists("tables") Then
+            Dim oTable As Object
+            Dim strIconFolder As String
+            strIconFolder = strTempFolder & "\" & "tableicons"
+            For Each oTable In oPackage.Item("install").Item("tables")
+                If oTable.Exists("attributes") Then
+                    If oTable.Item("attributes").Exists("icon") Then
+                        bResult = SaveIconToDisk(oTable.Item("attributes").Item("icon"), oTable("name"), strIconFolder)
+                        Call oTable.Item("attributes").Remove("icon")
+                    End If
+                End If
+            Next
+        End If
+    End If
+    SaveTableIcons = bResult
+Exit Function
+ErrorHandler:
+    Call UI.ShowError("LIPPackageBuilder.SaveTableIcons")
+End Function
 
 Private Function ExportSql(oPackage As Object, strTempFolder As String) As Boolean
 On Error GoTo ErrorHandler

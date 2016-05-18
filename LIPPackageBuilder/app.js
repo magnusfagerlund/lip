@@ -26,14 +26,8 @@ lbs.apploader.register('LIPPackageBuilder', function () {
         
         vm.lastSelectedField = ko.observable({});
         
-        
-        
-        
-        
         // Checkbox to select all tables
         vm.selectTables = ko.observable(false);
-        
-        
         
         vm.selectTables.subscribe(function(newValue){
             ko.utils.arrayForEach(vm.filteredTables(),function(item){
@@ -81,6 +75,7 @@ lbs.apploader.register('LIPPackageBuilder', function () {
         // Array with VBA components
         vm.vbaComponents = ko.observableArray();
         vm.showComponents = ko.observable(false);
+        vm.tableIcons = ko.observableArray();
         
         //Relation container
         vm.relations = ko.observableArray();
@@ -177,6 +172,12 @@ lbs.apploader.register('LIPPackageBuilder', function () {
             json = $.parseJSON(json);
             
             vm.datastructure = json.data.database.tables;
+            
+            //Create tableicon Array
+            vm.tableIcons(ko.utils.arrayMap(json.data.database.tableicons.tableicon, function(t){
+                return new TableIcon(t);
+            }))
+            
             
             vm.sql(ko.utils.arrayMap(json.data.database.sql.ProcedureOrFunction, function(t){
                 return new SqlComponent(t);
