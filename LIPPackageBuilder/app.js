@@ -33,7 +33,27 @@ lbs.apploader.register('LIPPackageBuilder', function () {
             ko.utils.arrayForEach(vm.filteredTables(),function(item){
                 item.selected(newValue);
             });
+        });        
+        
+        //Checkbox to select all VBA Modules
+        vm.selectAllVbaComponents = ko.observable(false);
+        
+        vm.selectAllVbaComponents.subscribe(function(newValue){
+            ko.utils.arrayForEach(vm.filteredComponents(),function(component){
+                component.selected(newValue);
+            });
         });
+        
+        //Checkbox to select all SQL procedures and functions
+        vm.selectAllSql = ko.observable(false);
+        
+        vm.selectAllSql.subscribe(function(newValue){
+            ko.utils.arrayForEach(vm.filteredSql(),function(procFunc){
+                procFunc.selected(newValue);
+            });
+        });
+        
+        
         
         vm.getVbaComponents = function(){
             try{
