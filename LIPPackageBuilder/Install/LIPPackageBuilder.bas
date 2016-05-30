@@ -233,6 +233,9 @@ End Sub
 Private Function SaveOptionQueries(oPackage As Object, strTempFolder As String) As Boolean
 On Error GoTo ErrorHandler
     Dim bResult As Boolean
+    Dim allOK As Boolean
+    bResult = True
+    allOK = True
     If oPackage.Exists("install") Then
         If oPackage("install").Exists("tables") Then
             Dim oTable As Object
@@ -240,34 +243,41 @@ On Error GoTo ErrorHandler
             Dim strFilePath As String
             strOptionQueryFolder = strTempFolder & "\" & "optionqueries"
     
-            If VBA.Len(VBA.Dir(strOptionQueryFolder, vbDirectory)) = 0 Then
-                Call VBA.MkDir(strOptionQueryFolder)
-            End If
+            
             
             For Each oTable In oPackage.Item("install").Item("tables")
                 If oTable.Exists("fields") Then
                     Dim oField As Object
                     For Each oField In oTable.Item("fields")
-                        strFilePath = strOptionQueryFolder & "\" & oTable.Item("name") & "." & oField.Item("name") & ".txt"
+                        
                         If oField.Item("attributes").Item("optionquery") <> "" Then
-                            bResult = SaveTextToDisk(oField.Item("attributes").Item("optionquery"), strFilePath)
+                            bResult = SaveTextToDisk(oField.Item("attributes").Item("optionquery"), strOptionQueryFolder, oTable.Item("name") & "." & oField.Item("name") & ".txt")
+                            If bResult = False Then allOK = False
+                            
                         End If
                     Next
                 End If
             Next
         End If
     End If
-    SaveOptionQueries = bResult
+    SaveOptionQueries = allOK
 Exit Function
 ErrorHandler:
     Debug.Print Err.Description
     SaveOptionQueries = False
 End Function
 
-Private Function SaveTextToDisk(strText As String, strFilePath As String)
+Private Function SaveTextToDisk(strText As String, strFolderPath As String, strFilename As String)
 On Error GoTo ErrorHandler
     Dim oStream
+    
     Set oStream = CreateObject("ADODB.Stream")
+    
+    If VBA.Len(VBA.Dir(strFolderPath, vbDirectory)) = 0 Then
+        Call VBA.MkDir(strFolderPath)
+    End If
+    
+    strFilename = strFolderPath & "\" & strFilename
     
     If strText = "" Then
         Call Err.Raise(1, , "Empty text was supplied to the stream")
@@ -279,7 +289,7 @@ On Error GoTo ErrorHandler
     
     On Error GoTo StreamError
     Call oStream.WriteText(strText)
-    Call oStream.SaveToFile(strFilePath, adSaveCreateNotExist)
+    Call oStream.SaveToFile(strFilename, adSaveCreateNotExist)
     
     Call oStream.Close
     
@@ -296,7 +306,7 @@ StreamError:
     SaveTextToDisk = False
     Exit Function
 ErrorHandler:
-    Debug.Print "LIPPackageBuilder.SaveTextToDisk" & Err.Description
+    Debug.Print "LIPPackageBuilder.SaveTextToDisk " & Err.Description
     SaveTextToDisk = False
 End Function
 
@@ -397,13 +407,13 @@ On Error GoTo ErrorHandler
 
     Dim strSqlFolder As String
     Dim strDefinition As String
-    Dim strFileName As String
+    Dim strFilename As String
     strSqlFolder = strTempFolder & "\" & "sql"
     If VBA.Len(Dir(strSqlFolder, vbDirectory)) = 0 Then
         MkDir strSqlFolder
     End If
     
-    strFileName = strSqlFolder & "\" & ProcedureName & ".sql"
+    strFilename = strSqlFolder & "\" & ProcedureName & ".sql"
     
     strDefinition = StrConv(DecodeBase64(Definition), vbUnicode)
     
@@ -415,7 +425,7 @@ On Error GoTo ErrorHandler
     intFileNum = FreeFile
     ' change Output to Append if you want to add to an existing file
     ' rather than creating a new file each time
-    Open strFileName For Output As intFileNum
+    Open strFilename For Output As intFileNum
     Print #intFileNum, strDefinition
     Close intFileNum
     
@@ -660,24 +670,24 @@ On Error GoTo ErrorHandler
     Else
         strInstallFolder = strTempFolder & "\" & "Install"
     End If
-    Dim strFileName As String
+    Dim strFilename As String
     
     If Not Component Is Nothing Then
-        strFileName = Component.Name
+        strFilename = Component.Name
         Select Case Component.Type
             Case 1
-                strFileName = strFileName & ".bas"
+                strFilename = strFilename & ".bas"
             Case 2
-                strFileName = strFileName & ".cls"
+                strFilename = strFilename & ".cls"
             Case 3
-                strFileName = strFileName & ".frm"
+                strFilename = strFilename & ".frm"
             
             Case Else
                 bResult = False
                 Exit Function
         End Select
         
-        Call Component.Export(strInstallFolder & "\" & strFileName)
+        Call Component.Export(strInstallFolder & "\" & strFilename)
         bResult = True
     End If
     ExportVBAModule = bResult
