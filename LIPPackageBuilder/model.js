@@ -119,7 +119,11 @@ var Field = function(f, tablename){
             //Create LIP compatible options property
             else if(attributeName == 'string'){
                 if(f[attributeName]){
-                    self.options = f[attributeName];
+                    if(Object.prototype.toString.call(f[attributeName]) === '[object Object]')
+                        self.options = [f[attributeName]];
+                    else
+                        self.options = f[attributeName];
+                    
                     //Delete invalid LIP-properties (idcategory, idstring, etc...)
                     for(var i = 0;i < self.options.length;i++){
                         $.each(vm.excludedOptionAttributes, function(j, optionAttributeName){
