@@ -312,16 +312,17 @@ End Function
 
 
 
-Private Function SaveIconToDisk(strBinaryBase64Data As String, strTableName As String, strFolder As String) As Boolean
+Private Function SaveBinaryToDisk(strBinaryBase64Data As String, strFilename As String, strFolder As String) As Boolean
 On Error GoTo ErrorHandler
     Dim binaryData() As Byte
+    
     binaryData = DecodeBase64(strBinaryBase64Data)
     Dim strFilePath As String
     
     If VBA.Right(strFolder, 1) = "\" Then
-        strFilePath = strFolder + strTableName + ".ico"
+        strFilePath = strFolder + strFilename
     Else
-        strFilePath = strFolder + "\" + strTableName + ".ico"
+        strFilePath = strFolder + "\" + strFilename
     End If
     
     If VBA.Len(VBA.Dir(strFolder, vbDirectory)) = 0 Then
@@ -341,20 +342,24 @@ On Error GoTo ErrorHandler
     
     binaryStream.Close
     Set binaryStream = Nothing
-    SaveIconToDisk = True
+    SaveBinaryToDisk = True
 Exit Function
 StreamError:
     binaryStream.Close
     Set binaryStream = Nothing
-    SaveIconToDisk = False
+    SaveBinaryToDisk = False
     Exit Function
 ErrorHandler:
-    SaveIconToDisk = False
+    SaveBinaryToDisk = False
 End Function
 
 Private Function SaveTableIcons(oPackage As Object, strTempFolder As String) As Boolean
 On Error GoTo ErrorHandler
     Dim bResult As Boolean
+    Dim bAllOK As Boolean
+    bResult = True
+    bAllOK = True
+    
     If oPackage.Exists("install") Then
         If oPackage("install").Exists("tables") Then
             Dim oTable As Object
@@ -363,14 +368,15 @@ On Error GoTo ErrorHandler
             For Each oTable In oPackage.Item("install").Item("tables")
                 If oTable.Exists("attributes") Then
                     If oTable.Item("attributes").Exists("icon") Then
-                        bResult = SaveIconToDisk(oTable.Item("attributes").Item("icon"), oTable("name"), strIconFolder)
+                        bResult = SaveBinaryToDisk(oTable.Item("attributes").Item("icon"), oTable("name") & ".ico", strIconFolder)
                         Call oTable.Item("attributes").Remove("icon")
+                        If bResult = False Then bAllOK = False
                     End If
                 End If
             Next
         End If
     End If
-    SaveTableIcons = bResult
+    SaveTableIcons = bAllOK
 Exit Function
 ErrorHandler:
     Call UI.ShowError("LIPPackageBuilder.SaveTableIcons")
