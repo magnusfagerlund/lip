@@ -15,6 +15,7 @@ Before you can start installing packages, you need to install LIP to your LIME P
 3. Import the `vba/lip.bas`-file to your VBA.
 4. Type the command `lip.InstallLIP` in the Immediate-window of the VBA and press Enter to install all necessary modules.
 5. Compile and save the VBA
+6. Publish actionpads
 
 ###Install a package 
 To install a package, simply type your command in the Immediate-window of the VBA. There are three different installation methods:
