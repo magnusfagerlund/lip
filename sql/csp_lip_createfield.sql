@@ -33,11 +33,11 @@ CREATE PROCEDURE [dbo].[csp_lip_createfield]
 	, @@label INT = NULL
 	, @@adlabel INT = NULL
 	, @@relationtab BIT = 0
-	, @@errorMessage NVARCHAR(512) OUTPUT
+	, @@errorMessage NVARCHAR(MAX) OUTPUT
+	, @@warningMessage NVARCHAR(MAX) OUTPUT
 	, @@idfield INT OUTPUT --idfield is set to -1 if field already exists
 AS
 BEGIN
-
 	-- FLAG_EXTERNALACCESS --
 
 	DECLARE	@return_value INT
@@ -58,6 +58,7 @@ BEGIN
 	DECLARE @nextOptionEnds INT
 	DECLARE @currentPositionInOption INT
 	DECLARE @supportedFieldtypes NVARCHAR(MAX)
+	DECLARE @linebreak NVARCHAR(2)
 	
 	SET @return_value = NULL
 	SET @@idfield = NULL
@@ -65,6 +66,8 @@ BEGIN
 	SET @idcategory = NULL
 	SET @idstring = NULL
 	SET @@errorMessage = N''
+	SET @@warningMessage = N''
+	SET @linebreak = CHAR(13) + CHAR(10)
 	SET @sql = N''
 	SET @isFirstLocalize = 1
 	SET @currentOption =N''
@@ -85,21 +88,21 @@ BEGIN
 	IF  @count > 0 --Fieldname already exists
 	BEGIN
 		SET @@idfield = -1
-		SET @@errorMessage = N'Field ''' + @@fieldname + N''' already exists and will not be re-created. Please verify that properties for the field are correct.'
+		SET @@warningMessage = @@warningMessage + N'Warning: field ''' + @@fieldname + N''' already exists and will not be re-created. Please verify that properties for the field are correct.' + @linebreak
 	END
 	ELSE --Field doesn't exist
 	BEGIN
 		--Check if fieldtype exists
 		IF (SELECT COUNT(*) FROM fieldtype WHERE name = @@fieldtype AND active = 1 AND creatable = 1) <> 1
 		BEGIN
-			SET @@errorMessage = N'''' + @@fieldtype + N''' is not a valid fieldtype. Field ''' + @@fieldname + ''' couldn''t be created'
+			SET @@errorMessage = @@errorMessage +  N'ERROR: ''' + @@fieldtype + N''' is not a valid fieldtype. Field ''' + @@fieldname + ''' couldn''t be created' + @linebreak
 		END
 		ELSE
 		BEGIN
 			--Check if fieldtype is implemented in LIP
 			IF CHARINDEX(@@fieldtype, @supportedFieldtypes) = 0
 			BEGIN
-				SET @@errorMessage = N'Fieldtype ''' + @@fieldtype + N''' is not implemented in LIP. Field ''' + @@fieldname + ''' couldn''t be created'
+				SET @@errorMessage = @@errorMessage +  N'ERROR: fieldtype ''' + @@fieldtype + N''' is not implemented in LIP. Field ''' + @@fieldname + ''' couldn''t be created' + @linebreak
 			END
 			ELSE
 			BEGIN
@@ -130,7 +133,7 @@ BEGIN
 				--If return value is not 0, something went wrong and the field wasn't created
 				IF @return_value <> 0
 				BEGIN
-					SET @@errorMessage = N'Field ''' + @@fieldname + N''' couldn''t be created'
+					SET @@errorMessage = @@errorMessage + N'ERROR: field ''' + @@fieldname + N''' couldn''t be created' + @linebreak
 				END
 				ELSE
 				BEGIN
@@ -142,6 +145,11 @@ BEGIN
 						EXEC @return_value =  lsp_setfieldattributevalue @@idfield = @@idfield, 
 														 @@name = N'idcategory',
 														 @@valueint = @idcategory OUTPUT
+						IF @return_value <> 0
+						BEGIN
+							SET @@warningMessage = @@warningMessage + N'Warning: couldn''t set idcategory for field ''' + @@fieldname  + @linebreak
+							SET @return_value = 0
+						END
 					END
 
 					--Make sure @@localname ends with ; in order to avoid infinite loop
@@ -176,104 +184,199 @@ BEGIN
 					IF @@limereadonly IS NOT NULL
 					BEGIN
 						EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'limereadonly', @@valueint = @@limereadonly
+						IF @return_value <> 0
+						BEGIN
+							SET @@warningMessage = @@warningMessage + N'Warning: couldn''t set attribute limereadonly for field ''' + @@fieldname + @linebreak
+							SET @return_value = 0
+						END
 					END
 					
 					--Set Default value (interpreted by LIME)
 					IF @@limedefaultvalue IS NOT NULL
 					BEGIN
 						EXEC @return_value = [dbo].[lsp_setattributevalue] @@owner = N'field', @@idrecord = @@idfield, @@name = N'limedefaultvalue', @@value = @@limedefaultvalue	-- Default Value (interpreted by LIME Pro) 
+						IF @return_value <> 0
+						BEGIN
+							SET @@warningMessage = @@warningMessage + N'Warning: couldn''t set limedefaultvalue for field ''' + @@fieldname + @linebreak
+							SET @return_value = 0
+						END
 					END
 					
 					--Set invisible/visible
 					IF @@invisible IS NOT NULL
 					BEGIN
 						EXEC @return_value = [dbo].[lsp_setattributevalue] @@owner = N'field', @@idrecord = @@idfield, @@name = N'invisible', @@valueint = @@invisible
+						IF @return_value <> 0
+						BEGIN
+							SET @@warningMessage = @@warningMessage + N'Warning: couldn''t set attribute invisible for field ''' + @@fieldname + @linebreak
+							SET @return_value = 0
+						END
 					END
 					
 					--Set required attribute
 					IF @@required IS NOT NULL
 					BEGIN
 						EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'required', @@valueint = @@required
+						IF @return_value <> 0
+						BEGIN
+							SET @@warningMessage = @@warningMessage + N'Warning: couldn''t set attribute required for field ''' + @@fieldname + @linebreak
+							SET @return_value = 0
+						END
 					END
 					--Set attribute Required for editing in Lime
 					IF @@limerequiredforedit IS NOT NULL
 					BEGIN
 						EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'limerequiredforedit', @@valueint = @@limerequiredforedit
+						IF @return_value <> 0
+						BEGIN
+							SET @@warningMessage = @@warningMessage + N'Warning: couldn''t set attribute limerequiredforedit for field ''' + @@fieldname + @linebreak
+							SET @return_value = 0
+						END
 					END
 					
 					--Set width
 					IF @@width IS NOT NULL
 					BEGIN
 						EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'width', @@valueint = @@width
+						IF @return_value <> 0
+						BEGIN
+							SET @@warningMessage = @@warningMessage + N'Warning: couldn''t set width for field ''' + @@fieldname + @linebreak
+							SET @return_value = 0
+						END
 					END
 					
 					--Set height
 					IF @@height IS NOT NULL
 					BEGIN
 						EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'height', @@valueint = @@height
+						IF @return_value <> 0
+						BEGIN
+							SET @@warningMessage = @@warningMessage + N'Warning: couldn''t set height for field ''' + @@fieldname + @linebreak
+							SET @return_value = 0
+						END
 					END
 					
 					--Set width properties
 					EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'newline', @@valueint = @@newline
+					IF @return_value <> 0
+					BEGIN
+						SET @@warningMessage = @@warningMessage + N'Warning: couldn''t set attribute newline for field ''' + @@fieldname + @linebreak
+						SET @return_value = 0
+					END
 					
 					--Set SQL Expression
 					IF @@sql IS NOT NULL
 					BEGIN
 						EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'sql', @@value = @@sql
+						IF @return_value <> 0
+						BEGIN
+							SET @@warningMessage = @@warningMessage + N'Warning: couldn''t set SQL-expression for field ''' + @@fieldname + @linebreak
+							SET @return_value = 0
+						END
 					END
 					
 					--Set SQL for update
 					IF @@onsqlupdate IS NOT NULL
 					BEGIN
 						EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'onsqlupdate', @@value = @@onsqlupdate
+						IF @return_value <> 0
+						BEGIN
+							SET @@warningMessage = @@warningMessage + N'Warning: couldn''t set attribute ''SQL for update'' for field ''' + @@fieldname + @linebreak
+							SET @return_value = 0
+						END
 					END
 					
 					--Set SQL for new
 					IF @@onsqlinsert IS NOT NULL
 					BEGIN
 						EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'onsqlinsert', @@value = @@onsqlinsert
+						IF @return_value <> 0
+						BEGIN
+							SET @@warningMessage = @@warningMessage + N'Warning: couldn''t set attribute ''SQL for new'' for field ''' + @@fieldname + @linebreak
+							SET @return_value = 0
+						END
 					END
 					
 					--Set formatsql
 					IF @@formatsql IS NOT NULL
 					BEGIN
 						EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'formatsql', @@valueint = @@formatsql
+						IF @return_value <> 0
+						BEGIN
+							SET @@warningMessage = @@warningMessage + N'Warning: couldn''t set attribute ''formatsql'' for field ''' + @@fieldname + @linebreak
+							SET @return_value = 0
+						END
 					END
 					
 					--Set syscomment (private comment)
 					IF @@syscomment IS NOT NULL
 					BEGIN
 						EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'syscomment', @@value = @@syscomment
+						IF @return_value <> 0
+						BEGIN
+							SET @@warningMessage = @@warningMessage + N'Warning: couldn''t set attribute ''syscomment'' for field ''' + @@fieldname + @linebreak
+							SET @return_value = 0
+						END
 					END
 					
 					--Set limevalidationrule
 					IF @@limevalidationrule IS NOT NULL
 					BEGIN
 						EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'limevalidationrule', @@value = @@limevalidationrule
+						IF @return_value <> 0
+						BEGIN
+							SET @@warningMessage = @@warningMessage + N'Warning: couldn''t set attribute ''limevalidationrule'' for field ''' + @@fieldname + @linebreak
+							SET @return_value = 0
+						END
 					END
 					
 					--Set label
 					IF @@label IS NOT NULL
 					BEGIN
 						EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'label', @@valueint = @@label
+						IF @return_value <> 0
+						BEGIN
+							SET @@warningMessage = @@warningMessage + N'Warning: couldn''t set attribute ''label'' for field ''' + @@fieldname + @linebreak
+							SET @return_value = 0
+						END
 					END
 					
 					--Set AD-label
 					IF @@adlabel IS NOT NULL
 					BEGIN
 						EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'adlabel', @@valueint = @@adlabel
+						IF @return_value <> 0
+						BEGIN
+							SET @@warningMessage = @@warningMessage + N'Warning: couldn''t set attribute ''adlabel'' for field ''' + @@fieldname + @linebreak
+							SET @return_value = 0
+						END
 					END
 					
 					--Set fieldorder, if not provided we use default value 0 which means it will be put last
 					EXEC @return_value = [dbo].[lsp_setfieldorder] @@idfield = @@idfield, @@fieldorder = @@fieldorder
+						IF @return_value <> 0
+						BEGIN
+							SET @@warningMessage = @@warningMessage + N'Warning: couldn''t set fieldorder for field ''' + @@fieldname + @linebreak
+							SET @return_value = 0
+						END
 					
 					--Set relation properties, if relationfield
 					IF @@fieldtype = N'relation'
 					BEGIN
-						EXEC lsp_setattributevalue @@owner = 'field', @@idrecord = @@idfield, @@name = 'relationmincount', @@value = 0
+						EXEC @return_value = lsp_setattributevalue @@owner = 'field', @@idrecord = @@idfield, @@name = 'relationmincount', @@value = 0
+						IF @return_value <> 0
+						BEGIN
+							SET @@errorMessage = @@errorMessage +  N'ERROR: couldn''t set attribute ''relationmincount'' for field ''' + @@fieldname + @linebreak
+							SET @return_value = 0
+						END
 						IF @@relationtab = 1
 						BEGIN
 							EXEC lsp_setattributevalue @@owner = 'field', @@idrecord = @@idfield, @@name = 'relationmaxcount', @@value = 1
+							IF @return_value <> 0
+							BEGIN
+								SET @@errorMessage = @@errorMessage +  N'ERROR: couldn''t set attribute ''relationmaxcount'' for field ''' + @@fieldname + @linebreak
+								SET @return_value = 0
+							END
 						END	
 					END
 					
@@ -282,39 +385,57 @@ BEGIN
 					EXEC @return_value = [dbo].[lsp_setattributevalue] @@owner = N'field'
 												, @@idrecord = @@idfield
 												, @@name = N'separatorlocalname'
-												, @@value = @idstring output
+												, @@value = @idstring output							
+					IF @return_value <> 0
+					BEGIN
+						SET @@errorMessage = @@errorMessage +  N'ERROR: couldn''t set attribute ''separatorlocalname'' for field ''' + @@fieldname + @linebreak
+						SET @return_value = 0
+					END
+					
 					IF @@separator <> N''
 					BEGIN
 						EXEC @return_value = [dbo].[lsp_setattributevalue] @@owner = N'field'
 									, @@idrecord = @@idfield
 									, @@name = 'separator'
 									, @@value = 1
-
-													
-						--Make sure @@localname ends with ; in order to avoid infinite loop
-						IF RIGHT(@@separator, 1) <> N';'
+									
+						IF @return_value <> 0
 						BEGIN
-							SET @@separator=@@separator + N';'
+							SET @@warningMessage = @@warningMessage + N'Warning: couldn''t set separator for field ''' + @@fieldname + @linebreak
+							SET @return_value = 0
 						END
-						
-						SET @currentPosition = 0
-						
-						--Loop through localnames
-						WHILE @currentPosition <= LEN(@@separator) AND @return_value = 0
-						BEGIN
-							SET @nextOccurance = CHARINDEX(';', @@separator, @currentPosition)
-							IF @nextOccurance <> 0
+						ELSE
+						BEGIN	
+							--Make sure @@localname ends with ; in order to avoid infinite loop
+							IF RIGHT(@@separator, 1) <> N';'
 							BEGIN
-								SET @currentString = SUBSTRING(@@separator, @currentPosition, @nextOccurance - @currentPosition)
-								SET @currentLanguage=SUBSTRING(@currentString,0,CHARINDEX(':', @currentString))
-								SET @currentLocalize=SUBSTRING(@currentString,CHARINDEX(':', @currentString)+1,LEN(@currentString)-CHARINDEX(':', @currentString))
-								EXEC @return_value = [dbo].[lsp_setattributevalue] @@owner = N'string'
-												, @@idrecord = @idstring
-												, @@name = @currentLanguage
-												, @@value = @currentLocalize
-								SET @currentPosition = @nextOccurance+1
+								SET @@separator=@@separator + N';'
 							END
-						END								
+							
+							SET @currentPosition = 0
+							
+							--Loop through localnames
+							WHILE @currentPosition <= LEN(@@separator) AND @return_value = 0
+							BEGIN
+								SET @nextOccurance = CHARINDEX(';', @@separator, @currentPosition)
+								IF @nextOccurance <> 0
+								BEGIN
+									SET @currentString = SUBSTRING(@@separator, @currentPosition, @nextOccurance - @currentPosition)
+									SET @currentLanguage=SUBSTRING(@currentString,0,CHARINDEX(':', @currentString))
+									SET @currentLocalize=SUBSTRING(@currentString,CHARINDEX(':', @currentString)+1,LEN(@currentString)-CHARINDEX(':', @currentString))
+									EXEC @return_value = [dbo].[lsp_setattributevalue] @@owner = N'string'
+													, @@idrecord = @idstring
+													, @@name = @currentLanguage
+													, @@value = @currentLocalize
+									SET @currentPosition = @nextOccurance+1
+								END
+							END
+							IF @return_value <> 0
+							BEGIN
+								SET @@warningMessage = @@warningMessage + N'Warning: couldn''t set separator localnames for field ''' + @@fieldname + @linebreak
+								SET @return_value = 0								
+							END
+						END
 					END
 					--End of creating separator
 					
@@ -327,32 +448,45 @@ BEGIN
 													, @@idrecord = @@idfield
 													, @@name = N'limevalidationtext'
 													, @@value = @idstring output
-						IF @@limevalidationtext <> N''
-						BEGIN	
-							--Make sure @@limevalidationtext ends with ; in order to avoid infinite loop
-							IF RIGHT(@@limevalidationtext, 1) <> N';'
-							BEGIN
-								SET @@limevalidationtext=@@limevalidationtext + N';'
-							END
-							
-							SET @currentPosition = 0
-							
-							--Loop through localnames
-							WHILE @currentPosition <= LEN(@@limevalidationtext) AND @return_value = 0
-							BEGIN
-								SET @nextOccurance = CHARINDEX(';', @@limevalidationtext, @currentPosition)
-								IF @nextOccurance <> 0
+						IF @return_value <> 0
+						BEGIN
+							SET @@errorMessage = @@errorMessage + N'ERROR: couldn''t set ''limevalidationtext'' for field ''' + @@fieldname + @linebreak
+							SET @return_value = 0
+						END
+						ELSE
+						BEGIN
+							IF @@limevalidationtext <> N''
+							BEGIN	
+								--Make sure @@limevalidationtext ends with ; in order to avoid infinite loop
+								IF RIGHT(@@limevalidationtext, 1) <> N';'
 								BEGIN
-									SET @currentString = SUBSTRING(@@limevalidationtext, @currentPosition, @nextOccurance - @currentPosition)
-									SET @currentLanguage=SUBSTRING(@currentString,0,CHARINDEX(':', @currentString))
-									SET @currentLocalize=SUBSTRING(@currentString,CHARINDEX(':', @currentString)+1,LEN(@currentString)-CHARINDEX(':', @currentString))
-									EXEC @return_value = [dbo].[lsp_setattributevalue] @@owner = N'string'
-													, @@idrecord = @idstring
-													, @@name = @currentLanguage
-													, @@value = @currentLocalize
-									SET @currentPosition = @nextOccurance+1
+									SET @@limevalidationtext=@@limevalidationtext + N';'
 								END
-							END								
+								
+								SET @currentPosition = 0
+								
+								--Loop through localnames
+								WHILE @currentPosition <= LEN(@@limevalidationtext) AND @return_value = 0
+								BEGIN
+									SET @nextOccurance = CHARINDEX(';', @@limevalidationtext, @currentPosition)
+									IF @nextOccurance <> 0
+									BEGIN
+										SET @currentString = SUBSTRING(@@limevalidationtext, @currentPosition, @nextOccurance - @currentPosition)
+										SET @currentLanguage=SUBSTRING(@currentString,0,CHARINDEX(':', @currentString))
+										SET @currentLocalize=SUBSTRING(@currentString,CHARINDEX(':', @currentString)+1,LEN(@currentString)-CHARINDEX(':', @currentString))
+										EXEC @return_value = [dbo].[lsp_setattributevalue] @@owner = N'string'
+														, @@idrecord = @idstring
+														, @@name = @currentLanguage
+														, @@value = @currentLocalize
+										SET @currentPosition = @nextOccurance+1
+									END
+								END	
+								IF @return_value <> 0
+								BEGIN
+									SET @@warningMessage = @@warningMessage + N'Warning: couldn''t set limevalidationtext localnames for field ''' + @@fieldname + @linebreak
+									SET @return_value = 0
+								END							
+							END
 						END
 					END
 					--End of creating limevalidationtext
@@ -363,32 +497,45 @@ BEGIN
 												, @@idrecord = @@idfield
 												, @@name = N'comment'
 												, @@value = @idstring output
-					IF @@comment <> N''
-					BEGIN	
-						--Make sure @@comment ends with ; in order to avoid infinite loop
-						IF RIGHT(@@comment, 1) <> N';'
-						BEGIN
-							SET @@comment=@@comment + N';'
-						END
-						
-						SET @currentPosition = 0
-						
-						--Loop through localnames
-						WHILE @currentPosition <= LEN(@@comment) AND @return_value = 0
-						BEGIN
-							SET @nextOccurance = CHARINDEX(';', @@comment, @currentPosition)
-							IF @nextOccurance <> 0
+					IF @return_value <> 0
+					BEGIN
+						SET @@errorMessage = @@errorMessage + N'ERROR: couldn''t set attribute ''comment'' for field ''' + @@fieldname + @linebreak
+						SET @return_value = 0
+					END
+					ELSE
+					BEGIN
+						IF @@comment <> N''
+						BEGIN	
+							--Make sure @@comment ends with ; in order to avoid infinite loop
+							IF RIGHT(@@comment, 1) <> N';'
 							BEGIN
-								SET @currentString = SUBSTRING(@@comment, @currentPosition, @nextOccurance - @currentPosition)
-								SET @currentLanguage=SUBSTRING(@currentString,0,CHARINDEX(':', @currentString))
-								SET @currentLocalize=SUBSTRING(@currentString,CHARINDEX(':', @currentString)+1,LEN(@currentString)-CHARINDEX(':', @currentString))
-								EXEC @return_value = [dbo].[lsp_setattributevalue] @@owner = N'string'
-												, @@idrecord = @idstring
-												, @@name = @currentLanguage
-												, @@value = @currentLocalize
-								SET @currentPosition = @nextOccurance+1
+								SET @@comment=@@comment + N';'
 							END
-						END								
+							
+							SET @currentPosition = 0
+							
+							--Loop through localnames
+							WHILE @currentPosition <= LEN(@@comment) AND @return_value = 0
+							BEGIN
+								SET @nextOccurance = CHARINDEX(';', @@comment, @currentPosition)
+								IF @nextOccurance <> 0
+								BEGIN
+									SET @currentString = SUBSTRING(@@comment, @currentPosition, @nextOccurance - @currentPosition)
+									SET @currentLanguage=SUBSTRING(@currentString,0,CHARINDEX(':', @currentString))
+									SET @currentLocalize=SUBSTRING(@currentString,CHARINDEX(':', @currentString)+1,LEN(@currentString)-CHARINDEX(':', @currentString))
+									EXEC @return_value = [dbo].[lsp_setattributevalue] @@owner = N'string'
+													, @@idrecord = @idstring
+													, @@name = @currentLanguage
+													, @@value = @currentLocalize
+									SET @currentPosition = @nextOccurance+1
+								END
+							END
+							IF @return_value <> 0
+							BEGIN
+								SET @@warningMessage = @@warningMessage + N'Warning: couldn''t set ''comment'' localnames for field ''' + @@fieldname + @linebreak
+								SET @return_value = 0
+							END						
+						END
 					END
 					--End of creating comment
 					
@@ -409,16 +556,27 @@ BEGIN
 						--Create a new description string if it doesn't exists. Make sure it is of "type" description, i.e. choose correct idcategory	
 						DECLARE @idcategoryDescription INT
 						SET @idcategoryDescription = (SELECT TOP 1 idcategory FROM category WHERE name = N'description')
+						
 						EXEC @return_value = [dbo].[lsp_addstring] @@idcategory = @idcategoryDescription, @@idstring = @idstring OUTPUT
 						
-						EXEC @return_value = [dbo].[lsp_addattributedata] @@owner = N'field'
-									, @@idrecord = @@idfield
-									, @@name = 'description'
-									, @@value = @idstring
+						IF @return_value <> 0
+						BEGIN
+							SET @@errorMessage = @@errorMessage + N'ERROR: couldn''t set attribute ''description'' for field ''' + @@fieldname + @linebreak
+						END	
+						ELSE
+						BEGIN
+							EXEC @return_value = [dbo].[lsp_addattributedata] @@owner = N'field'
+										, @@idrecord = @@idfield
+										, @@name = 'description'
+										, @@value = @idstring
+							IF @return_value <> 0
+							BEGIN
+								SET @@errorMessage = @@errorMessage + N'ERROR: couldn''t set attribute ''description'' for field ''' + @@fieldname + @linebreak
+							END	
+						END
 					END	
-					IF @@description <> N''
-					BEGIN
-													
+					IF @@description <> N'' AND @return_value = 0
+					BEGIN					
 						--Make sure @@description ends with ; in order to avoid infinite loop
 						IF RIGHT(@@description, 1) <> N';'
 						BEGIN
@@ -442,7 +600,11 @@ BEGIN
 												, @@value = @currentLocalize
 								SET @currentPosition = @nextOccurance+1
 							END
-						END								
+						END		
+						IF @return_value <> 0
+						BEGIN
+							SET @@warningMessage = @@warningMessage + N'Warning: couldn''t set ''description'' localnames for field ''' + @@fieldname + @linebreak
+						END			
 					END
 					--End of creating tooltip
 					
@@ -549,23 +711,26 @@ BEGIN
 								END	
 								SET @currentPosition = @nextOptionEnds+1
 							END
-						END							
+						END	
+						IF @return_value <> 0
+						BEGIN
+							SET @@warningMessage = @@warningMessage + N'Warning: couldn''t create options for field ''' + @@fieldname + @linebreak
+						END								
 					END
 					
 					IF @@fieldtype IN (N'time', N'option', N'decimal', N'document',N'integer')
 					BEGIN
 						--Set type for timefield or optionlist
-						EXEC [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'type', @@valueint = @@type
+						EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'type', @@valueint = @@type
+						IF @return_value <> 0
+						BEGIN
+							SET @@errorMessage = @@errorMessage + N'ERROR: couldn''t set attribute ''type'' for field ''' + @@fieldname + @linebreak
+							SET @return_value = 0
+						END	
 					END
 					
 					EXEC lsp_setdatabasetimestamp
 					EXEC lsp_refreshldc
-					
-					--If return value is not 0, something went wrong while setting field attributes
-					IF @return_value <> 0
-					BEGIN
-						SET @@errorMessage = N'Something went wrong while setting attributes for field ''' + @@fieldname + N'''. Please check that field properties are correct.'
-					END
 				END	
 			END
 		END
