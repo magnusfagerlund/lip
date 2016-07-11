@@ -5,7 +5,8 @@ CREATE PROCEDURE [dbo].[csp_lip_createtable]
 	@@tablename NVARCHAR(64)
 	, @@localname_singular NVARCHAR(MAX)
 	, @@localname_plural NVARCHAR(MAX)
-	, @@errorMessage NVARCHAR(512) OUTPUT
+	, @@errorMessage NVARCHAR(MAX) OUTPUT
+	, @@warningMessage NVARCHAR(MAX) OUTPUT
 	, @@idtable INT OUTPUT --idtable is set to -1 if table already exists
 	, @@iddescriptiveexpression INT OUTPUT
 AS
@@ -24,6 +25,7 @@ BEGIN
 	DECLARE @currentLocalize NVARCHAR(256)
 	DECLARE @isFirstLocalize BIT
 	DECLARE @count INT
+	DECLARE @linebreak NVARCHAR(2)
 	
 	SET @return_value =  NULL
 	SET @idstringlocalname = NULL
@@ -34,6 +36,8 @@ BEGIN
 	SET @sql = N''
 	SET @isFirstLocalize = 1
 	SET @@errorMessage = N''
+	SET @@warningMessage = N''
+	SET @linebreak = CHAR(13) + CHAR(10)
 	
 	--Check if table already exists
 	EXEC lsp_gettable @@name = @@tablename, @@count = @count OUTPUT
@@ -42,7 +46,7 @@ BEGIN
 	BEGIN
 		SET @@idtable = -1
 		SET @@iddescriptiveexpression = -1
-		SET @@errorMessage = N'Table ''' + @@tablename + N''' already exists. Please verify that attributes for the table are correct.'
+		SET @@warningMessage = @@warningMessage + N'Warning: table ''' + @@tablename + N''' already exists. Please verify that attributes for the table are correct.' + @linebreak
 	END
 	ELSE
 	BEGIN
@@ -63,7 +67,7 @@ BEGIN
 		BEGIN
 			SET @@idtable = -1
 			SET @@iddescriptiveexpression = -1
-			SET @@errorMessage = N'Table ''' + @@tablename + N''' couldn''t be created'
+			SET @@errorMessage = @@errorMessage + N'ERROR: table ''' + @@tablename + N''' couldn''t be created' + @linebreak
 		END
 		ELSE
 		BEGIN
@@ -95,6 +99,10 @@ BEGIN
 					
 					SET @currentPosition = @nextOccurance+1
 				END
+			END
+			IF @return_value <> 0
+			BEGIN
+				SET @@warningMessage = @@warningMessage + N'Warning: couldn''t set localnames (singular) for table ''' + @@tablename + @linebreak
 			END
 			--End localnames singular
 			
@@ -138,22 +146,24 @@ BEGIN
 				END
 			END
 
-			EXEC @return_value = lsp_addattributedata
-				@@owner	= N'table',
-				@@idrecord = @@idtable,
-				@@idrecord2 = NULL,
-				@@name = N'localnameplural',
-				@@value	=  @idstring
+			IF @return_value = 0
+			BEGIN
+				EXEC @return_value = lsp_addattributedata
+					@@owner	= N'table',
+					@@idrecord = @@idtable,
+					@@idrecord2 = NULL,
+					@@name = N'localnameplural',
+					@@value	=  @idstring
+			END
+				
+			IF @return_value <> 0
+			BEGIN
+				SET @@warningMessage = @@warningMessage + N'Warning: couldn''t set localnames (plural) for table ''' + @@tablename + @linebreak
+			END
 			--End localnames plural
 			
 			EXEC lsp_setdatabasetimestamp
 			EXEC lsp_refreshldc
-			
-			--If return value is not 0, something went wrong while setting table attributes
-			IF @return_value <> 0
-			BEGIN
-				SET @@errorMessage = N'Something went wrong while setting localnames for table ''' + @@tablename + N'''. Please check that table properties are correct.'
-			END
 		END
 	END
 END
