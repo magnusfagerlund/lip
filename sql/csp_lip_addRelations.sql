@@ -6,7 +6,8 @@ CREATE PROCEDURE [dbo].[csp_lip_addRelations]
 	, @@field1 NVARCHAR(64) = NULL
 	, @@table2 NVARCHAR(64)
 	, @@field2 NVARCHAR(64) = NULL
-	, @@errorMessage NVARCHAR(512) OUTPUT
+	, @@errorMessage NVARCHAR(MAX) OUTPUT
+	, @@warningMessage NVARCHAR(MAX) OUTPUT
 AS
 BEGIN
 
@@ -20,6 +21,12 @@ BEGIN
 	DECLARE @fieldtype2 INT
 	
 	DECLARE @fieldtypeRelation INT
+	
+	DECLARE	@return_value INT
+	DECLARE @linebreak NVARCHAR(2)
+	SET @linebreak = CHAR(13) + CHAR(10)
+	SET @@errorMessage = N''
+	SET @@warningMessage = N''
 	
 	--Get id for fieldtype relation
 	SELECT @fieldtypeRelation = idfieldtype
@@ -50,44 +57,47 @@ BEGIN
 						BEGIN
 							IF EXISTS (SELECT idrelationfield FROM relationfield WHERE idfield=@idfield1)
 							BEGIN
-								EXEC	lsp_addrelation
+								EXEC @return_value = lsp_addrelation
 										@@idfield1 = @idfield1,
 										@@idtable1 = @idtable1,
 										@@idfield2 = @idfield2,
 										@@idtable2 = @idtable2
-								SET @@errorMessage = N''
+								IF @return_value <> 0
+								BEGIN
+									SET @@errorMessage = N'ERROR: couldn''t create relation between' + @@table2 + '.' + @@field2 + N' and ' + @@table1 + '.' + @@field1
+								END
 							END
 							ELSE
 							BEGIN
-								SET @@errorMessage = @@table2 + '.' + @@field2 + N' does not exist in table ''relationfield'', relation to ' + @@table1 + '.' + @@field1 + N' can''t be created.'
+								SET @@errorMessage = N'ERROR: ' + @@table2 + '.' + @@field2 + N' does not exist in table ''relationfield'', relation to ' + @@table1 + '.' + @@field1 + N' can''t be created.'
 							END
 						END
 						ELSE
 						BEGIN
-							SET @@errorMessage = @@table1 + '.' + @@field1 + N' does not exist in table ''relationfield'', relation to ' + @@table2 + '.' + @@field2 + N' can''t be created.'
+							SET @@errorMessage = N'ERROR: ' + @@table1 + '.' + @@field1 + N' does not exist in table ''relationfield'', relation to ' + @@table2 + '.' + @@field2 + N' can''t be created.'
 						END
 					END
 					ELSE
 					BEGIN
-						SET @@errorMessage = @@table2 + '.' + @@field2 + N' is not a relationfield/tab, relation to ' + @@table1 + '.' + @@field1 + N' can''t be created.'
+						SET @@errorMessage = N'ERROR: ' + @@table2 + '.' + @@field2 + N' is not a relationfield/tab, relation to ' + @@table1 + '.' + @@field1 + N' can''t be created.'
 						RETURN
 					END
 			END
 			ELSE
 			BEGIN
-				SET @@errorMessage = @@table1 + '.' + @@field1 + N' is not a relationfield/tab, relation to ' + @@table2 + '.' + @@field2 + N' can''t be created.'
+				SET @@errorMessage = N'ERROR: ' + @@table1 + '.' + @@field1 + N' is not a relationfield/tab, relation to ' + @@table2 + '.' + @@field2 + N' can''t be created.'
 				RETURN
 			END
 		END
 		ELSE
 		BEGIN
-			SET @@errorMessage = @@table2 + '.' + @@field2 + N' hasn''t been created, relation to ' + @@table1 + '.' + @@field1 + N' can''t be created.'
+			SET @@errorMessage = N'ERROR: ' + @@table2 + '.' + @@field2 + N' hasn''t been created, relation to ' + @@table1 + '.' + @@field1 + N' can''t be created.'
 			RETURN
 		END
 	END
 	ELSE
 	BEGIN
-		SET @@errorMessage = @@table1 + '.' + @@field1 + N' hasn''t been created, relation to ' + @@table2 + '.' + @@field2 + N' can''t be created.'
+		SET @@errorMessage = N'ERROR: ' + @@table1 + '.' + @@field1 + N' hasn''t been created, relation to ' + @@table2 + '.' + @@field2 + N' can''t be created.'
 		RETURN
 	END	
 END
