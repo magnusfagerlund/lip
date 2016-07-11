@@ -1,7 +1,3 @@
-Attribute VB_Name = "lip"
-
-
-
 Option Explicit
 
 'Lundalogik Package Store, DO NOT CHANGE, used to download system files for LIP
@@ -64,6 +60,7 @@ On Error GoTo ErrorHandler
     Set Package = SearchForPackageInStores(PackageName)
     
     If Package Is Nothing Then
+        Application.MousePointer = 0
         Exit Sub
     End If
     
@@ -115,7 +112,11 @@ On Error GoTo ErrorHandler
     End If
     
     If bOk Then
-        sLog = sLog + Indent + "Installation of " + PackageName + " done!" + vbNewLine
+        If Simulate Then
+            sLog = sLog + Indent + "Simulation of " + PackageName + " done!" + vbNewLine
+        Else
+            sLog = sLog + Indent + "Installation of " + PackageName + " done!" + vbNewLine
+        End If
     Else
         sLog = sLog + Indent + "Errors or warnings were raised while installing " + PackageName + ". Please check the log above." + vbNewLine
     End If
@@ -130,8 +131,12 @@ On Error GoTo ErrorHandler
     
     If Simulate Then
         ThisApplication.Shell (sLogfile)
-        If vbYes = Lime.MessageBox("Simulation of installation process completed. Please check the result in the recently opened logfile." & vbNewLine & vbNewLine & "Do you wish to proceed with the installation?", vbInformation + vbYesNo + vbDefaultButton2) Then
-            Call lip.Install(PackageName, upgrade, False)
+        If bOk Then
+            If vbYes = Lime.MessageBox("Simulation of installation process completed. Please check the result in the recently opened logfile." & vbNewLine & vbNewLine & "Do you wish to proceed with the installation?", vbInformation + vbYesNo + vbDefaultButton2) Then
+                Call lip.Install(PackageName, upgrade, False)
+            End If
+        Else
+            Call Lime.MessageBox("Simulation of installation process completed. Errors occurred, please check the result in the recently opened logfile and take necessary actions before you try again.")
         End If
     Else
         If vbYes = Lime.MessageBox("Installation process completed. Do you want to open the logfile for the installation?", vbInformation + vbYesNo + vbDefaultButton1) Then
@@ -225,7 +230,11 @@ On Error GoTo ErrorHandler
             End If
             
             If bOk Then
-                sLog = sLog + Indent + "Installation of " + PackageName + " done!" + vbNewLine
+                If Simulate Then
+                    sLog = sLog + Indent + "Simulation of " + PackageName + " done!" + vbNewLine
+                Else
+                    sLog = sLog + Indent + "Installation of " + PackageName + " done!" + vbNewLine
+                End If
             Else
                 sLog = sLog + Indent + "Errors or warnings were raised while installing " + PackageName + ". Please check the log above." + vbNewLine
             End If
@@ -240,8 +249,12 @@ On Error GoTo ErrorHandler
             
             If Simulate Then
                 ThisApplication.Shell (sLogfile)
-                If vbYes = Lime.MessageBox("Simulation of installation process completed. Please check the result in the recently opened logfile." & vbNewLine & vbNewLine & "Do you wish to proceed with the installation?", vbInformation + vbYesNo + vbDefaultButton2) Then
-                    Call lip.InstallFromZip(ZipPath, False)
+                If bOk Then
+                    If vbYes = Lime.MessageBox("Simulation of installation process completed. Please check the result in the recently opened logfile." & vbNewLine & vbNewLine & "Do you wish to proceed with the installation?", vbInformation + vbYesNo + vbDefaultButton2) Then
+                        Call lip.InstallFromZip(ZipPath, False)
+                    End If
+                Else
+                    Call Lime.MessageBox("Simulation of installation process completed. Errors occurred, please check the result in the recently opened logfile and take necessary actions before you try again.")
                 End If
             Else
                 
@@ -777,6 +790,7 @@ On Error GoTo ErrorHandler
     Dim localname_singular As String
     Dim localname_plural As String
     Dim errormessage As String
+    Dim warningmessage As String
     
     bOk = True
 
@@ -820,6 +834,7 @@ On Error GoTo ErrorHandler
             Call oProc.Execute(False)
 
             errormessage = oProc.Parameters("@@errorMessage").OutputValue
+            warningmessage = oProc.Parameters("@@warningMessage").OutputValue
 
             idtable = oProc.Parameters("@@idtable").OutputValue
             iddescriptiveexpression = oProc.Parameters("@@iddescriptiveexpression").OutputValue
@@ -828,12 +843,20 @@ On Error GoTo ErrorHandler
                 sCreatedTables = sCreatedTables + CStr(idtable) + ";"
             End If
 
+            If warningmessage <> "" Then
+                IncreaseIndent
+                sLog = sLog + Indent + (warningmessage) + vbNewLine
+                DecreaseIndent
+            End If
+            
             'If errormessage is set, something went wrong
             If errormessage <> "" Then
+                IncreaseIndent
                 sLog = sLog + Indent + (errormessage) + vbNewLine
                 bOk = False
+                DecreaseIndent
             Else
-                sLog = sLog + Indent + ("Table """ & table.Item("name") & """ created.") + vbNewLine
+                sLog = sLog + Indent + ("Table """ & table.Item("name") & """ installed.") + vbNewLine
             End If
 
             ' Create fields
@@ -882,6 +905,7 @@ On Error GoTo ErrorHandler
     Dim bOk As Boolean
     Dim oProc As New LDE.Procedure
     Dim errormessage As String
+    Dim warningmessage As String
     Dim fieldLocalnames As String
     Dim separatorLocalnames As String
     Dim limevalidationtextLocalnames As String
@@ -893,6 +917,7 @@ On Error GoTo ErrorHandler
     
     bOk = True
     errormessage = ""
+    warningmessage = ""
     fieldLocalnames = ""
     separatorLocalnames = ""
     limevalidationtextLocalnames = ""
@@ -977,6 +1002,7 @@ On Error GoTo ErrorHandler
 
         Call oProc.Execute(False)
         errormessage = oProc.Parameters("@@errorMessage").OutputValue
+        warningmessage = oProc.Parameters("@@warningMessage").OutputValue
         
         idfield = oProc.Parameters("@@idfield").OutputValue
         
@@ -984,12 +1010,21 @@ On Error GoTo ErrorHandler
             sCreatedFields = sCreatedFields + CStr(idfield) + ";"
         End If
         
+        'Log warnings
+        If warningmessage <> "" Then
+            IncreaseIndent
+            sLog = sLog + Indent + (warningmessage) + vbNewLine
+            DecreaseIndent
+        End If
+        
         'If errormessage is set, something went wrong
         If errormessage <> "" Then
+            IncreaseIndent
             sLog = sLog + Indent + (errormessage) + vbNewLine
+            DecreaseIndent
             bOk = False
         Else
-            sLog = sLog + Indent + ("Field """ & field.Item("name") & """ created.") + vbNewLine
+            sLog = sLog + Indent + ("Field """ & field.Item("name") & """ installed.") + vbNewLine
         End If
     Else
         bOk = False
@@ -1012,8 +1047,11 @@ On Error GoTo ErrorHandler
     Dim oProcAttributes As LDE.Procedure
     Dim oItem As Variant
     Dim errormessage As String
+    Dim warningmessage As String
     
     bOk = True
+    errormessage = ""
+    warningmessage = ""
 
     If table.Exists("attributes") Then
 
@@ -1040,6 +1078,11 @@ On Error GoTo ErrorHandler
             Call oProcAttributes.Execute(False)
 
             errormessage = oProcAttributes.Parameters("@@errorMessage").OutputValue
+            warningmessage = oProcAttributes.Parameters("@@warningMessage").OutputValue
+            
+            If warningmessage <> "" Then
+                sLog = sLog + Indent + (warningmessage) + vbNewLine
+            End If
 
             'If errormessage is set, something went wrong
             If errormessage <> "" Then
@@ -1179,7 +1222,7 @@ On Error GoTo ErrorHandler
                     If Not Simulate Then
                         Call Application.VBE.ActiveVBProject.VBComponents.Import(Path)
                     End If
-                    sLog = sLog + Indent + "Added " + ModuleName + vbNewLine
+                    sLog = sLog + Indent + "VBA added: " + ModuleName + vbNewLine
                 Else
                     sLog = sLog + Indent + ("Module """ & ModuleName & """ already exists and have not been replaced.") + vbNewLine
                 End If
@@ -1506,6 +1549,7 @@ On Error GoTo ErrorHandler
     Dim oProc As LDE.Procedure
 
     Dim errormessage As String
+    Dim warningmessage As String
     bOk = True
 
     sLog = sLog + Indent + "Adding relations..." + vbNewLine
@@ -1514,6 +1558,7 @@ On Error GoTo ErrorHandler
     For Each relation In oJSON
     
         errormessage = ""
+        warningmessage = ""
 
         Set oProc = Database.Procedures("csp_lip_addRelations")
 
@@ -1529,7 +1574,12 @@ On Error GoTo ErrorHandler
             Call oProc.Execute(False)
 
             errormessage = oProc.Parameters("@@errorMessage").OutputValue
-
+            warningmessage = oProc.Parameters("@@warningMessage").OutputValue
+            
+            If warningmessage <> "" Then
+                sLog = sLog + Indent + (warningmessage) + vbNewLine
+            End If
+            
             'If errormessage is set, something went wrong
             If errormessage <> "" Then
                 sLog = sLog + Indent + (errormessage) + vbNewLine
