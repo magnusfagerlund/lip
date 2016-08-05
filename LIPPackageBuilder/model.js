@@ -20,12 +20,25 @@ var Table = function(t){
     self.invisible = t.invisible;
     // Initiate fields visible in gui
     self.guiFields = ko.observableArray();
-
-    // Load attributes 
+	// Tooltip
+	self.tooltipAttributesTable = "";
+    
+	// Load attributes 
     self.attributes = {};
     $.each(vm.tableAttributes, function(i, a){
         self.attributes[a] = t[a];
     });
+	
+	//Tooltip for the table´s
+	$.each(self.attributes, function(attributeName,attributeValue){
+			if(attributeName == 'label'){
+				self.tooltipAttributesTable += '<b>' + attributeName + '</b>: ' + vm.tableLabel[attributeValue] + '<br>';
+			}else if(attributeName == 'invisible'){
+				self.tooltipAttributesTable += '<b>' + attributeName + '</b>: ' + vm.tableinvisible[attributeValue] + '<br>';
+			}else{
+				self.tooltipAttributesTable += '<b>' + attributeName + '</b>: ' + attributeValue + '<br>';
+			}
+	 });
 
     // Load gui fields
     self.guiFields(ko.utils.arrayMap(ko.utils.arrayFilter(t.field,function(f){ return f.fieldtype != 255;}), function(f){
@@ -108,6 +121,7 @@ var Field = function(f, tablename){
    
     
     self.attributes = {};
+	self.tooltipAttributes = "";
     $.each(vm.fieldAttributes, function(index, attributeName){
         try{
             if(attributeName == 'fieldtype'){
@@ -167,8 +181,25 @@ var Field = function(f, tablename){
             }
         }
     });
-    
-    
+	
+    //Tooltip for the field´s
+	$.each(self.attributes, function(attributeName,attributeValue){
+		if(attributeName == 'label'){
+			self.tooltipAttributes += '<b>' + attributeName + '</b>: ' + vm.fieldLabels[attributeValue] + '<br>';
+		}
+		else if(attributeName == 'newline'){
+			self.tooltipAttributes += '<b>' + attributeName + '</b>: ' + vm.fieldNewline[attributeValue] + '<br>';
+		}
+		else if(attributeName == 'adlabel'){
+			self.tooltipAttributes += '<b>' + attributeName + '</b>: ' + vm.fieldAdlabel[attributeValue] + '<br>';
+		}
+		else if(attributeName == 'invisible'){
+			 self.tooltipAttributes += '<b>' + attributeName + '</b>: ' + vm.fieldInvisible[attributeValue] + '<br>';
+		}
+		else{
+			self.tooltipAttributes += '<b>' + attributeName + '</b>: ' + attributeValue + '<br>';
+		}
+	});
     
     var getFieldTypeDisplayName = function(fieldtypeName, length){
         

@@ -80,7 +80,7 @@
 				  		<span class="col-md-2 list-header" data-bind="text: 'Timestamp'"/>
 				  	</div>
 					<!-- ko foreach: filteredTables() -->
-					<a class="list-group-item" data-bind="click: show, css:{'shown' : shown}">
+					<a class="list-group-item" data-bind="click: show, css:{'shown' : shown}, tooltip:tooltipAttributesTable" data-html="true">
 						<span class="col-md-1 col-sm-1 col-md-1" >
 							<input type="checkbox" data-bind="checked: selected, stopBubble: true" >
 						</span>
@@ -113,7 +113,8 @@
                         
 				  	</div>
 					<!-- ko foreach: shownTable().filteredFields() -->
-					<a class="list-group-item"data-bind="click: select">
+					<a class="list-group-item" data-bind="click: select, tooltip:{ text:tooltipAttributes, placement: ($index() > 5) ? 'top' : 'bottom'}" data-html="true" >
+					
 						<span class="col-md-1 col-sm-1 col-md-1" >
 							<input type="checkbox" data-bind="checked: selected, stopBubble: true" >
 						</span>

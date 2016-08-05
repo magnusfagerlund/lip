@@ -201,6 +201,7 @@ lbs.apploader.register('LIPPackageBuilder', function () {
             //Create tableicon Array
             vm.tableIcons(ko.utils.arrayMap(json.data.database.tableicons.tableicon, function(t){
                 return new TableIcon(t);
+                
             }));
             
             vm.optionQueries(ko.utils.arrayMap(json.data.database.optionqueries.optionquery, function(o){
