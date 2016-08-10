@@ -20,8 +20,7 @@ var Table = function(t){
     self.invisible = t.invisible;
     // Initiate fields visible in gui
     self.guiFields = ko.observableArray();
-	// Tooltip
-	self.tooltipAttributesTable = "";
+	
     
 	// Load attributes 
     self.attributes = {};
@@ -29,17 +28,23 @@ var Table = function(t){
         self.attributes[a] = t[a];
     });
 	
+    var tooltipAttributesTable;
+    
 	//Tooltip for the table´s
 	$.each(self.attributes, function(attributeName,attributeValue){
 			if(attributeName == 'label'){
-				self.tooltipAttributesTable += '<b>' + attributeName + '</b>: ' + vm.tableLabel[attributeValue] + '<br>';
+				tooltipAttributesTable += '<b>' + attributeName + '</b>: ' + vm.tableLabel[attributeValue] + '<br>';
 			}else if(attributeName == 'invisible'){
-				self.tooltipAttributesTable += '<b>' + attributeName + '</b>: ' + vm.tableinvisible[attributeValue] + '<br>';
+				tooltipAttributesTable += '<b>' + attributeName + '</b>: ' + vm.tableinvisible[attributeValue] + '<br>';
 			}else{
-				self.tooltipAttributesTable += '<b>' + attributeName + '</b>: ' + attributeValue + '<br>';
+				tooltipAttributesTable += '<b>' + attributeName + '</b>: ' + attributeValue + '<br>';
 			}
 	 });
-
+    
+    self.tooltipAttributesTable = function(){
+        return tooltipAttributesTable;
+    }
+    
     // Load gui fields
     self.guiFields(ko.utils.arrayMap(ko.utils.arrayFilter(t.field,function(f){ return f.fieldtype != 255;}), function(f){
         return new Field(f, self.name);
@@ -181,25 +186,29 @@ var Field = function(f, tablename){
             }
         }
     });
-	
+	var tooltipAttributes;
     //Tooltip for the field´s
 	$.each(self.attributes, function(attributeName,attributeValue){
 		if(attributeName == 'label'){
-			self.tooltipAttributes += '<b>' + attributeName + '</b>: ' + vm.fieldLabels[attributeValue] + '<br>';
+			tooltipAttributes += '<b>' + attributeName + '</b>: ' + vm.fieldLabels[attributeValue] + '<br>';
 		}
 		else if(attributeName == 'newline'){
-			self.tooltipAttributes += '<b>' + attributeName + '</b>: ' + vm.fieldNewline[attributeValue] + '<br>';
+			tooltipAttributes += '<b>' + attributeName + '</b>: ' + vm.fieldNewline[attributeValue] + '<br>';
 		}
 		else if(attributeName == 'adlabel'){
-			self.tooltipAttributes += '<b>' + attributeName + '</b>: ' + vm.fieldAdlabel[attributeValue] + '<br>';
+			tooltipAttributes += '<b>' + attributeName + '</b>: ' + vm.fieldAdlabel[attributeValue] + '<br>';
 		}
 		else if(attributeName == 'invisible'){
-			 self.tooltipAttributes += '<b>' + attributeName + '</b>: ' + vm.fieldInvisible[attributeValue] + '<br>';
+			tooltipAttributes += '<b>' + attributeName + '</b>: ' + vm.fieldInvisible[attributeValue] + '<br>';
 		}
 		else{
-			self.tooltipAttributes += '<b>' + attributeName + '</b>: ' + attributeValue + '<br>';
+			tooltipAttributes += '<b>' + attributeName + '</b>: ' + attributeValue + '<br>';
 		}
 	});
+    
+    self.tooltipAttributes = function(){
+        return tooltipAttributes;
+    }
     
     var getFieldTypeDisplayName = function(fieldtypeName, length){
         
