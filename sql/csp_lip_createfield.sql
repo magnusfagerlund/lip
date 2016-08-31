@@ -661,7 +661,7 @@ BEGIN
 												
 												IF @isFirstLocalize = 1
 												BEGIN
-													IF @currentLanguage <> N'color' AND @currentLanguage <> N'default'
+													IF @currentLanguage <> N'color' AND @currentLanguage <> N'default' AND @currentLanguage <> N'inactive'
 													BEGIN
 														EXEC @return_value = [dbo].[lsp_addstring]
 															@@idcategory = @idcategory
@@ -694,6 +694,15 @@ BEGIN
 																	, @@name = N'defaultvalue'
 																	, @@valueint = @idstring
 															END
+														END
+														ELSE IF @currentLanguage = N'inactive'
+														BEGIN
+															EXEC lsp_addattributedata
+																@@owner	= N'string',
+																@@idrecord = @idstring,
+																@@idrecord2 = NULL,
+																@@name = N'inactive',
+																@@value	= @currentLocalize
 														END
 														ELSE
 														BEGIN
