@@ -853,6 +853,7 @@ On Error GoTo ErrorHandler
         idtable = -1
 
         Set oProc = Database.Procedures("csp_lip_createtable")
+        oProc.Timeout = 299
 
         If Not oProc Is Nothing Then
 
@@ -975,6 +976,7 @@ On Error GoTo ErrorHandler
     idfield = -1
     
     Set oProc = Database.Procedures("csp_lip_createfield")
+    oProc.Timeout = 299
 
     If Not oProc Is Nothing Then
         oProc.Parameters("@@tablename").InputValue = tableName
@@ -1105,6 +1107,7 @@ On Error GoTo ErrorHandler
     If table.Exists("attributes") Then
 
         Set oProcAttributes = Application.Database.Procedures("csp_lip_settableattributes")
+        oProcAttributes.Timeout = 299
 
         If Not oProcAttributes Is Nothing Then
 
@@ -1626,6 +1629,7 @@ On Error GoTo ErrorHandler
         warningmessage = ""
 
         Set oProc = Database.Procedures("csp_lip_addRelations")
+        oProc.Timeout = 299
 
         If Not oProc Is Nothing Then
 
@@ -1680,6 +1684,7 @@ On Error GoTo ErrorHandler
     Dim i As Integer
     Dim oProc As New LDE.Procedure
     Set oProc = Database.Procedures("csp_lip_removeTablesAndFields")
+    oProc.Timeout = 299
     
     If Not oProc Is Nothing Then
         If sCreatedFields <> "" Then
@@ -1822,6 +1827,5 @@ On Error GoTo ErrorHandler
 ErrorHandler:
     Call UI.ShowError("lip.SetLipVersionInPackageFile")
 End Sub
-
 
 
