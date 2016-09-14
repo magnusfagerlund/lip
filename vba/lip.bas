@@ -249,7 +249,7 @@ On Error GoTo ErrorHandler
             
             If Package.Exists("installPath") Then
                 sInstallPath = ThisApplication.WebFolder & Package.Item("installPath") & "\"
-            'LJE sätts högre upp
+            'LJE sÃ¤tts hÃ¶gre upp
             'Else
             '    InstallPath = ThisApplication.WebFolder & DefaultInstallPath
             End If
@@ -1258,7 +1258,10 @@ On Error GoTo ErrorHandler
                     tempModuleName = LCO.GenerateGUID
                     tempModuleName = VBA.Replace(VBA.Mid(tempModuleName, 2, VBA.Len(tempModuleName) - 2), "-", "")
                     tempModuleName = VBA.Left("OLD_" & tempModuleName, 30)
-                    VBComps.Item(ModuleName).Name = tempModuleName
+                    
+                    If Not Simulate Then
+                        VBComps.Item(ModuleName).Name = tempModuleName
+                    End If
                     
                     If vbYes = Lime.MessageBox("Do you want to delete the old module?", vbYesNo + vbDefaultButton2 + vbQuestion) Then
                         If Not Simulate Then
