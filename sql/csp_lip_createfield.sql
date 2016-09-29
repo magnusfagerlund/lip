@@ -73,8 +73,8 @@ BEGIN
 	SET @currentOption =N''
 	SET @nextOptionStarts = 0
 	SET @nextOptionEnds = 0
-	SET @supportedFieldtypes = N'string;integer;decimal;time;link;yesno;set;option;formatedstring;color;relation;xml;file;sql;geography;html'
-	--Not supported: user
+	SET @supportedFieldtypes = N'string;integer;decimal;time;link;yesno;set;option;formatedstring;color;relation;xml;file;sql;geography'
+	--Not supported: user;html
 	
 	--Make sure @@length is set to NULL if fieldtype is not string
 	IF @@fieldtype <> N'string' AND @@length IS NOT NULL
@@ -112,18 +112,33 @@ BEGIN
 				WHERE name = @@fieldtype
 					AND active = 1
 					AND creatable = 1
-
-				EXEC @return_value = [dbo].[lsp_addfield]
-					@@table = @@tablename
-					,@@name = @@fieldname
-					,@@fieldtype = @idfieldtype
-					,@@length = @@length
-					,@@isnullable = @@isnullable
-					,@@defaultvalue = @@defaultvalue OUTPUT
-					,@@idfield = @@idfield OUTPUT
-					,@@localname = @idstringlocalname OUTPUT
-					,@@idcategory = @idcategory OUTPUT
-					
+				
+				--Don't pass defaultvalue for option- and setfields
+				IF @@fieldtype IN (N'option', N'set')
+				BEGIN
+					EXEC @return_value = [dbo].[lsp_addfield]
+						@@table = @@tablename
+						,@@name = @@fieldname
+						,@@fieldtype = @idfieldtype
+						,@@length = @@length
+						,@@isnullable = @@isnullable
+						,@@idfield = @@idfield OUTPUT
+						,@@localname = @idstringlocalname OUTPUT
+						,@@idcategory = @idcategory OUTPUT
+				END
+				ELSE
+				BEGIN
+					EXEC @return_value = [dbo].[lsp_addfield]
+						@@table = @@tablename
+						,@@name = @@fieldname
+						,@@fieldtype = @idfieldtype
+						,@@length = @@length
+						,@@isnullable = @@isnullable
+						,@@defaultvalue = @@defaultvalue OUTPUT
+						,@@idfield = @@idfield OUTPUT
+						,@@localname = @idstringlocalname OUTPUT
+						,@@idcategory = @idcategory OUTPUT
+				END
 
 				
 				-- Refresh ldc to make sure field is visible in LIME later on
@@ -212,9 +227,9 @@ BEGIN
 							SET @return_value = 0
 						END
 					END
-					
+
 					--Set required attribute
-					IF @@required IS NOT NULL
+					IF @@required IS NOT NULL AND @@fieldtype IN (N'string', N'geography', N'integer', N'decimal', N'time', N'html', N'xml', N'link', N'file', N'user', N'set', N'option', N'formatedstring', N'color')
 					BEGIN
 						EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'required', @@valueint = @@required
 						IF @return_value <> 0
@@ -342,7 +357,7 @@ BEGIN
 					END
 					
 					--Set AD-label
-					IF @@adlabel IS NOT NULL
+					IF @@adlabel IS NOT NULL AND @@fieldtype IN (N'string', N'link', N'option', N'formatedstring')
 					BEGIN
 						EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'adlabel', @@valueint = @@adlabel
 						IF @return_value <> 0
@@ -685,7 +700,7 @@ BEGIN
 													END
 													ELSE
 													BEGIN
-														IF @currentLanguage = N'default'
+														IF @currentLanguage = N'default' AND @@fieldtype <> N'string'
 														BEGIN
 															IF LOWER(@currentLocalize) = N'true'
 															BEGIN
