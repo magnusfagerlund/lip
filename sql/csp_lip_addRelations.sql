@@ -6,6 +6,7 @@ CREATE PROCEDURE [dbo].[csp_lip_addRelations]
 	, @@field1 NVARCHAR(64) = NULL
 	, @@table2 NVARCHAR(64)
 	, @@field2 NVARCHAR(64) = NULL
+	, @@createdfields NVARCHAR(MAX)
 	, @@errorMessage NVARCHAR(MAX) OUTPUT
 	, @@warningMessage NVARCHAR(MAX) OUTPUT
 AS
@@ -47,45 +48,55 @@ BEGIN
 	BEGIN
 		IF @idfield2 IS NOT NULL
 		BEGIN
-			--Check if the fields are relationfields
-			IF @fieldtype1 = @fieldtypeRelation
+			SET @@createdfields = N';' + @@createdfields
+			--Check if we have created the fields during this installation
+			IF CHARINDEX(N';' + CONVERT(nvarchar(max), @idfield1) + N';', @@createdfields) > 0 AND CHARINDEX(N';' + CONVERT(nvarchar(max), @idfield2) + N';', @@createdfields) > 0
 			BEGIN
-				IF @fieldtype2 = @fieldtypeRelation
-					BEGIN
-						--Check if the fields exist in table relationfield
-						IF EXISTS (SELECT idrelationfield FROM relationfield WHERE idfield=@idfield1)
+				--Check if the fields are relationfields
+				IF @fieldtype1 = @fieldtypeRelation
+				BEGIN
+					IF @fieldtype2 = @fieldtypeRelation
 						BEGIN
+							--Check if the fields exist in table relationfield
 							IF EXISTS (SELECT idrelationfield FROM relationfield WHERE idfield=@idfield1)
 							BEGIN
-								EXEC @return_value = lsp_addrelation
-										@@idfield1 = @idfield1,
-										@@idtable1 = @idtable1,
-										@@idfield2 = @idfield2,
-										@@idtable2 = @idtable2
-								IF @return_value <> 0
+								IF EXISTS (SELECT idrelationfield FROM relationfield WHERE idfield=@idfield1)
 								BEGIN
-									SET @@errorMessage = N'ERROR: couldn''t create relation between' + @@table2 + '.' + @@field2 + N' and ' + @@table1 + '.' + @@field1
+									EXEC @return_value = lsp_addrelation
+											@@idfield1 = @idfield1,
+											@@idtable1 = @idtable1,
+											@@idfield2 = @idfield2,
+											@@idtable2 = @idtable2
+									IF @return_value <> 0
+									BEGIN
+										SET @@errorMessage = N'ERROR: couldn''t create relation between' + @@table2 + '.' + @@field2 + N' and ' + @@table1 + '.' + @@field1
+									END
+								END
+								ELSE
+								BEGIN
+									SET @@errorMessage = N'ERROR: ' + @@table2 + '.' + @@field2 + N' does not exist in table ''relationfield'', relation to ' + @@table1 + '.' + @@field1 + N' can''t be created.'
 								END
 							END
 							ELSE
 							BEGIN
-								SET @@errorMessage = N'ERROR: ' + @@table2 + '.' + @@field2 + N' does not exist in table ''relationfield'', relation to ' + @@table1 + '.' + @@field1 + N' can''t be created.'
+								SET @@errorMessage = N'ERROR: ' + @@table1 + '.' + @@field1 + N' does not exist in table ''relationfield'', relation to ' + @@table2 + '.' + @@field2 + N' can''t be created.'
 							END
 						END
 						ELSE
 						BEGIN
-							SET @@errorMessage = N'ERROR: ' + @@table1 + '.' + @@field1 + N' does not exist in table ''relationfield'', relation to ' + @@table2 + '.' + @@field2 + N' can''t be created.'
+							SET @@errorMessage = N'ERROR: ' + @@table2 + '.' + @@field2 + N' is not a relationfield/tab, relation to ' + @@table1 + '.' + @@field1 + N' can''t be created.'
+							RETURN
 						END
-					END
-					ELSE
-					BEGIN
-						SET @@errorMessage = N'ERROR: ' + @@table2 + '.' + @@field2 + N' is not a relationfield/tab, relation to ' + @@table1 + '.' + @@field1 + N' can''t be created.'
-						RETURN
-					END
+				END
+				ELSE
+				BEGIN
+					SET @@errorMessage = N'ERROR: ' + @@table1 + '.' + @@field1 + N' is not a relationfield/tab, relation to ' + @@table2 + '.' + @@field2 + N' can''t be created.'
+					RETURN
+				END
 			END
 			ELSE
 			BEGIN
-				SET @@errorMessage = N'ERROR: ' + @@table1 + '.' + @@field1 + N' is not a relationfield/tab, relation to ' + @@table2 + '.' + @@field2 + N' can''t be created.'
+				SET @@warningMessage = N'Warning: Cannot create relation between ' + @@table1 + '.' + @@field1 + N' and ' + @@table2 + '.' + @@field2 + N', since one of the fields already existed before installation.'
 				RETURN
 			END
 		END
