@@ -19,9 +19,9 @@ CREATE PROCEDURE [dbo].[csp_lip_createfield]
 	, @@height INT = NULL
 	, @@length INT = NULL
 	, @@newline INT = 2 -- Default value 2 means Fixed width
-	, @@sql NVARCHAR(MAX) = NULL
-	, @@onsqlupdate NVARCHAR(MAX) = NULL
-	, @@onsqlinsert NVARCHAR(MAX) = NULL
+	--, @@sql NVARCHAR(MAX) = NULL
+	--, @@onsqlupdate NVARCHAR(MAX) = NULL
+	--, @@onsqlinsert NVARCHAR(MAX) = NULL
 	, @@formatsql BIT = NULL
 	, @@comment NVARCHAR(MAX) = N''
 	, @@syscomment NVARCHAR(MAX) = NULL
@@ -73,8 +73,8 @@ BEGIN
 	SET @currentOption =N''
 	SET @nextOptionStarts = 0
 	SET @nextOptionEnds = 0
-	SET @supportedFieldtypes = N'string;integer;decimal;time;link;yesno;set;option;formatedstring;color;relation;xml;file;sql;geography'
-	--Not supported: user;html
+	SET @supportedFieldtypes = N'string;integer;decimal;time;link;yesno;set;option;formatedstring;color;relation;xml;file;sql;geography;html'
+	--Not supported: user
 	
 	--Make sure @@length is set to NULL if fieldtype is not string
 	IF @@fieldtype <> N'string' AND @@length IS NOT NULL
@@ -196,7 +196,7 @@ BEGIN
 					END	
 					
 					--Set limereadonly attribute
-					IF @@limereadonly IS NOT NULL
+					IF @@limereadonly IS NOT NULL AND @@fieldtype <> N'html'
 					BEGIN
 						EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'limereadonly', @@valueint = @@limereadonly
 						IF @return_value <> 0
@@ -239,7 +239,7 @@ BEGIN
 						END
 					END
 					--Set attribute Required for editing in Lime
-					IF @@limerequiredforedit IS NOT NULL
+					IF @@limerequiredforedit IS NOT NULL AND @@fieldtype <> N'html'
 					BEGIN
 						EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'limerequiredforedit', @@valueint = @@limerequiredforedit
 						IF @return_value <> 0
@@ -279,38 +279,38 @@ BEGIN
 						SET @return_value = 0
 					END
 					
-					--Set SQL Expression
-					IF @@sql IS NOT NULL
-					BEGIN
-						EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'sql', @@value = @@sql
-						IF @return_value <> 0
-						BEGIN
-							SET @@warningMessage = @@warningMessage + N'Warning: couldn''t set SQL-expression for field ''' + @@fieldname + @linebreak
-							SET @return_value = 0
-						END
-					END
+					----Set SQL Expression
+					--IF @@sql IS NOT NULL
+					--BEGIN
+					--	EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'sql', @@value = @@sql
+					--	IF @return_value <> 0
+					--	BEGIN
+					--		SET @@warningMessage = @@warningMessage + N'Warning: couldn''t set SQL-expression for field ''' + @@fieldname + @linebreak
+					--		SET @return_value = 0
+					--	END
+					--END
 					
-					--Set SQL for update
-					IF @@onsqlupdate IS NOT NULL
-					BEGIN
-						EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'onsqlupdate', @@value = @@onsqlupdate
-						IF @return_value <> 0
-						BEGIN
-							SET @@warningMessage = @@warningMessage + N'Warning: couldn''t set attribute ''SQL for update'' for field ''' + @@fieldname + @linebreak
-							SET @return_value = 0
-						END
-					END
+					----Set SQL for update
+					--IF @@onsqlupdate IS NOT NULL
+					--BEGIN
+					--	EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'onsqlupdate', @@value = @@onsqlupdate
+					--	IF @return_value <> 0
+					--	BEGIN
+					--		SET @@warningMessage = @@warningMessage + N'Warning: couldn''t set attribute ''SQL for update'' for field ''' + @@fieldname + @linebreak
+					--		SET @return_value = 0
+					--	END
+					--END
 					
-					--Set SQL for new
-					IF @@onsqlinsert IS NOT NULL
-					BEGIN
-						EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'onsqlinsert', @@value = @@onsqlinsert
-						IF @return_value <> 0
-						BEGIN
-							SET @@warningMessage = @@warningMessage + N'Warning: couldn''t set attribute ''SQL for new'' for field ''' + @@fieldname + @linebreak
-							SET @return_value = 0
-						END
-					END
+					----Set SQL for new
+					--IF @@onsqlinsert IS NOT NULL
+					--BEGIN
+					--	EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'onsqlinsert', @@value = @@onsqlinsert
+					--	IF @return_value <> 0
+					--	BEGIN
+					--		SET @@warningMessage = @@warningMessage + N'Warning: couldn''t set attribute ''SQL for new'' for field ''' + @@fieldname + @linebreak
+					--		SET @return_value = 0
+					--	END
+					--END
 					
 					--Set formatsql
 					IF @@formatsql IS NOT NULL
@@ -700,9 +700,9 @@ BEGIN
 													END
 													ELSE
 													BEGIN
-														IF @currentLanguage = N'default' AND @@fieldtype <> N'string'
+														IF @currentLanguage = N'default'
 														BEGIN
-															IF LOWER(@currentLocalize) = N'true'
+															IF LOWER(@currentLocalize) = N'true' AND @@fieldtype <> N'string'
 															BEGIN
 																EXEC [dbo].[lsp_setfieldattributevalue] 
 																	@@idfield = @@idfield
