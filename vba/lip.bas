@@ -198,7 +198,7 @@ On Error GoTo ErrorHandler
             sLog = sLog + Indent + "Copying and unzipping file" + vbNewLine
             
             'TODO If prefix = app_ then change installpath to /apps else /packages
-            If Left(PackageName, 4) = "app_" Then
+            If VBA.Left(PackageName, 4) = "app_" Then
                 sInstallPath = Application.WebFolder & "apps\"
             Else
                 sInstallPath = Application.WebFolder & DefaultInstallPath
@@ -393,7 +393,7 @@ On Error GoTo ErrorHandler
     
     If Package.Item("install").Exists("relations") = True Then
         IncreaseIndent
-        If InstallRelations(Package.Item("install").Item("relations")) = False Then
+        If InstallRelations(Package.Item("install").Item("relations"), sCreatedFields) = False Then
             bOk = False
         End If
         DecreaseIndent
@@ -722,6 +722,7 @@ On Error GoTo ErrorHandler
     Dim ToPath As String
     Dim File As Variant
     
+    Application.MousePointer = 11
     bOk = True
 
     For Each File In oJSON
@@ -729,10 +730,10 @@ On Error GoTo ErrorHandler
         ToPath = WebFolder & File
 
         If Right(FromPath, 1) = "\" Then
-            FromPath = Left(FromPath, Len(FromPath) - 1)
+            FromPath = VBA.Left(FromPath, Len(FromPath) - 1)
         End If
         If Right(ToPath, 1) = "\" Then
-            ToPath = Left(ToPath, Len(ToPath) - 1)
+            ToPath = VBA.Left(ToPath, Len(ToPath) - 1)
         End If
         Set FSO = CreateObject("scripting.filesystemobject")
 
@@ -751,6 +752,9 @@ On Error GoTo ErrorHandler
 ErrorHandler:
     InstallFiles = False
     Call UI.ShowError("lip.InstallFiles")
+    IncreaseIndent
+    sLog = sLog + Indent + ("ERROR: " + Err.Description) + vbNewLine
+    DecreaseIndent
 End Function
 
 'Private Function InstallSQL(oJSON As Object, PackageName As String, InstallPath As String) As Boolean
@@ -842,6 +846,8 @@ On Error GoTo ErrorHandler
     Dim warningmessage As String
     
     bOk = True
+    
+    Application.MousePointer = 11
 
     sLog = sLog + Indent + "Adding fields and tables..." + vbNewLine
     IncreaseIndent
@@ -947,6 +953,9 @@ ErrorHandler:
     Set oProc = Nothing
     InstallFieldsAndTables = False
     Call UI.ShowError("lip.InstallFieldsAndTables")
+    IncreaseIndent
+    sLog = sLog + Indent + ("ERROR: " + Err.Description) + vbNewLine
+    DecreaseIndent
 End Function
 
 
@@ -964,6 +973,8 @@ On Error GoTo ErrorHandler
     Dim oItem As Variant
     Dim optionItems As Variant
     Dim idfield As Long
+    
+    Application.MousePointer = 11
     
     bOk = True
     ErrorMessage = ""
@@ -1089,6 +1100,9 @@ ErrorHandler:
     Set oProc = Nothing
     AddField = False
     Call UI.ShowError("lip.AddField")
+    IncreaseIndent
+    sLog = sLog + Indent + ("ERROR: " + Err.Description) + vbNewLine
+    DecreaseIndent
 End Function
 
 Private Function SetTableAttributes(ByRef table As Object, idtable As Long, iddescriptiveexpression As Long) As Boolean
@@ -1099,6 +1113,8 @@ On Error GoTo ErrorHandler
     Dim oItem As Variant
     Dim ErrorMessage As String
     Dim warningmessage As String
+    
+    Application.MousePointer = 11
     
     bOk = True
     ErrorMessage = ""
@@ -1159,6 +1175,9 @@ ErrorHandler:
     Set oProcAttributes = Nothing
     SetTableAttributes = False
     Call UI.ShowError("lip.SetTableAttributes")
+    IncreaseIndent
+    sLog = sLog + Indent + ("ERROR: " + Err.Description) + vbNewLine
+    DecreaseIndent
 End Function
 
 Private Function DownloadFile(PackageName As String, Path As String, InstallPath As String) As String
@@ -1232,7 +1251,7 @@ On Error GoTo ErrorHandler
         If addModule(PackageName, VBAModule.Item("name"), VBAModule.Item("relPath"), InstallPath, Simulate) = False Then
             bOk = False
         Else
-            Debug.Print Indent + "Added " + VBAModule.Item("name")
+            sLog = sLog + Indent + "Added " + VBAModule.Item("name")
         End If
     Next VBAModule
     InstallVBAComponents = bOk
@@ -1246,6 +1265,7 @@ Private Function addModule(PackageName As String, ModuleName As String, RelPath 
 On Error GoTo ErrorHandler
     Dim bOk As Boolean
     bOk = True
+    Application.MousePointer = 11
     If PackageName <> "" And ModuleName <> "" Then
         Dim VBComps As Object
         Dim Path As String
@@ -1302,8 +1322,9 @@ On Error GoTo ErrorHandler
 ErrorHandler:
     addModule = False
     Call UI.ShowError("lip.addModule")
-
-    sLog = sLog + Indent + "Couldn't add module " + ModuleName + vbNewLine
+    IncreaseIndent
+    sLog = sLog + Indent + ("ERROR: Couldn't add module " + ModuleName + ". " + Err.Description) + vbNewLine
+    DecreaseIndent
 End Function
 
 Private Function ComponentExists(ComponentName As String, VBComps As Object) As Boolean
@@ -1332,6 +1353,7 @@ On Error GoTo ErrorHandler
     Dim a As Object
     Dim Line As Variant
     
+    Application.MousePointer = 11
     bOk = True
     Set oJSON = ReadPackageFile
 
@@ -1352,6 +1374,9 @@ On Error GoTo ErrorHandler
 ErrorHandler:
     WriteToPackageFile = False
     Call UI.ShowError("lip.WriteToPackageFile")
+    IncreaseIndent
+    sLog = sLog + Indent + ("ERROR: " + Err.Description) + vbNewLine
+    DecreaseIndent
 End Function
 
 Private Function PrettyPrintJSON(JSON As String) As String
@@ -1362,9 +1387,9 @@ On Error GoTo ErrorHandler
     Dim InsideQuotation As Boolean
 
     For i = 1 To Len(JSON)
-        Select Case Mid(JSON, i, 1)
+        Select Case VBA.Mid(JSON, i, 1)
             Case """"
-                PrettyJSON = PrettyJSON + Mid(JSON, i, 1)
+                PrettyJSON = PrettyJSON + VBA.Mid(JSON, i, 1)
                 If InsideQuotation = False Then
                     InsideQuotation = True
                 Else
@@ -1375,23 +1400,23 @@ On Error GoTo ErrorHandler
                     Indent = Indent + "    " ' Add to indentation
                     PrettyJSON = PrettyJSON + "{" + vbCrLf + Indent
                 Else
-                    PrettyJSON = PrettyJSON + Mid(JSON, i, 1)
+                    PrettyJSON = PrettyJSON + VBA.Mid(JSON, i, 1)
                 End If
             Case "}", "["
                 If InsideQuotation = False Then
-                    Indent = Left(Indent, Len(Indent) - 4) 'Remove indentation
+                    Indent = VBA.Left(Indent, Len(Indent) - 4) 'Remove indentation
                     PrettyJSON = PrettyJSON + vbCrLf + Indent + "}"
                 Else
-                    PrettyJSON = PrettyJSON + Mid(JSON, i, 1)
+                    PrettyJSON = PrettyJSON + VBA.Mid(JSON, i, 1)
                 End If
             Case ","
                 If InsideQuotation = False Then
                     PrettyJSON = PrettyJSON + "," + vbCrLf + Indent
                 Else
-                    PrettyJSON = PrettyJSON + Mid(JSON, i, 1)
+                    PrettyJSON = PrettyJSON + VBA.Mid(JSON, i, 1)
                 End If
             Case Else
-                PrettyJSON = PrettyJSON + Mid(JSON, i, 1)
+                PrettyJSON = PrettyJSON + VBA.Mid(JSON, i, 1)
         End Select
     Next i
     PrettyPrintJSON = PrettyJSON
@@ -1600,7 +1625,7 @@ Private Sub DecreaseIndent()
 On Error GoTo ErrorHandler
 
     If Len(Indent) - Len(IndentLenght) > 0 Then
-        Indent = Left(Indent, Len(Indent) - Len(IndentLenght))
+        Indent = VBA.Left(Indent, Len(Indent) - Len(IndentLenght))
     Else
         Indent = ""
     End If
@@ -1610,7 +1635,7 @@ ErrorHandler:
     Call UI.ShowError("lip.DecreaseIndent")
 End Sub
 
-Private Function InstallRelations(oJSON As Object) As Boolean
+Private Function InstallRelations(oJSON As Object, sCreatedFields As String) As Boolean
 On Error GoTo ErrorHandler
     Dim bOk As Boolean
     Dim relation As Object
@@ -1619,6 +1644,8 @@ On Error GoTo ErrorHandler
     Dim ErrorMessage As String
     Dim warningmessage As String
     bOk = True
+    
+    Application.MousePointer = 11
 
     sLog = sLog + Indent + "Adding relations..." + vbNewLine
     IncreaseIndent
@@ -1639,6 +1666,7 @@ On Error GoTo ErrorHandler
             oProc.Parameters("@@field1").InputValue = relation.Item("field1")
             oProc.Parameters("@@table2").InputValue = relation.Item("table2")
             oProc.Parameters("@@field2").InputValue = relation.Item("field2")
+            oProc.Parameters("@@createdfields").InputValue = sCreatedFields
 
             Call oProc.Execute(False)
 
@@ -1676,6 +1704,9 @@ ErrorHandler:
     Set oProc = Nothing
     InstallRelations = False
     Call UI.ShowError("lip.InstallRelations")
+    IncreaseIndent
+    sLog = sLog + Indent + ("ERROR: " + Err.Description) + vbNewLine
+    DecreaseIndent
 End Function
 
 Private Function RollbackFieldsAndTables(sCreatedTables As String, sCreatedFields As String) As Boolean
