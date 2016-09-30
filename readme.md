@@ -152,9 +152,6 @@ An example of how the app.json-file could look like:
                             "limedefaultvalue": "Application.ActiveUser.Record.Id",
                             "limerequiredforedit": "0",
                             "newline": "2",
-                            "sql": "[test].[field2]",
-                            "onsqlupdate": "[test].[field3]",
-                            "onsqlinsert": "[test].[field4]",
                             "fieldorder": "4",
                             "isnullable": "0",
                             "type": "1",
@@ -399,9 +396,6 @@ Sets attributes for the field. Each line in this node represent an attribute.
     "limedefaultvalue": "Application.ActiveUser.Record.Id",
     "limerequiredforedit": "0",
     "newline": "2",
-    "sql": "[test].[field2]",
-    "onsqlupdate": "[test].[field3]",
-    "onsqlinsert": "[test].[field4]",
     "fieldorder": "4",
     "isnullable": "0",
     "type": "1",
@@ -421,9 +415,6 @@ fieldtype|Yes|string/integer/decimal/time/html xml/link/yesno/file/relation/geog
 invisible|No|0/1/2/65535 (No/On forms/In lists/Everywhere)|Default
 length|No|integer (can only be set for textfields)|nvarchar(max)
 required|No|0/1|0
-sql (sql expression)|No|text|<empty>
-onsqlinsert (SQL for new)|No|text|<empty>
-onsqlupdate (SQL for update)|No|text|<empty>
 fieldorder|No|Integer|Put last
 height|No|Integer|Default
 width|No|Integer|Default
