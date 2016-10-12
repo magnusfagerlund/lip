@@ -57,10 +57,6 @@ BEGIN
 			, @@descriptive = @@iddescriptiveexpression OUTPUT
 			, @@transactionid = @transid
 			, @@user = 1
-			
-		-- Refresh ldc to make sure table is visible in LIME later on
-		EXEC lsp_setdatabasetimestamp
-		EXEC lsp_refreshldc
 
 		--If return value is not 0, something went wrong and the table wasn't created
 		IF @return_value <> 0
@@ -161,9 +157,6 @@ BEGIN
 				SET @@warningMessage = @@warningMessage + N'Warning: couldn''t set localnames (plural) for table ''' + @@tablename + @linebreak
 			END
 			--End localnames plural
-			
-			EXEC lsp_setdatabasetimestamp
-			EXEC lsp_refreshldc
 		END
 	END
 END
