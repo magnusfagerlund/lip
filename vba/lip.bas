@@ -423,6 +423,10 @@ On Error GoTo ErrorHandler
         bOk = False
     End If
     
+    If EndInstallation = False Then
+        bOk = False
+    End If
+    
     InstallPackageComponents = bOk
     
 Exit Function
@@ -1859,4 +1863,29 @@ ErrorHandler:
     Call UI.ShowError("lip.SetLipVersionInPackageFile")
 End Sub
 
+Private Function EndInstallation() As Boolean
+On Error GoTo ErrorHandler
+    Dim bOk As Boolean
+    bOk = True
+        
+    Dim oProc As LDE.Procedure
 
+    Set oProc = Database.Procedures("csp_lip_endInstallation")
+    oProc.Timeout = 299
+
+    If Not oProc Is Nothing Then
+        Call oProc.Execute(False)
+    Else
+        bOk = False
+        Call Lime.MessageBox("Couldn't find SQL-procedure 'csp_lip_endInstallation'. Please make sure this procedure exists in the database and restart the Lime Server Component Service.")
+    End If
+
+    Set oProc = Nothing
+    EndInstallation = bOk
+    
+Exit Function
+ErrorHandler:
+    Set oProc = Nothing
+    EndInstallation = False
+    Call UI.ShowError("lip.EndInstallation")
+End Function
