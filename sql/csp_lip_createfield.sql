@@ -742,7 +742,7 @@ BEGIN
 						END								
 					END
 					
-					IF @@fieldtype IN (N'time', N'option', N'decimal', N'document',N'integer')
+					IF @@fieldtype IN (N'time', N'option', N'decimal', N'document',N'integer',N'file')
 					BEGIN
 						--Set type for timefield or optionlist
 						EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'type', @@valueint = @@type
