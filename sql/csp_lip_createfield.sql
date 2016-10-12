@@ -139,11 +139,6 @@ BEGIN
 						,@@localname = @idstringlocalname OUTPUT
 						,@@idcategory = @idcategory OUTPUT
 				END
-
-				
-				-- Refresh ldc to make sure field is visible in LIME later on
-				EXEC lsp_setdatabasetimestamp
-				EXEC lsp_refreshldc
 					
 				--If return value is not 0, something went wrong and the field wasn't created
 				IF @return_value <> 0
@@ -368,6 +363,11 @@ BEGIN
 					END
 					
 					--Set fieldorder, if not provided we use default value 0 which means it will be put last
+					--Fieldorder -1 can't be set, change to 0
+					IF @@fieldorder = -1
+					BEGIN
+						SET @@fieldorder = 0
+					END
 					EXEC @return_value = [dbo].[lsp_setfieldorder] @@idfield = @@idfield, @@fieldorder = @@fieldorder
 						IF @return_value <> 0
 						BEGIN
@@ -752,9 +752,6 @@ BEGIN
 							SET @return_value = 0
 						END	
 					END
-					
-					EXEC lsp_setdatabasetimestamp
-					EXEC lsp_refreshldc
 				END	
 			END
 		END
