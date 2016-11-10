@@ -1,6 +1,8 @@
 -- Written by: Jonny Springare
 -- Created: 2015-12-18
-
+IF EXISTS (SELECT name FROM sysobjects WHERE name = 'csp_lip_addRelations' AND UPPER(type) = 'P')
+   DROP PROCEDURE [csp_lip_addRelations]
+GO
 CREATE PROCEDURE [dbo].[csp_lip_addRelations]
 	@@table1 NVARCHAR(64)
 	, @@field1 NVARCHAR(64) = NULL

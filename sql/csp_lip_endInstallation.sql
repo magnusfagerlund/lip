@@ -1,6 +1,8 @@
 -- Written by: Jonny Springare
 -- Created: 2016-10-12
-
+IF EXISTS (SELECT name FROM sysobjects WHERE name = 'csp_lip_endInstallation' AND UPPER(type) = 'P')
+   DROP PROCEDURE [csp_lip_endInstallation]
+GO
 CREATE PROCEDURE [dbo].[csp_lip_endInstallation]
 AS
 BEGIN

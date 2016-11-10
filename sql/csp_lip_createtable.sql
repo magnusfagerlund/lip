@@ -1,6 +1,8 @@
 -- Written by: Fredrik Eriksson, Jonny Springare
 -- Created: 2015-04-17
-
+IF EXISTS (SELECT name FROM sysobjects WHERE name = 'csp_lip_createtable' AND UPPER(type) = 'P')
+   DROP PROCEDURE [csp_lip_createtable]
+GO
 CREATE PROCEDURE [dbo].[csp_lip_createtable]
 	@@tablename NVARCHAR(64)
 	, @@localname_singular NVARCHAR(MAX)
