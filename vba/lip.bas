@@ -73,7 +73,7 @@ On Error GoTo ErrorHandler
         'Handle local source
         If Package.Exists("localsource") Then
             downloadURL = Package.Item("localsource")
-            Call InstallFromZip(downloadURL)
+            Call InstallFromZip(False, downloadURL)
             Exit Sub
         Else
             downloadURL = BaseURL & PackageStoreApiURL & PackageName & "/download/"  'Use Lundalogik Packagestore if source-node wasn't found
@@ -167,184 +167,32 @@ ErrorHandler:
     Call UI.ShowError("lip.Install")
 End Sub
 
-'Installs package from a zip-file. Input parameter: complete searchpath to the zip-file, including the filename
-Public Sub InstallFromZip(ZipPath As String, Optional Simulate As Boolean = True, Optional Browse As Boolean = False)
-On Error GoTo ErrorHandler
-    
-    Dim bOk As Boolean
-    Dim sInstallPath As String
-    
-    Application.MousePointer = 11
-    
-    bOk = True
-    sLog = ""
-    IndentLenght = "  "
-    
-
-    'Check if valid path
-    If VBA.Right(ZipPath, 4) = ".zip" Then
-        If VBA.Dir(ZipPath) <> "" Then
-            'Check if first use ever
-            If Dir(WebFolder + "packages.json") = "" Then
-                sLog = sLog + Indent + "No packages.json found, assuming fresh install" + vbNewLine
-                Call InstallLIP
-            End If
-
-'           Copy file to actionpads\apps
-            Dim PackageName As String
-            Dim strArray() As String
-            strArray = VBA.Split(ZipPath, "\")
-            PackageName = VBA.Split(strArray(UBound(strArray)), ".")(0)
-            sLog = sLog + Indent + "====== LIP Install: " + PackageName + " ======" + vbNewLine
-            sLog = sLog + Indent + "Copying and unzipping file" + vbNewLine
-            
-            'TODO If prefix = app_ then change installpath to /apps else /packages
-            If VBA.Left(PackageName, 4) = "app_" Then
-                sInstallPath = Application.WebFolder & "apps\"
-            Else
-                sInstallPath = Application.WebFolder & DefaultInstallPath
-            End If
-            
-            'Copy zip-file to the apps-folder if it's not already there
-            'LJE Refactor
-            'If ZipPath <> ThisApplication.WebFolder & "apps\" & PackageName & ".zip" Then
-            If ZipPath <> sInstallPath & PackageName & ".zip" Then
-                'LJE Refactor
-                'Call VBA.FileCopy(ZipPath, ThisApplication.WebFolder & DefaultInstallPath & PackageName & ".zip")
-                Call VBA.FileCopy(ZipPath, sInstallPath & PackageName & ".zip")
-            End If
-            
-            
-'           Unzip file
-            'Refactor
-            'Call Unzip(PackageName, ThisApplication.WebFolder & DefaultInstallPath)
-            Call Unzip(PackageName, sInstallPath)
-
-            'Get package information from json-file
-            Dim Package As Object
-            Dim sJSON As String
-            Dim sLine As String
-    
-            'Look for package.json or app.json
-            If VBA.Dir(sInstallPath & PackageName & "\" & "package.json") <> "" Then
-                Open sInstallPath & PackageName & "\" & "package.json" For Input As #1
-                
-            ElseIf VBA.Dir(sInstallPath & PackageName & "\" & "app.json") <> "" Then
-                Open sInstallPath & PackageName & "\" & "app.json" For Input As #1
-            Else
-                sLog = sLog + Indent + "Installation failed: couldn't find any package.json or app.json in the zip-file" + vbNewLine
-                Call Application.MessageBox("ERROR: Installation failed: couldn't find any package.json or app.json in the zip-file")
-                Application.Shell SaveLogFile(PackageName)
-                Exit Sub
-            End If
-
-            Do Until EOF(1)
-                Line Input #1, sLine
-                sJSON = sJSON & sLine
-            Loop
-
-            Close #1
-
-            Set Package = JSON.parse(sJSON)
-            
-            
-            If Package.Exists("installPath") Then
-                sInstallPath = ThisApplication.WebFolder & Package.Item("installPath") & "\"
-            'LJE sätts högre upp
-            'Else
-            '    InstallPath = ThisApplication.WebFolder & DefaultInstallPath
-            End If
-
-
-            'Install dependencies
-            If Package.Exists("dependencies") Then
-                IncreaseIndent
-                Call InstallDependencies(Package, Simulate)
-                DecreaseIndent
-            End If
-
-            'LJE Refactor
-            'If InstallPackageComponents(PackageName, 1, Package, InstallPath, Simulate) = False Then
-            If InstallPackageComponents(PackageName, 1, Package, sInstallPath, Simulate) = False Then
-                bOk = False
-            End If
-            
-            If bOk Then
-                If Simulate Then
-                    sLog = sLog + Indent + "Simulation of " + PackageName + " done!" + vbNewLine
-                Else
-                    sLog = sLog + Indent + "Installation of " + PackageName + " done!" + vbNewLine
-                End If
-            Else
-                sLog = sLog + Indent + "Errors or warnings were raised while installing " + PackageName + ". Please check the log above." + vbNewLine
-                
-            End If
-
-            sLog = sLog + Indent + "===================================" + vbNewLine
-            
-            Dim sLogfile As String
-            sLogfile = Application.TemporaryFolder & "\" & PackageName & VBA.Replace(VBA.Replace(VBA.Replace(VBA.Now(), ":", ""), "-", ""), " ", "") & ".txt"
-            Open sLogfile For Output As #1
-            Print #1, sLog
-            Close #1
-            
-            If Simulate Then
-                ThisApplication.Shell (sLogfile)
-                If bOk Then
-                    If vbYes = Lime.MessageBox("Simulation of installation process completed. Please check the result in the recently opened logfile." & vbNewLine & vbNewLine & "Do you wish to proceed with the installation?", vbInformation + vbYesNo + vbDefaultButton2) Then
-                        Call lip.InstallFromZip(ZipPath, False)
-                    End If
-                Else
-                    Call Lime.MessageBox("Simulation of installation process completed. Errors occurred, please check the result in the recently opened logfile and take necessary actions before you try again.")
-                End If
-            Else
-                
-                If vbYes = Lime.MessageBox("Installation process completed. Do you want to open the logfile for the installation?", vbInformation + vbYesNo + vbDefaultButton1) Then
-                    ThisApplication.Shell (sLogfile)
-                Else
-                    Debug.Print ("Logfile is available here: " & sLogfile)
-                End If
-            End If
-        Else
-            Call Lime.MessageBox("Couldn't find file.")
-        End If
-    Else
-        Call Lime.MessageBox("Path must end with .zip")
-    End If
-    
-    sLog = ""
-    
-    Application.MousePointer = 0
-
-Exit Sub
-ErrorHandler:
-    Call UI.ShowError("lip.InstallFromZip")
-End Sub
 'Installs package from a zip-file. Overrides InstallFromZip which should be removed but is used by certain
-Public Sub InstallFromZipBrowse(Optional Simulate As Boolean = True)
+Public Sub InstallFromZip(Optional bBrowse As Boolean = False, Optional sZipPath As String = "", Optional Simulate As Boolean = True)
 On Error GoTo ErrorHandler
     
     Dim bOk As Boolean
     Dim sInstallPath As String
-    Dim sZipPath As String
-    Dim fileDialog As LCO.FileOpenDialog
     
-    Dim frmProgress As FormProgress
-           
-    bOk = True
-    sLog = ""
-    IndentLenght = "  "
-    
-    'sZipPath = fileDialog.show
-    
-    Set fileDialog = New LCO.FileOpenDialog
-    fileDialog.Filter = "Zip | *.zip"
-    fileDialog.AllowMultiSelect = False
-    
-    fileDialog.show
-    
-    sZipPath = fileDialog.FileName
-    
+    If bBrowse Then
+        Dim fileDialog As LCO.FileOpenDialog
+        
+        Dim frmProgress As FormProgress
+               
+        bOk = True
+        sLog = ""
+        IndentLenght = "  "
+        
+        'sZipPath = fileDialog.show
+        
+        Set fileDialog = New LCO.FileOpenDialog
+        fileDialog.Filter = "Zip | *.zip"
+        fileDialog.AllowMultiSelect = False
+        
+        fileDialog.show
+        
+        sZipPath = fileDialog.FileName
+    End If
     'Check if valid path
     If VBA.Right(sZipPath, 4) = ".zip" Then
         If VBA.Dir(sZipPath) <> "" Then
@@ -475,7 +323,7 @@ On Error GoTo ErrorHandler
                 ThisApplication.Shell (sLogfile)
                 If bOk Then
                     If vbYes = Lime.MessageBox("Simulation of installation process completed. Please check the result in the recently opened logfile." & vbNewLine & vbNewLine & "Do you wish to proceed with the installation?", vbInformation + vbYesNo + vbDefaultButton2) Then
-                        Call lip.InstallFromZip(sZipPath, False)
+                        Call lip.InstallFromZip(False, sZipPath, False)
                     End If
                 Else
                     Call Lime.MessageBox("Simulation of installation process completed. Errors occurred, please check the result in the recently opened logfile and take necessary actions before you try again.")
