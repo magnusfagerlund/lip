@@ -28,7 +28,6 @@ ErrorHandler:
 End Sub
 
 'Install package/app. Selects packagestore from packages.json
-
 Public Sub Install(PackageName As String, Optional upgrade As Boolean, Optional Simulate As Boolean = True)
 On Error GoTo ErrorHandler
     Dim Package As Object
@@ -96,6 +95,7 @@ On Error GoTo ErrorHandler
     If Not upgrade Then
         If CheckForLocalInstalledPackage(PackageName, PackageVersion) = True Then
             Call Lime.MessageBox("Package already installed. If you want to upgrade the package, run command: " & vbNewLine & vbNewLine & "Call lip.Install(""" & PackageName & """, True)", vbInformation)
+            Application.MousePointer = 0
             Exit Sub
         End If
     End If
