@@ -1,4 +1,5 @@
 # Auto detect text files and perform LF normalization
+# CRLF -> LF by default, but not for modules or classes (especially classes)
 * text=auto
 
 # Custom for Visual Studio
@@ -15,3 +16,6 @@
 *.PDF	 diff=astextplain
 *.rtf	 diff=astextplain
 *.RTF	 diff=astextplain
+*.bas text eol=crlf
+*.cls text eol=crlf
+*.frm text eol=crlf
