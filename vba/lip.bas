@@ -37,6 +37,8 @@ On Error GoTo ErrorHandler
     Dim bOk As Boolean
     Dim bLocalPackage As Boolean
     
+    Dim frmProgress As FormProgress
+    
     Application.MousePointer = 11
 
     IndentLenght = "  "
@@ -48,6 +50,15 @@ On Error GoTo ErrorHandler
         sLog = sLog + Indent + "No packages.json found, assuming fresh install" + vbNewLine
         Call InstallLIP
     End If
+    
+    
+    If Not frmProgress Is Nothing Then
+        frmProgress.Hide
+        Set frmProgress = Nothing
+    End If
+    Set frmProgress = New FormProgress
+    Call showProgressbar(frmProgress, "Installing package", "Updating LIP if necessary", 10)
+    
     
     'TODO Check if LIP has a new version
     Debug.Print Indent + "Updating LIP if necessary"
@@ -87,7 +98,9 @@ On Error GoTo ErrorHandler
     End If
 
     Set Package = Package
-
+    
+    
+    
     'Parse result from store
     PackageVersion = findNewestVersion(Package.Item("versions"))
 
@@ -99,14 +112,27 @@ On Error GoTo ErrorHandler
             Exit Sub
         End If
     End If
-
+    
     'Install dependecies
     If Package.Exists("dependencies") Then
+    
+        If Not frmProgress Is Nothing Then
+            frmProgress.Hide
+            Set frmProgress = Nothing
+        End If
+        Set frmProgress = New FormProgress
+        Call showProgressbar(frmProgress, "Installing package", "Installing dependancies", 30)
+    
         IncreaseIndent
         Call InstallDependencies(Package, Simulate)
         DecreaseIndent
     End If
-
+    
+    If Not frmProgress Is Nothing Then
+        frmProgress.Hide
+        Set frmProgress = Nothing
+    End If
+    
     'Download and unzip
     sLog = sLog + Indent + "Downloading '" + PackageName + "' files..." + vbNewLine
     Dim strDownloadError As String
@@ -114,7 +140,8 @@ On Error GoTo ErrorHandler
     If strDownloadError = "" Then
         Call Unzip(PackageName, InstallPath)
         sLog = sLog + Indent + "Download complete!" + vbNewLine
-    
+        
+               
         If InstallPackageComponents(PackageName, PackageVersion, Package, InstallPath, Simulate) = False Then
             bOk = False
         End If
@@ -122,6 +149,12 @@ On Error GoTo ErrorHandler
         bOk = False
         sLog = sLog + Indent + "Error: Could not download " + PackageName + " from url: " + downloadURL
     End If
+    
+    If Not frmProgress Is Nothing Then
+        frmProgress.Hide
+        Set frmProgress = Nothing
+    End If
+
     
     If bOk Then
         If Simulate Then
@@ -174,11 +207,11 @@ On Error GoTo ErrorHandler
     Dim bOk As Boolean
     Dim sInstallPath As String
     
+    Dim frmProgress As FormProgress
+
     If bBrowse Then
         Dim fileDialog As LCO.FileOpenDialog
-        
-        Dim frmProgress As FormProgress
-               
+                       
         bOk = True
         sLog = ""
         IndentLenght = "  "
@@ -210,7 +243,7 @@ On Error GoTo ErrorHandler
             PackageName = VBA.Split(strArray(UBound(strArray)), ".")(0)
             sLog = sLog + Indent + "====== LIP Install: " + PackageName + " ======" + vbNewLine
             sLog = sLog + Indent + "Copying and unzipping file" + vbNewLine
-            'LJE Write in progressbar!
+            
             If Not frmProgress Is Nothing Then
                 frmProgress.Hide
                 Set frmProgress = Nothing
@@ -271,7 +304,7 @@ On Error GoTo ErrorHandler
             'Install dependencies
             If Package.Exists("dependencies") Then
                 IncreaseIndent
-                'LJE Write in progressbar!
+                
                 If Not frmProgress Is Nothing Then
                     frmProgress.Hide
                     Set frmProgress = Nothing
@@ -283,7 +316,7 @@ On Error GoTo ErrorHandler
                 DecreaseIndent
             End If
             
-            'LJE Write in progressbar!
+            
             If Not frmProgress Is Nothing Then
                 frmProgress.Hide
                 Set frmProgress = Nothing
@@ -294,7 +327,7 @@ On Error GoTo ErrorHandler
                 bOk = False
             End If
             
-            'LJE Write in progressbar!
+            
             If Not frmProgress Is Nothing Then
                 frmProgress.Hide
                 Set frmProgress = Nothing
@@ -392,7 +425,7 @@ On Error GoTo ErrorHandler
     'Install localizations
     If Package.Item("install").Exists("localize") = True Then
         sLog = sLog + Indent + "Adding localizations..." + vbNewLine
-        'LJE Write in progressbar!
+        
         If Not frmProgress Is Nothing Then
             frmProgress.Hide
             Set frmProgress = Nothing
@@ -405,7 +438,7 @@ On Error GoTo ErrorHandler
             bOk = False
         End If
         DecreaseIndent
-        'LJE Write in progressbar!
+        
         If Not frmProgress Is Nothing Then
             frmProgress.Hide
             Set frmProgress = Nothing
@@ -415,7 +448,7 @@ On Error GoTo ErrorHandler
     'Install VBA
     If Package.Item("install").Exists("vba") = True Then
         sLog = sLog + Indent + "Adding VBA modules, forms and classes..." + vbNewLine
-        'LJE Write in progressbar!
+        
         If Not frmProgress Is Nothing Then
             frmProgress.Hide
             Set frmProgress = Nothing
@@ -428,7 +461,7 @@ On Error GoTo ErrorHandler
             bOk = False
         End If
         
-        'LJE Write in progressbar!
+        
         If Not frmProgress Is Nothing Then
             frmProgress.Hide
             Set frmProgress = Nothing
@@ -460,7 +493,7 @@ On Error GoTo ErrorHandler
     End If
     
     If Simulate Then
-        'LJE Write in progressbar!
+        
         If Not frmProgress Is Nothing Then
             frmProgress.Hide
             Set frmProgress = Nothing
@@ -487,7 +520,7 @@ On Error GoTo ErrorHandler
     
     If Package.Item("install").Exists("files") = True Then
         IncreaseIndent
-        'LJE Write in progressbar!
+        
         If Not frmProgress Is Nothing Then
             frmProgress.Hide
             Set frmProgress = Nothing
@@ -502,7 +535,7 @@ On Error GoTo ErrorHandler
         If InstallFiles(Package.Item("install").Item("files"), PackageName, InstallPath, Simulate) = False Then
             bOk = False
         End If
-        'LJE Write in progressbar!
+        
         If Not frmProgress Is Nothing Then
             frmProgress.Hide
             Set frmProgress = Nothing
@@ -511,7 +544,7 @@ On Error GoTo ErrorHandler
     
   
     
-    'LJE Write in progressbar!
+    
     If Not frmProgress Is Nothing Then
         frmProgress.Hide
         Set frmProgress = Nothing
@@ -529,7 +562,7 @@ On Error GoTo ErrorHandler
     End If
     
     InstallPackageComponents = bOk
-    'LJE Write in progressbar!
+    
     If Not frmProgress Is Nothing Then
         frmProgress.Hide
         Set frmProgress = Nothing
@@ -1684,6 +1717,15 @@ Public Sub InstallLIP()
 On Error GoTo ErrorHandler
     Dim InstallPath As String
     
+    Dim frmProgress As FormProgress
+    
+    If Not frmProgress Is Nothing Then
+        frmProgress.Hide
+        Set frmProgress = Nothing
+    End If
+    Set frmProgress = New FormProgress
+    Call showProgressbar(frmProgress, "Installing LIP", "Installing dependancies", 30)
+    
     sLog = ""
 
     sLog = sLog + Indent + "Creating a new packages.json file..." + vbNewLine
@@ -1715,6 +1757,15 @@ On Error GoTo ErrorHandler
     Print #1, sLog
     Close #1
     
+    If Not frmProgress Is Nothing Then
+        frmProgress.Hide
+        Set frmProgress = Nothing
+    End If
+    Set frmProgress = New FormProgress
+    Call showProgressbar(frmProgress, "Installing LIP", "Installing dependancies", 100)
+    frmProgress.Hide
+    Set frmProgress = Nothing
+        
     Application.Shell sLogfile
     Exit Sub
 ErrorHandler:
