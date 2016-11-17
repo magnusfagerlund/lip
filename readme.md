@@ -14,7 +14,7 @@ Before you can start installing packages, you need to install LIP to your LIME P
 2. Run `exec lsp_setdatabasetimestamp` on your database
 3. Restart the Lime Server component service (LDC)
 4. Import the `vba/lip.bas` file to your VBA.
-5. Import the `vba/FormProgress.frm" to your VBA.
+5. Import the `vba/FormProgress.frm` to your VBA.
 6. Type the command `lip.InstallLIP` in the Immediate-window of the VBA and press Enter to install all necessary modules.
 7. Compile and save the VBA
 8. Publish actionpads
