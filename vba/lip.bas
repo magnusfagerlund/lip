@@ -136,7 +136,7 @@ On Error GoTo ErrorHandler
     sLog = sLog + Indent + "===================================" + vbNewLine
     
     Dim sLogfile As String
-    sLogfile = Application.TemporaryFolder & "\" & PackageName & VBA.Replace(VBA.Replace(VBA.Replace(VBA.Now(), ":", ""), "-", ""), " ", "") & ".txt"
+    sLogfile = Application.TemporaryFolder & "\" & PackageName & VBA.Replace(VBA.Replace(VBA.Replace(VBA.Replace(VBA.Replace(VBA.Now(), ":", ""), "-", ""), " ", ""), "/", ""), "\", "") & ".txt"
     Open sLogfile For Output As #1
     Print #1, sLog
     Close #1
@@ -249,7 +249,7 @@ On Error GoTo ErrorHandler
             
             If Package.Exists("installPath") Then
                 sInstallPath = ThisApplication.WebFolder & Package.Item("installPath") & "\"
-            'LJE sätts högre upp
+            'LJE sÃ¤tts hÃ¶gre upp
             'Else
             '    InstallPath = ThisApplication.WebFolder & DefaultInstallPath
             End If
@@ -282,7 +282,7 @@ On Error GoTo ErrorHandler
             sLog = sLog + Indent + "===================================" + vbNewLine
             
             Dim sLogfile As String
-            sLogfile = Application.TemporaryFolder & "\" & PackageName & VBA.Replace(VBA.Replace(VBA.Replace(VBA.Now(), ":", ""), "-", ""), " ", "") & ".txt"
+            sLogfile = Application.TemporaryFolder & "\" & PackageName & VBA.Replace(VBA.Replace(VBA.Replace(VBA.Replace(VBA.Replace(VBA.Now(), ":", ""), "-", ""), " ", ""), "/", ""), "\", "") & ".txt"
             Open sLogfile For Output As #1
             Print #1, sLog
             Close #1
@@ -322,7 +322,7 @@ End Sub
 
 Private Function SaveLogFile(strPackageName As String) As String
     Dim sLogfile As String
-    sLogfile = Application.TemporaryFolder & "\" & strPackageName & VBA.Replace(VBA.Replace(VBA.Replace(VBA.Now(), ":", ""), "-", ""), " ", "") & ".txt"
+    sLogfile = Application.TemporaryFolder & "\" & strPackageName & VBA.Replace(VBA.Replace(VBA.Replace(VBA.Replace(VBA.Replace(VBA.Now(), ":", ""), "-", ""), " ", ""), "/", ""), "\", "") & ".txt"
     Open sLogfile For Output As #1
     Print #1, sLog
     Close #1
@@ -1556,7 +1556,7 @@ On Error GoTo ErrorHandler
         sLog = sLog + Indent + "Could not download the package vba_json from the Appstore: " + BaseURL + AppStoreApiURL
     End If
     Dim sLogfile As String
-    sLogfile = Application.TemporaryFolder & "\" & "lip" & VBA.Replace(VBA.Replace(VBA.Replace(VBA.Now(), ":", ""), "-", ""), " ", "") & ".txt"
+    sLogfile = Application.TemporaryFolder & "\" & "lip" & VBA.Replace(VBA.Replace(VBA.Replace(VBA.Replace(VBA.Replace(VBA.Now(), ":", ""), "-", ""), " ", ""), "/", ""), "\", "") & ".txt"
     Open sLogfile For Output As #1
     Print #1, sLog
     Close #1
