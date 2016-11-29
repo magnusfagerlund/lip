@@ -191,7 +191,7 @@ ErrorHandler:
 End Sub
 
 'Installs package from a zip-file. Overrides InstallFromZip which should be removed but is used by certain
-Public Sub InstallFromZip(Optional bBrowse As Boolean = False, Optional sZipPath As String = "", Optional Simulate As Boolean = True)
+Public Sub InstallFromZip(Optional bBrowse As Boolean = True, Optional sZipPath As String = "", Optional Simulate As Boolean = True)
 On Error GoTo ErrorHandler
     
     Dim bOk As Boolean
