@@ -7,14 +7,15 @@ Private Const BaseURL As String = "http://api.lime-bootstrap.com"
 Private Const PackageStoreApiURL As String = "/packages/"
 Private Const AppStoreApiURL As String = "/apps/"
 
-Private Const DefaultInstallPath = "packages\"
+Private Const DefaultInstallPath As String = "packages\"
 
 Private IndentLenght As String
 Private Indent As String
 Private sLog As String
 
 Private m_frmProgress As FormProgress
-Private m_progressInteger As Integer
+Private m_progressDouble As Double
+Private Const ProgressBarIncrease As Double = (100 / 9)
 
 
 Public Sub UpgradePackage(Optional PackageName As String, Optional Path As String)
@@ -40,24 +41,41 @@ On Error GoTo ErrorHandler
     Dim InstallPath As String
     Dim bOk As Boolean
     Dim bLocalPackage As Boolean
+    Dim tempProgress As Double
     
-    Set m_frmProgress = New FormProgress
-    m_progressInteger = 0
-    
-    Application.MousePointer = 11
+    If m_frmProgress Is Nothing Then
+        Set m_frmProgress = New FormProgress
+        m_progressDouble = 0
+    End If
 
     IndentLenght = "  "
     sLog = ""
     bOk = True
+    
+    Application.MousePointer = 11
 
+    m_frmProgress.show
+    
     'Check if first use ever
     If Dir(WebFolder + "packages.json") = "" Then
         sLog = sLog + Indent + "No packages.json found, assuming fresh install" + vbNewLine
+        
+        tempProgress = m_progressDouble
+        m_progressDouble = 0
+        'Call showProgressbar("Installing LIP", "Installing LIP", m_progressDouble)
+        
         Call InstallLIP
+        
+        m_progressDouble = tempProgress
+        
+        If m_frmProgress Is Nothing Then
+            Set m_frmProgress = New FormProgress
+            m_frmProgress.show
+        End If
+        
     End If
     
-    m_frmProgress.show
-    Call showProgressbar("Installing package", "Updating LIP if necessary", 10)
+    Call showProgressbar("Installing " & PackageName, "Updating LIP if necessary", m_progressDouble)
     
     
     'TODO Check if LIP has a new version
@@ -73,6 +91,10 @@ On Error GoTo ErrorHandler
     
     If Package Is Nothing Then
         Application.MousePointer = 0
+        If Not m_frmProgress Is Nothing Then
+            m_frmProgress.Hide
+            Set m_frmProgress = Nothing
+        End If
         Exit Sub
     End If
     
@@ -116,10 +138,23 @@ On Error GoTo ErrorHandler
     'Install dependecies
     If Package.Exists("dependencies") Then
     
-        Call showProgressbar("Installing package", "Installing dependancies", 30)
+        Call showProgressbar("Installing " & PackageName, "Installing dependencies", m_progressDouble)
     
         IncreaseIndent
+        
+        tempProgress = m_progressDouble
+        m_progressDouble = 0
+        Call showProgressbar("Installing " & PackageName, "Installing dependencies", m_progressDouble)
+        
         Call InstallDependencies(Package, Simulate)
+        
+        m_progressDouble = tempProgress
+        
+        If m_frmProgress Is Nothing Then
+            Set m_frmProgress = New FormProgress
+            m_frmProgress.show
+        End If
+        
         DecreaseIndent
     End If
     
@@ -140,12 +175,6 @@ On Error GoTo ErrorHandler
         sLog = sLog + Indent + "Error: Could not download " + PackageName + " from url: " + downloadURL
     End If
     
-    If Not m_frmProgress Is Nothing Then
-        m_frmProgress.Hide
-        Set m_frmProgress = Nothing
-    End If
-
-    
     If bOk Then
         If Simulate Then
             sLog = sLog + Indent + "Simulation of " + PackageName + " done!" + vbNewLine
@@ -165,6 +194,11 @@ On Error GoTo ErrorHandler
     Close #1
     
     If Simulate Then
+        If Not m_frmProgress Is Nothing Then
+            Call showProgressbar("Installing " & PackageName, "Simulation done!", 99)
+            m_frmProgress.Hide
+            Set m_frmProgress = Nothing
+        End If
         ThisApplication.Shell (sLogfile)
         If bOk Then
             If vbYes = Lime.MessageBox("Simulation of installation process completed. Please check the result in the recently opened logfile." & vbNewLine & vbNewLine & "Do you wish to proceed with the installation?", vbInformation + vbYesNo + vbDefaultButton2) Then
@@ -174,6 +208,11 @@ On Error GoTo ErrorHandler
             Call Lime.MessageBox("Simulation of installation process completed. Errors occurred, please check the result in the recently opened logfile and take necessary actions before you try again.")
         End If
     Else
+        If Not m_frmProgress Is Nothing Then
+            Call showProgressbar("Installation " & PackageName, "Installation done!", 99)
+            m_frmProgress.Hide
+            Set m_frmProgress = Nothing
+        End If
         If vbYes = Lime.MessageBox("Installation process completed. Remember to publish actionpads if needed. Do you want to open the logfile for the installation?", vbInformation + vbYesNo + vbDefaultButton1) Then
             ThisApplication.Shell (sLogfile)
         Else
@@ -181,183 +220,224 @@ On Error GoTo ErrorHandler
         End If
     End If
     
+    Set m_frmProgress = Nothing
+    
     sLog = ""
     
     Application.MousePointer = 0
 
 Exit Sub
 ErrorHandler:
+    If Not m_frmProgress Is Nothing Then
+        m_frmProgress.Hide
+        Set m_frmProgress = Nothing
+    End If
     Call UI.ShowError("lip.Install")
 End Sub
 
-'Installs package from a zip-file. Overrides InstallFromZip which should be removed but is used by certain
+'Installs package from a zip-file
 Public Sub InstallFromZip(Optional bBrowse As Boolean = True, Optional sZipPath As String = "", Optional Simulate As Boolean = True)
 On Error GoTo ErrorHandler
     
     Dim bOk As Boolean
     Dim sInstallPath As String
+    Dim tempProgress As Double
     
-        
-
+    If m_frmProgress Is Nothing Then
+        Set m_frmProgress = New FormProgress
+        m_progressDouble = 0
+    End If
+    
+    bOk = True
+    sLog = ""
+    IndentLenght = "  "
+    
     If bBrowse Then
         Dim fileDialog As LCO.FileOpenDialog
-                       
-        bOk = True
-        sLog = ""
-        IndentLenght = "  "
         
         'sZipPath = fileDialog.show
         
         Set fileDialog = New LCO.FileOpenDialog
-        fileDialog.Filter = "Zip | *.zip"
+        fileDialog.Filter = "Zip-file (*.zip) | *.zip"
         fileDialog.AllowMultiSelect = False
         
         fileDialog.show
         
         sZipPath = fileDialog.FileName
-    End If
-    
-    If m_frmProgress Is Nothing Then
-        Set m_frmProgress = New FormProgress
-        m_progressInteger = 0
-        m_frmProgress.show
+        If sZipPath = "" Then
+            Exit Sub
+        End If
     End If
     
     'Check if valid path
-    If VBA.Right(sZipPath, 4) = ".zip" Then
-        If VBA.Dir(sZipPath) <> "" Then
-            Application.MousePointer = 11
-            'Check if first use ever
-            If Dir(WebFolder + "packages.json") = "" Then
-                sLog = sLog + Indent + "No packages.json found, assuming fresh install" + vbNewLine
-                Call InstallLIP
-            End If
-            
-'           Copy file to actionpads\apps
-            Dim PackageName As String
-            Dim strArray() As String
-            strArray = VBA.Split(sZipPath, "\")
-            PackageName = VBA.Split(strArray(UBound(strArray)), ".")(0)
-            sLog = sLog + Indent + "====== LIP Install: " + PackageName + " ======" + vbNewLine
-            sLog = sLog + Indent + "Copying and unzipping file" + vbNewLine
-            
-            m_progressInteger = m_progressInteger + 10
-            Call showProgressbar("Installing package", "Copying and unzipping file", m_progressInteger)
-            
-            'TODO If prefix = app_ then change installpath to /apps else /packages
-            If VBA.Left(PackageName, 4) = "app_" Then
-                sInstallPath = Application.WebFolder & "apps\"
-            Else
-                sInstallPath = Application.WebFolder & DefaultInstallPath
-            End If
-            
-            'Copy zip-file to the apps-folder if it's not already there
-            
-            If sZipPath <> sInstallPath & PackageName & ".zip" Then
-                Call VBA.FileCopy(sZipPath, sInstallPath & PackageName & ".zip")
-            End If
-            
-            
-'           Unzip file
-            Call Unzip(PackageName, sInstallPath)
-
-            'Get package information from json-file
-            Dim Package As Object
-            Dim sJSON As String
-            Dim sLine As String
-    
-            'Look for package.json or app.json
-            If VBA.Dir(sInstallPath & PackageName & "\" & "package.json") <> "" Then
-                Open sInstallPath & PackageName & "\" & "package.json" For Input As #1
+    If sZipPath <> "" Then
+        If VBA.Right(sZipPath, 4) = ".zip" Then
+            If VBA.Dir(sZipPath) <> "" Then
                 
-            ElseIf VBA.Dir(sInstallPath & PackageName & "\" & "app.json") <> "" Then
-                Open sInstallPath & PackageName & "\" & "app.json" For Input As #1
-            Else
-                sLog = sLog + Indent + "Installation failed: couldn't find any package.json or app.json in the zip-file" + vbNewLine
-                Call Application.MessageBox("ERROR: Installation failed: couldn't find any package.json or app.json in the zip-file")
-                Application.Shell SaveLogFile(PackageName)
-                Exit Sub
-            End If
-
-            Do Until EOF(1)
-                Line Input #1, sLine
-                sJSON = sJSON & sLine
-            Loop
-
-            Close #1
-
-            Set Package = JSON.parse(sJSON)
-            
-            
-            If Package.Exists("installPath") Then
-                sInstallPath = ThisApplication.WebFolder & Package.Item("installPath") & "\"
-            End If
-
-
-            'Install dependencies
-            If Package.Exists("dependencies") Then
-                IncreaseIndent
+                Application.MousePointer = 11
                 
-                Call showProgressbar("Installing dependancies", "Installing dependancies", 15)
+                m_frmProgress.show
                 
-                Call InstallDependencies(Package, Simulate)
-                DecreaseIndent
-            End If
-            
-            If InstallPackageComponents(PackageName, 1, Package, sInstallPath, Simulate) = False Then
-                bOk = False
-            End If
-            
-            
-        
-            
-            If bOk Then
-                If Simulate Then
-                    sLog = sLog + Indent + "Simulation of " + PackageName + " done!" + vbNewLine
-                Else
-                    sLog = sLog + Indent + "Installation of " + PackageName + " done!" + vbNewLine
+                'Check if first use ever
+                If Dir(WebFolder + "packages.json") = "" Then
+                    sLog = sLog + Indent + "No packages.json found, assuming fresh install" + vbNewLine
+                    
+                    tempProgress = m_progressDouble
+                    m_progressDouble = 0
+                    'Call showProgressbar("Installing LIP", "Installing LIP", m_progressDouble)
+                    
+                    Call InstallLIP
+                    
+                    m_progressDouble = tempProgress
+                    
+                    If m_frmProgress Is Nothing Then
+                        Set m_frmProgress = New FormProgress
+                        m_frmProgress.show
+                    End If
+                    
                 End If
-            Else
-                sLog = sLog + Indent + "Errors or warnings were raised while installing " + PackageName + ". Please check the log above." + vbNewLine
-            End If
-
-            sLog = sLog + Indent + "===================================" + vbNewLine
+                
+    '           Copy file to actionpads\apps
+                Dim PackageName As String
+                Dim strArray() As String
+                strArray = VBA.Split(sZipPath, "\")
+                PackageName = VBA.Split(strArray(UBound(strArray)), ".")(0)
+                sLog = sLog + Indent + "====== LIP Install: " + PackageName + " ======" + vbNewLine
+                sLog = sLog + Indent + "Copying and unzipping file" + vbNewLine
+                
+                Call showProgressbar("Installing " & PackageName, "Copying and unzipping file", m_progressDouble)
+                
+                'TODO If prefix = app_ then change installpath to /apps else /packages
+                If VBA.Left(PackageName, 4) = "app_" Then
+                    sInstallPath = Application.WebFolder & "apps\"
+                Else
+                    sInstallPath = Application.WebFolder & DefaultInstallPath
+                End If
+                
+                'Copy zip-file to the apps-folder if it's not already there
+                
+                If sZipPath <> sInstallPath & PackageName & ".zip" Then
+                    Call VBA.FileCopy(sZipPath, sInstallPath & PackageName & ".zip")
+                End If
+                
+                
+    '           Unzip file
+                Call Unzip(PackageName, sInstallPath)
+    
+                'Get package information from json-file
+                Dim Package As Object
+                Dim sJSON As String
+                Dim sLine As String
+        
+                'Look for package.json or app.json
+                If VBA.Dir(sInstallPath & PackageName & "\" & "package.json") <> "" Then
+                    Open sInstallPath & PackageName & "\" & "package.json" For Input As #1
+                    
+                ElseIf VBA.Dir(sInstallPath & PackageName & "\" & "app.json") <> "" Then
+                    Open sInstallPath & PackageName & "\" & "app.json" For Input As #1
+                Else
+                    sLog = sLog + Indent + "Installation failed: couldn't find any package.json or app.json in the zip-file" + vbNewLine
+                    Call Application.MessageBox("ERROR: Installation failed: couldn't find any package.json or app.json in the zip-file")
+                    Application.Shell SaveLogFile(PackageName)
+                    Exit Sub
+                End If
+    
+                Do Until EOF(1)
+                    Line Input #1, sLine
+                    sJSON = sJSON & sLine
+                Loop
+    
+                Close #1
+    
+                Set Package = JSON.parse(sJSON)
+                
+                
+                If Package.Exists("installPath") Then
+                    sInstallPath = ThisApplication.WebFolder & Package.Item("installPath") & "\"
+                End If
+    
+    
+                'Install dependencies
+                If Package.Exists("dependencies") Then
+                    
+                    IncreaseIndent
+                    
+                    tempProgress = m_progressDouble
+                    m_progressDouble = 0
+                    Call showProgressbar("Installing " & PackageName, "Installing dependencies", m_progressDouble)
+                    
+                    Call InstallDependencies(Package, Simulate)
+                    
+                    m_progressDouble = tempProgress
+                    
+                    If m_frmProgress Is Nothing Then
+                        Set m_frmProgress = New FormProgress
+                        m_frmProgress.show
+                    End If
+                    
+                    DecreaseIndent
+                End If
+                
+                If InstallPackageComponents(PackageName, 1, Package, sInstallPath, Simulate) = False Then
+                    bOk = False
+                End If
+                
+                
             
-            Dim sLogfile As String
-            sLogfile = Application.TemporaryFolder & "\" & PackageName & VBA.Replace(VBA.Replace(VBA.Replace(VBA.Now(), ":", ""), "-", ""), " ", "") & ".txt"
-            Open sLogfile For Output As #1
-            Print #1, sLog
-            Close #1
-            
-                        
-            If Simulate Then
-                Call showProgressbar("Simulation done!", "Simulation done!", 99)
-                ThisApplication.Shell (sLogfile)
+                
                 If bOk Then
-                    If vbYes = Lime.MessageBox("Simulation of installation process completed. Please check the result in the recently opened logfile." & vbNewLine & vbNewLine & "Do you wish to proceed with the installation?", vbInformation + vbYesNo + vbDefaultButton2) Then
-                        Call lip.InstallFromZip(False, sZipPath, False)
+                    If Simulate Then
+                        sLog = sLog + Indent + "Simulation of " + PackageName + " done!" + vbNewLine
+                    Else
+                        sLog = sLog + Indent + "Installation of " + PackageName + " done!" + vbNewLine
                     End If
                 Else
-                    Call Lime.MessageBox("Simulation of installation process completed. Errors occurred, please check the result in the recently opened logfile and take necessary actions before you try again.")
+                    sLog = sLog + Indent + "Errors or warnings were raised while installing " + PackageName + ". Please check the log above." + vbNewLine
                 End If
-            Else
-                Call showProgressbar("Installation done!", "Installation done!", 99)
-                If vbYes = Lime.MessageBox("Installation process completed. Do you want to open the logfile for the installation?", vbInformation + vbYesNo + vbDefaultButton1) Then
+    
+                sLog = sLog + Indent + "===================================" + vbNewLine
+                
+                Dim sLogfile As String
+                sLogfile = Application.TemporaryFolder & "\" & PackageName & VBA.Replace(VBA.Replace(VBA.Replace(VBA.Now(), ":", ""), "-", ""), " ", "") & ".txt"
+                Open sLogfile For Output As #1
+                Print #1, sLog
+                Close #1
+                
+                            
+                If Simulate Then
+                    Call showProgressbar("Installing " & PackageName, "Simulation done!", 99)
+                    m_frmProgress.Hide
+                    Set m_frmProgress = Nothing
                     ThisApplication.Shell (sLogfile)
+                    If bOk Then
+                        If vbYes = Lime.MessageBox("Simulation of installation process completed. Please check the result in the recently opened logfile." & vbNewLine & vbNewLine & "Do you wish to proceed with the installation?", vbInformation + vbYesNo + vbDefaultButton2) Then
+                            Call lip.InstallFromZip(False, sZipPath, False)
+                        End If
+                    Else
+                        Call Lime.MessageBox("Simulation of installation process completed. Errors occurred, please check the result in the recently opened logfile and take necessary actions before you try again.")
+                    End If
                 Else
-                    Debug.Print ("Logfile is available here: " & sLogfile)
+                    Call showProgressbar("Installing " & PackageName, "Installation done!", 99)
+                    m_frmProgress.Hide
+                    Set m_frmProgress = Nothing
+                    If vbYes = Lime.MessageBox("Installation process completed. Do you want to open the logfile for the installation?", vbInformation + vbYesNo + vbDefaultButton1) Then
+                        ThisApplication.Shell (sLogfile)
+                    Else
+                        Debug.Print ("Logfile is available here: " & sLogfile)
+                    End If
                 End If
+                
+            Else
+                Call Lime.MessageBox("Couldn't find file")
             End If
         Else
-            Call Lime.MessageBox("Couldn't find file.")
+            Call Lime.MessageBox("Path must end with .zip")
         End If
     Else
-        Call Lime.MessageBox("Path must end with .zip")
+        Call Lime.MessageBox("No path to zip-file provided")
     End If
     
-    m_frmProgress.Hide
     Set m_frmProgress = Nothing
-    
     
     sLog = ""
     
@@ -365,7 +445,11 @@ On Error GoTo ErrorHandler
 
 Exit Sub
 ErrorHandler:
-    Call UI.ShowError("lip.InstallFromZipBrowse")
+    If Not m_frmProgress Is Nothing Then
+        m_frmProgress.Hide
+        Set m_frmProgress = Nothing
+    End If
+    Call UI.ShowError("lip.InstallFromZip")
 End Sub
 
 Private Function SaveLogFile(strPackageName As String) As String
@@ -406,11 +490,11 @@ On Error GoTo ErrorHandler
     bOk = True
 
     'Install localizations
+    m_progressDouble = m_progressDouble + ProgressBarIncrease
     If Package.Item("install").Exists("localize") = True Then
         sLog = sLog + Indent + "Adding localizations..." + vbNewLine
         
-        m_progressInteger = m_progressInteger + 10
-        Call showProgressbar("Installing package", "Adding localizations...", m_progressInteger)
+        Call showProgressbar("Installing " & PackageName, "Adding localizations...", m_progressDouble)
         
         IncreaseIndent
         If InstallLocalize(Package.Item("install").Item("localize"), Simulate) = False Then
@@ -421,11 +505,11 @@ On Error GoTo ErrorHandler
     End If
 
     'Install VBA
+    m_progressDouble = m_progressDouble + ProgressBarIncrease
     If Package.Item("install").Exists("vba") = True Then
         sLog = sLog + Indent + "Adding VBA modules, forms and classes..." + vbNewLine
         
-        m_progressInteger = m_progressInteger + 10
-        Call showProgressbar("Installing package", "Adding VBA modules, forms and classes...", m_progressInteger)
+        Call showProgressbar("Installing " & PackageName, "Adding VBA modules, forms and classes...", m_progressDouble)
         
         IncreaseIndent
         If InstallVBAComponents(PackageName, Package.Item("install").Item("vba"), InstallPath, Simulate) = False Then
@@ -442,25 +526,33 @@ On Error GoTo ErrorHandler
     sCreatedTables = ""
     sCreatedFields = ""
 
+    m_progressDouble = m_progressDouble + ProgressBarIncrease
     If Package.Item("install").Exists("tables") = True Then
         IncreaseIndent
+        
+        Call showProgressbar("Installing " & PackageName, "Adding fields and tables...", m_progressDouble)
+    
         If InstallFieldsAndTables(Package.Item("install").Item("tables"), sCreatedTables, sCreatedFields) = False Then
             bOk = False
         End If
         DecreaseIndent
     End If
     
+    m_progressDouble = m_progressDouble + ProgressBarIncrease
     If Package.Item("install").Exists("relations") = True Then
         IncreaseIndent
+        
+        Call showProgressbar("Installing " & PackageName, "Adding relations...", m_progressDouble)
+        
         If InstallRelations(Package.Item("install").Item("relations"), sCreatedFields) = False Then
             bOk = False
         End If
         DecreaseIndent
     End If
     
+    m_progressDouble = m_progressDouble + ProgressBarIncrease
     If Simulate Then
-       
-        Call showProgressbar("Installing package", "Simulation complete - rolling back...", 70)
+        Call showProgressbar("Installing " & PackageName, "Simulation complete - rolling back...", m_progressDouble)
         
         Call RollbackFieldsAndTables(sCreatedTables, sCreatedFields)
         
@@ -474,11 +566,11 @@ On Error GoTo ErrorHandler
 '        DecreaseIndent
 '    End If
     
-    
+    m_progressDouble = m_progressDouble + ProgressBarIncrease
     If Package.Item("install").Exists("files") = True Then
         IncreaseIndent
-
-        Call showProgressbar("Installing package", "Installing files...", 80)
+        
+        Call showProgressbar("Installing " & PackageName, "Installing files...", m_progressDouble)
         If InstallFiles(Package.Item("install").Item("files"), PackageName, InstallPath, Simulate) = False Then
             bOk = False
         End If
@@ -489,13 +581,17 @@ On Error GoTo ErrorHandler
         End If
         
     End If
-  
-    Call showProgressbar("Installing package", "Writing to package file...", 90)
+    
+    m_progressDouble = m_progressDouble + ProgressBarIncrease
+    Call showProgressbar("Installing " & PackageName, "Writing to package file...", m_progressDouble)
     
     'Update packages.json
     If WriteToPackageFile(PackageName, CStr(PackageVersion), Simulate) = False Then
         bOk = False
     End If
+    
+    m_progressDouble = m_progressDouble + ProgressBarIncrease
+    Call showProgressbar("Installing " & PackageName, "Ending installation...", m_progressDouble)
     
     If EndInstallation = False Then
         bOk = False
@@ -832,7 +928,7 @@ ErrorHandler:
     InstallFiles = False
     Call UI.ShowError("lip.InstallFiles")
     IncreaseIndent
-    sLog = sLog + Indent + ("ERROR: " + err.Description) + vbNewLine
+    sLog = sLog + Indent + ("ERROR: " + Err.Description) + vbNewLine
     DecreaseIndent
 End Function
 
@@ -923,26 +1019,25 @@ On Error GoTo ErrorHandler
     Dim localname_plural As String
     Dim ErrorMessage As String
     Dim warningmessage As String
+    
+    Dim nbrTables As Integer
+    Dim nbrFields As Integer
         
     bOk = True
     
     Application.MousePointer = 11
 
     sLog = sLog + Indent + "Adding fields and tables..." + vbNewLine
-   
-    m_progressInteger = m_progressInteger + 10
-    Call showProgressbar("Installing package", "Adding fields and tables...", m_progressInteger)
     
     IncreaseIndent
     
-    
+    nbrTables = oJSON.Count
     
     For Each table In oJSON
         localname_singular = ""
         localname_plural = ""
         ErrorMessage = ""
         idtable = -1
-        
         
         Set oProc = Database.Procedures("csp_lip_createtable")
         oProc.Timeout = 299
@@ -951,8 +1046,8 @@ On Error GoTo ErrorHandler
 
             sLog = sLog + Indent + "Add table: " + table.Item("name") + vbNewLine
                                     
-            m_progressInteger = m_progressInteger + 5
-            Call showProgressbar("Adding fields and tables...", "Add table: " + table.Item("name"), m_progressInteger)
+            m_progressDouble = m_progressDouble + (ProgressBarIncrease / nbrTables)
+            Call showProgressbar(m_frmProgress.Caption, "Adding table: " + table.Item("name"), m_progressDouble)
                 
             
             oProc.Parameters("@@tablename").InputValue = table.Item("name")
@@ -1008,11 +1103,11 @@ On Error GoTo ErrorHandler
             ' Create fields
             IncreaseIndent
             If table.Exists("fields") Then
+                nbrFields = table.Item("fields").Count
                 For Each field In table.Item("fields")
-                    
-                    sLog = sLog + Indent + "Add field: " + field.Item("name") + vbNewLine
-                    m_progressInteger = m_progressInteger + 1
-                    Call showProgressbar("Adding fields and tables...", "Add field: " + field.Item("name"), m_progressInteger)
+                    sLog = sLog + Indent + "Add field: " + table.Item("name") + "." + field.Item("name") + vbNewLine
+                    m_progressDouble = m_progressDouble + (ProgressBarIncrease / nbrTables / nbrFields)
+                    Call showProgressbar(m_frmProgress.Caption, "Adding field: " + table.Item("name") + "." + field.Item("name"), m_progressDouble)
                         
                     If AddField(table.Item("name"), field, sCreatedFields) = False Then
                         bOk = False
@@ -1042,7 +1137,7 @@ On Error GoTo ErrorHandler
     
     InstallFieldsAndTables = bOk
     
-    Call showProgressbar("Adding fields and tables...", "Adding fields and tables: Done", m_progressInteger)
+    Call showProgressbar(m_frmProgress.Caption, "Adding fields and tables done", m_progressDouble)
     
     Exit Function
 ErrorHandler:
@@ -1050,7 +1145,7 @@ ErrorHandler:
     InstallFieldsAndTables = False
     Call UI.ShowError("lip.InstallFieldsAndTables")
     IncreaseIndent
-    sLog = sLog + Indent + ("ERROR: " + err.Description) + vbNewLine
+    sLog = sLog + Indent + ("ERROR: " + Err.Description) + vbNewLine
     DecreaseIndent
 End Function
 
@@ -1182,7 +1277,7 @@ On Error GoTo ErrorHandler
             DecreaseIndent
             bOk = False
         Else
-            sLog = sLog + Indent + ("Field """ & field.Item("name") & """ installed.") + vbNewLine
+            sLog = sLog + Indent + ("Field """ & tableName & "." & field.Item("name") & """ installed.") + vbNewLine
         End If
     Else
         bOk = False
@@ -1197,7 +1292,7 @@ ErrorHandler:
     AddField = False
     Call UI.ShowError("lip.AddField")
     IncreaseIndent
-    sLog = sLog + Indent + ("ERROR: " + err.Description) + vbNewLine
+    sLog = sLog + Indent + ("ERROR: " + Err.Description) + vbNewLine
     DecreaseIndent
 End Function
 
@@ -1272,7 +1367,7 @@ ErrorHandler:
     SetTableAttributes = False
     Call UI.ShowError("lip.SetTableAttributes")
     IncreaseIndent
-    sLog = sLog + Indent + ("ERROR: " + err.Description) + vbNewLine
+    sLog = sLog + Indent + ("ERROR: " + Err.Description) + vbNewLine
     DecreaseIndent
 End Function
 
@@ -1302,7 +1397,7 @@ On Error GoTo ErrorHandler
     DownloadFile = ""
     Exit Function
 ErrorHandler:
-    DownloadFile = "Couldn't download file from " & downloadURL & vbCrLf & vbCrLf & err.Description
+    DownloadFile = "Couldn't download file from " & downloadURL & vbCrLf & vbCrLf & Err.Description
 End Function
 
 Private Sub Unzip(PackageName As String, InstallPath As String)
@@ -1419,7 +1514,7 @@ ErrorHandler:
     addModule = False
     Call UI.ShowError("lip.addModule")
     IncreaseIndent
-    sLog = sLog + Indent + ("ERROR: Couldn't add module " + ModuleName + ". " + err.Description) + vbNewLine
+    sLog = sLog + Indent + ("ERROR: Couldn't add module " + ModuleName + ". " + Err.Description) + vbNewLine
     DecreaseIndent
 End Function
 
@@ -1471,7 +1566,7 @@ ErrorHandler:
     WriteToPackageFile = False
     Call UI.ShowError("lip.WriteToPackageFile")
     IncreaseIndent
-    sLog = sLog + Indent + ("ERROR: " + err.Description) + vbNewLine
+    sLog = sLog + Indent + ("ERROR: " + Err.Description) + vbNewLine
     DecreaseIndent
 End Function
 
@@ -1626,11 +1721,11 @@ On Error GoTo ErrorHandler
         Set m_frmProgress = New FormProgress
         m_frmProgress.show
         
-        m_progressInteger = 0
+        m_progressDouble = 0
     End If
     
            
-    Call showProgressbar("Installing LIP", "Installing dependancies", 30)
+    Call showProgressbar("Installing LIP", "Installing dependencies", 30)
     
     sLog = ""
 
@@ -1663,7 +1758,7 @@ On Error GoTo ErrorHandler
     Print #1, sLog
     Close #1
         
-    Call showProgressbar("Installing LIP", "Installing dependancies", 100)
+    Call showProgressbar("Installing LIP", "Installing dependencies", 100)
         
     Application.Shell sLogfile
     Exit Sub
@@ -1751,6 +1846,8 @@ On Error GoTo ErrorHandler
 
     Dim ErrorMessage As String
     Dim warningmessage As String
+    
+    Dim nbrRelations As Integer
         
     
     bOk = True
@@ -1758,13 +1855,11 @@ On Error GoTo ErrorHandler
     Application.MousePointer = 11
 
     sLog = sLog + Indent + "Adding relations..." + vbNewLine
-    m_progressInteger = m_progressInteger + 10
-    Call showProgressbar("Installing package", "Adding relations...", m_progressInteger)
 
     IncreaseIndent
     
     For Each relation In oJSON
-        
+        nbrRelations = oJSON.Count
         ErrorMessage = ""
         warningmessage = ""
 
@@ -1774,8 +1869,8 @@ On Error GoTo ErrorHandler
         If Not oProc Is Nothing Then
 
             sLog = sLog + Indent + "Add relation between: " + relation.Item("table1") + "." + relation.Item("field1") + " and " + relation.Item("table2") + "." + relation.Item("field2") + vbNewLine
-            m_progressInteger = m_progressInteger + 1
-            Call showProgressbar("Adding relations...", "Add relation between: " + relation.Item("table1") + "." + relation.Item("field1") + " and " + relation.Item("table2") + "." + relation.Item("field2"), m_progressInteger)
+            m_progressDouble = m_progressDouble + (ProgressBarIncrease / nbrRelations)
+            Call showProgressbar(m_frmProgress.Caption, "Add relation between: " + relation.Item("table1") + "." + relation.Item("field1") + " and " + relation.Item("table2") + "." + relation.Item("field2"), m_progressDouble)
             
             oProc.Parameters("@@table1").InputValue = relation.Item("table1")
             oProc.Parameters("@@field1").InputValue = relation.Item("field1")
@@ -1820,7 +1915,7 @@ ErrorHandler:
     InstallRelations = False
     Call UI.ShowError("lip.InstallRelations")
     IncreaseIndent
-    sLog = sLog + Indent + ("ERROR: " + err.Description) + vbNewLine
+    sLog = sLog + Indent + ("ERROR: " + Err.Description) + vbNewLine
     DecreaseIndent
 End Function
 
@@ -2001,18 +2096,22 @@ ErrorHandler:
     Call UI.ShowError("lip.EndInstallation")
 End Function
 
-Public Sub showProgressbar(sTitle As String, sMessage As String, iProgress As Integer)
+Public Sub showProgressbar(sTitle As String, sMessage As String, iProgress As Double)
     
     On Error GoTo ErrorHandler
-
-    m_frmProgress.Caption = sTitle
-    m_frmProgress.Title = sMessage
-    m_frmProgress.Progress = iProgress
     
+    If Not m_frmProgress Is Nothing Then
+        m_frmProgress.Caption = sTitle
+        m_frmProgress.Title = sMessage
+        m_frmProgress.Progress = iProgress
+    End If
     
 Exit Sub
 
 ErrorHandler:
-    Set m_frmProgress = Nothing
-    UI.ShowError ("showProgressbar")
+    If Not m_frmProgress Is Nothing Then
+        m_frmProgress.Hide
+        Set m_frmProgress = Nothing
+    End If
+    Call UI.ShowError("lip.showProgressbar")
 End Sub
