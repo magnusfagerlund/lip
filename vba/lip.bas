@@ -758,7 +758,7 @@ ErrorHandler:
     InstallFiles = False
     Call UI.ShowError("lip.InstallFiles")
     IncreaseIndent
-    sLog = sLog + Indent + ("ERROR: " + err.Description) + vbNewLine
+    sLog = sLog + Indent + ("ERROR: " + Err.Description) + vbNewLine
     DecreaseIndent
 End Function
 
@@ -959,7 +959,7 @@ ErrorHandler:
     InstallFieldsAndTables = False
     Call UI.ShowError("lip.InstallFieldsAndTables")
     IncreaseIndent
-    sLog = sLog + Indent + ("ERROR: " + err.Description) + vbNewLine
+    sLog = sLog + Indent + ("ERROR: " + Err.Description) + vbNewLine
     DecreaseIndent
 End Function
 
@@ -1106,7 +1106,7 @@ ErrorHandler:
     AddField = False
     Call UI.ShowError("lip.AddField")
     IncreaseIndent
-    sLog = sLog + Indent + ("ERROR: " + err.Description) + vbNewLine
+    sLog = sLog + Indent + ("ERROR: " + Err.Description) + vbNewLine
     DecreaseIndent
 End Function
 
@@ -1181,7 +1181,7 @@ ErrorHandler:
     SetTableAttributes = False
     Call UI.ShowError("lip.SetTableAttributes")
     IncreaseIndent
-    sLog = sLog + Indent + ("ERROR: " + err.Description) + vbNewLine
+    sLog = sLog + Indent + ("ERROR: " + Err.Description) + vbNewLine
     DecreaseIndent
 End Function
 
@@ -1211,7 +1211,7 @@ On Error GoTo ErrorHandler
     DownloadFile = ""
     Exit Function
 ErrorHandler:
-    DownloadFile = "Couldn't download file from " & downloadURL & vbCrLf & vbCrLf & err.Description
+    DownloadFile = "Couldn't download file from " & downloadURL & vbCrLf & vbCrLf & Err.Description
 End Function
 
 Private Sub Unzip(PackageName As String, InstallPath As String)
@@ -1328,7 +1328,7 @@ ErrorHandler:
     addModule = False
     Call UI.ShowError("lip.addModule")
     IncreaseIndent
-    sLog = sLog + Indent + ("ERROR: Couldn't add module " + ModuleName + ". " + err.Description) + vbNewLine
+    sLog = sLog + Indent + ("ERROR: Couldn't add module " + ModuleName + ". " + Err.Description) + vbNewLine
     DecreaseIndent
 End Function
 
@@ -1380,7 +1380,7 @@ ErrorHandler:
     WriteToPackageFile = False
     Call UI.ShowError("lip.WriteToPackageFile")
     IncreaseIndent
-    sLog = sLog + Indent + ("ERROR: " + err.Description) + vbNewLine
+    sLog = sLog + Indent + ("ERROR: " + Err.Description) + vbNewLine
     DecreaseIndent
 End Function
 
@@ -1712,7 +1712,7 @@ ErrorHandler:
     InstallRelations = False
     Call UI.ShowError("lip.InstallRelations")
     IncreaseIndent
-    sLog = sLog + Indent + ("ERROR: " + err.Description) + vbNewLine
+    sLog = sLog + Indent + ("ERROR: " + Err.Description) + vbNewLine
     DecreaseIndent
 End Function
 
