@@ -698,12 +698,13 @@ On Error GoTo ErrorHandler
     For Each Localize In oJSON
         If AddOrCheckLocalize( _
             Localize.Item("owner"), _
+            Localize.Item("code"), _
             Localize.Item("context"), _
-            "", _
             Localize.Item("en_us"), _
             Localize.Item("sv"), _
             Localize.Item("no"), _
             Localize.Item("fi"), _
+            Localize.Item("da"), _
             Simulate _
         ) = False Then
             bOk = False
@@ -757,7 +758,7 @@ ErrorHandler:
     InstallFiles = False
     Call UI.ShowError("lip.InstallFiles")
     IncreaseIndent
-    sLog = sLog + Indent + ("ERROR: " + Err.Description) + vbNewLine
+    sLog = sLog + Indent + ("ERROR: " + err.Description) + vbNewLine
     DecreaseIndent
 End Function
 
@@ -958,7 +959,7 @@ ErrorHandler:
     InstallFieldsAndTables = False
     Call UI.ShowError("lip.InstallFieldsAndTables")
     IncreaseIndent
-    sLog = sLog + Indent + ("ERROR: " + Err.Description) + vbNewLine
+    sLog = sLog + Indent + ("ERROR: " + err.Description) + vbNewLine
     DecreaseIndent
 End Function
 
@@ -1105,7 +1106,7 @@ ErrorHandler:
     AddField = False
     Call UI.ShowError("lip.AddField")
     IncreaseIndent
-    sLog = sLog + Indent + ("ERROR: " + Err.Description) + vbNewLine
+    sLog = sLog + Indent + ("ERROR: " + err.Description) + vbNewLine
     DecreaseIndent
 End Function
 
@@ -1180,7 +1181,7 @@ ErrorHandler:
     SetTableAttributes = False
     Call UI.ShowError("lip.SetTableAttributes")
     IncreaseIndent
-    sLog = sLog + Indent + ("ERROR: " + Err.Description) + vbNewLine
+    sLog = sLog + Indent + ("ERROR: " + err.Description) + vbNewLine
     DecreaseIndent
 End Function
 
@@ -1210,7 +1211,7 @@ On Error GoTo ErrorHandler
     DownloadFile = ""
     Exit Function
 ErrorHandler:
-    DownloadFile = "Couldn't download file from " & downloadURL & vbCrLf & vbCrLf & Err.Description
+    DownloadFile = "Couldn't download file from " & downloadURL & vbCrLf & vbCrLf & err.Description
 End Function
 
 Private Sub Unzip(PackageName As String, InstallPath As String)
@@ -1327,7 +1328,7 @@ ErrorHandler:
     addModule = False
     Call UI.ShowError("lip.addModule")
     IncreaseIndent
-    sLog = sLog + Indent + ("ERROR: Couldn't add module " + ModuleName + ". " + Err.Description) + vbNewLine
+    sLog = sLog + Indent + ("ERROR: Couldn't add module " + ModuleName + ". " + err.Description) + vbNewLine
     DecreaseIndent
 End Function
 
@@ -1379,7 +1380,7 @@ ErrorHandler:
     WriteToPackageFile = False
     Call UI.ShowError("lip.WriteToPackageFile")
     IncreaseIndent
-    sLog = sLog + Indent + ("ERROR: " + Err.Description) + vbNewLine
+    sLog = sLog + Indent + ("ERROR: " + err.Description) + vbNewLine
     DecreaseIndent
 End Function
 
@@ -1567,7 +1568,7 @@ ErrorHandler:
     Call UI.ShowError("lip.InstallLIP")
 End Sub
 
-Private Function AddOrCheckLocalize(sOwner As String, sCode As String, sDescription As String, sEN_US As String, sSV As String, sNO As String, sFI As String, Simulate As Boolean) As Boolean
+Private Function AddOrCheckLocalize(sOwner As String, sCode As String, sDescription As String, sEN_US As String, sSV As String, sNO As String, sFI As String, sDA As String, Simulate As Boolean) As Boolean
 On Error GoTo ErrorHandler
     Dim oFilter As New LDE.Filter
     Dim oRecs As New LDE.Records
@@ -1588,6 +1589,7 @@ On Error GoTo ErrorHandler
             oRec.Value("en_us") = sEN_US
             oRec.Value("no") = sNO
             oRec.Value("fi") = sFI
+            oRec.Value("da") = sDA
             Call oRec.Update
         End If
     ElseIf oFilter.HitCount(Database.Classes("localize")) = 1 Then
@@ -1602,6 +1604,7 @@ On Error GoTo ErrorHandler
             oRecs(1).Value("en_us") = sEN_US
             oRecs(1).Value("no") = sNO
             oRecs(1).Value("fi") = sFI
+            oRecs(1).Value("da") = sDA
             Call oRecs.Update
         End If
 
@@ -1709,7 +1712,7 @@ ErrorHandler:
     InstallRelations = False
     Call UI.ShowError("lip.InstallRelations")
     IncreaseIndent
-    sLog = sLog + Indent + ("ERROR: " + Err.Description) + vbNewLine
+    sLog = sLog + Indent + ("ERROR: " + err.Description) + vbNewLine
     DecreaseIndent
 End Function
 
