@@ -1,5 +1,6 @@
 -- Written by: Jonny Springare
 -- Created: 2015-12-18
+-- Last updated: 2016-12-08
 
 CREATE PROCEDURE [dbo].[csp_lip_addRelations]
 	@@table1 NVARCHAR(64)
@@ -62,14 +63,36 @@ BEGIN
 							BEGIN
 								IF EXISTS (SELECT idrelationfield FROM relationfield WHERE idfield=@idfield1)
 								BEGIN
-									EXEC @return_value = lsp_addrelation
-											@@idfield1 = @idfield1,
-											@@idtable1 = @idtable1,
-											@@idfield2 = @idfield2,
-											@@idtable2 = @idtable2
-									IF @return_value <> 0
+									--Check if the fields are already in a relation
+									IF (SELECT relatedidfield FROM relationfieldview WHERE idfield=@idfield1) IS NULL
 									BEGIN
-										SET @@errorMessage = N'ERROR: couldn''t create relation between' + @@table2 + '.' + @@field2 + N' and ' + @@table1 + '.' + @@field1
+										IF (SELECT relatedidfield FROM relationfieldview WHERE idfield=@idfield2) IS NULL
+										BEGIN
+											EXEC @return_value = lsp_addrelation
+													@@idfield1 = @idfield1,
+													@@idtable1 = @idtable1,
+													@@idfield2 = @idfield2,
+													@@idtable2 = @idtable2
+											IF @return_value <> 0
+											BEGIN
+												SET @@errorMessage = N'ERROR: couldn''t create relation between' + @@table2 + '.' + @@field2 + N' and ' + @@table1 + '.' + @@field1
+											END
+										END
+										ELSE
+										BEGIN
+											SET @@errorMessage = N'ERROR: ' + @@table2 + '.' + @@field2 + N' is already in a relation, relation to ' + @@table1 + '.' + @@field1 + N' can''t be created.'
+										END
+									END
+									ELSE
+									BEGIN
+										IF (SELECT relatedidfield FROM relationfieldview WHERE idfield=@idfield1) = @idfield2
+										BEGIN
+											SET @@warningMessage = N'Warning: Relation between ' + @@table1 + '.' + @@field1 + ' and ' + @@table2 + '.' + @@field2 + N' already exists.'
+										END
+										ELSE
+										BEGIN
+											SET @@errorMessage = N'ERROR: ' + @@table1 + '.' + @@field1 + N' is already in a relation, relation to ' + @@table2 + '.' + @@field2 + N' can''t be created.'
+										END
 									END
 								END
 								ELSE
@@ -96,19 +119,19 @@ BEGIN
 			END
 			ELSE
 			BEGIN
-				SET @@warningMessage = N'Warning: Cannot create relation between ' + @@table1 + '.' + @@field1 + N' and ' + @@table2 + '.' + @@field2 + N', since one of the fields already existed before installation.'
+				SET @@errorMessage = N'ERROR: Cannot create relation between ' + @@table1 + '.' + @@field1 + N' and ' + @@table2 + '.' + @@field2 + N', since one of the fields already existed before installation.'
 				RETURN
 			END
 		END
 		ELSE
 		BEGIN
-			SET @@errorMessage = N'ERROR: ' + @@table2 + '.' + @@field2 + N' hasn''t been created, relation to ' + @@table1 + '.' + @@field1 + N' can''t be created.'
+			SET @@errorMessage = N'ERROR: ' + @@table2 + '.' + @@field2 + N' hasn''t been created during this installation, relation to ' + @@table1 + '.' + @@field1 + N' can''t be created.'
 			RETURN
 		END
 	END
 	ELSE
 	BEGIN
-		SET @@errorMessage = N'ERROR: ' + @@table1 + '.' + @@field1 + N' hasn''t been created, relation to ' + @@table2 + '.' + @@field2 + N' can''t be created.'
+		SET @@errorMessage = N'ERROR: ' + @@table1 + '.' + @@field1 + N' hasn''t been created during this installation, relation to ' + @@table2 + '.' + @@field2 + N' can''t be created.'
 		RETURN
 	END	
 END
