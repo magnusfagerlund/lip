@@ -15,7 +15,7 @@ Private sLog As String
 
 Private m_frmProgress As FormProgress
 Private m_progressDouble As Double
-Private Const ProgressBarIncrease As Double = (100 / 9)
+Private Const ProgressBarIncrease As Double = (100 / 11)
 
 
 Public Sub UpgradePackage(Optional PackageName As String, Optional Path As String)
@@ -62,7 +62,6 @@ On Error GoTo ErrorHandler
         
         tempProgress = m_progressDouble
         m_progressDouble = 0
-        'Call showProgressbar("Installing LIP", "Installing LIP", m_progressDouble)
         
         Call InstallLIP
         
@@ -201,11 +200,11 @@ On Error GoTo ErrorHandler
         End If
         ThisApplication.Shell (sLogfile)
         If bOk Then
-            If vbYes = Lime.MessageBox("Simulation of installation process completed. Please check the result in the recently opened logfile." & vbNewLine & vbNewLine & "Do you wish to proceed with the installation?", vbInformation + vbYesNo + vbDefaultButton2) Then
+            If vbYes = Lime.MessageBox("Simulation of installation process completed for package " & PackageName & ". Please check the result in the recently opened logfile." & vbNewLine & vbNewLine & "Do you wish to proceed with the installation?", vbInformation + vbYesNo + vbDefaultButton2) Then
                 Call lip.Install(PackageName, upgrade, False)
             End If
         Else
-            Call Lime.MessageBox("Simulation of installation process completed. Errors occurred, please check the result in the recently opened logfile and take necessary actions before you try again.")
+            Call Lime.MessageBox("Simulation of installation process completed for package " & PackageName & ". Errors occurred, please check the result in the recently opened logfile and take necessary actions before you try again.")
         End If
     Else
         If Not m_frmProgress Is Nothing Then
@@ -213,7 +212,7 @@ On Error GoTo ErrorHandler
             m_frmProgress.Hide
             Set m_frmProgress = Nothing
         End If
-        If vbYes = Lime.MessageBox("Installation process completed. Remember to publish actionpads if needed. Do you want to open the logfile for the installation?", vbInformation + vbYesNo + vbDefaultButton1) Then
+        If vbYes = Lime.MessageBox("Installation process completed for package " & PackageName & ". Remember to publish actionpads if needed. Do you want to open the logfile for the installation?", vbInformation + vbYesNo + vbDefaultButton1) Then
             ThisApplication.Shell (sLogfile)
         Else
             Debug.Print ("Logfile is available here: " & sLogfile)
@@ -382,9 +381,6 @@ On Error GoTo ErrorHandler
                     bOk = False
                 End If
                 
-                
-            
-                
                 If bOk Then
                     If Simulate Then
                         sLog = sLog + Indent + "Simulation of " + PackageName + " done!" + vbNewLine
@@ -410,17 +406,17 @@ On Error GoTo ErrorHandler
                     Set m_frmProgress = Nothing
                     ThisApplication.Shell (sLogfile)
                     If bOk Then
-                        If vbYes = Lime.MessageBox("Simulation of installation process completed. Please check the result in the recently opened logfile." & vbNewLine & vbNewLine & "Do you wish to proceed with the installation?", vbInformation + vbYesNo + vbDefaultButton2) Then
+                        If vbYes = Lime.MessageBox("Simulation of installation process completed for package " & PackageName & ". Please check the result in the recently opened logfile." & vbNewLine & vbNewLine & "Do you wish to proceed with the installation?", vbInformation + vbYesNo + vbDefaultButton2) Then
                             Call lip.InstallFromZip(False, sZipPath, False)
                         End If
                     Else
-                        Call Lime.MessageBox("Simulation of installation process completed. Errors occurred, please check the result in the recently opened logfile and take necessary actions before you try again.")
+                        Call Lime.MessageBox("Simulation of installation process completed for package " & PackageName & ". Errors occurred, please check the result in the recently opened logfile and take necessary actions before you try again.")
                     End If
                 Else
                     Call showProgressbar("Installing " & PackageName, "Installation done!", 99)
                     m_frmProgress.Hide
                     Set m_frmProgress = Nothing
-                    If vbYes = Lime.MessageBox("Installation process completed. Do you want to open the logfile for the installation?", vbInformation + vbYesNo + vbDefaultButton1) Then
+                    If vbYes = Lime.MessageBox("Installation process completed for package " & PackageName & ". Do you want to open the logfile for the installation?", vbInformation + vbYesNo + vbDefaultButton1) Then
                         ThisApplication.Shell (sLogfile)
                     Else
                         Debug.Print ("Logfile is available here: " & sLogfile)
@@ -552,7 +548,7 @@ On Error GoTo ErrorHandler
     
     m_progressDouble = m_progressDouble + ProgressBarIncrease
     If Simulate Then
-        Call showProgressbar("Installing " & PackageName, "Simulation complete - rolling back...", m_progressDouble)
+        Call showProgressbar("Installing " & PackageName, "Rolling back tables and fields...", m_progressDouble)
         
         Call RollbackFieldsAndTables(sCreatedTables, sCreatedFields)
         
@@ -1045,10 +1041,8 @@ On Error GoTo ErrorHandler
         If Not oProc Is Nothing Then
 
             sLog = sLog + Indent + "Add table: " + table.Item("name") + vbNewLine
-                                    
-            m_progressDouble = m_progressDouble + (ProgressBarIncrease / nbrTables)
+            
             Call showProgressbar(m_frmProgress.Caption, "Adding table: " + table.Item("name"), m_progressDouble)
-                
             
             oProc.Parameters("@@tablename").InputValue = table.Item("name")
 
@@ -1113,6 +1107,9 @@ On Error GoTo ErrorHandler
                         bOk = False
                     End If
                 Next field
+            Else
+                m_progressDouble = m_progressDouble + (ProgressBarIncrease / nbrTables)
+                Call showProgressbar(m_frmProgress.Caption, "Setting table attributes for " + table.Item("name"), m_progressDouble)
             End If
 
             'Set table attributes(must be done AFTER fields has been created in order to be able to set descriptive expression)
@@ -1725,7 +1722,7 @@ On Error GoTo ErrorHandler
     End If
     
            
-    Call showProgressbar("Installing LIP", "Installing dependencies", 30)
+    Call showProgressbar("Installing LIP", "Creating a new packages.json file", 25)
     
     sLog = ""
 
@@ -1737,6 +1734,8 @@ On Error GoTo ErrorHandler
         FSO.CreateFolder InstallPath
     End If
 
+    Call showProgressbar("Installing LIP", "Installing VBA", 50)
+    
     sLog = sLog + Indent + "Installing JSON-lib..." + vbNewLine
     Dim strDownloadError
     strDownloadError = DownloadFile("vba_json", BaseURL + AppStoreApiURL, InstallPath)
@@ -1758,7 +1757,10 @@ On Error GoTo ErrorHandler
     Print #1, sLog
     Close #1
         
-    Call showProgressbar("Installing LIP", "Installing dependencies", 100)
+    Call showProgressbar("Installing LIP", "Installation done!", 99)
+    
+    m_frmProgress.Hide
+    Set m_frmProgress = Nothing
         
     Application.Shell sLogfile
     Exit Sub
@@ -2115,3 +2117,4 @@ ErrorHandler:
     End If
     Call UI.ShowError("lip.showProgressbar")
 End Sub
+
