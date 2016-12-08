@@ -1,6 +1,8 @@
 -- Written by: Jonny Springare
 -- Created: 2016-03-16
-
+IF EXISTS (SELECT name FROM sysobjects WHERE name = 'csp_lip_removeTablesAndFields' AND UPPER(type) = 'P')
+   DROP PROCEDURE [csp_lip_removeTablesAndFields]
+GO
 CREATE PROCEDURE [dbo].[csp_lip_removeTablesAndFields]
 	@@idtable INT = NULL
 	, @@idfield INT = NULL

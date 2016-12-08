@@ -1,6 +1,8 @@
 -- Written by: Fredrik Eriksson, Jonny Springare
 -- Created: 2015-04-16
-
+IF EXISTS (SELECT name FROM sysobjects WHERE name = 'csp_lip_createfield' AND UPPER(type) = 'P')
+   DROP PROCEDURE [csp_lip_createfield]
+GO
 CREATE PROCEDURE [dbo].[csp_lip_createfield]
 	@@tablename NVARCHAR(64)
 	, @@fieldname NVARCHAR(64)
