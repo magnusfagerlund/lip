@@ -25,8 +25,8 @@ To install a package, simply type your command in the Immediate-window of the VB
 `lip.Install("Packagename")`
 Standard installation of package. Searches for the package on the stores configured in your `packages.json`-file in the actionpad-folder.
 
-`lip.InstallFromZip("SearchPathToZipFile")`
-Install a package from a zip-file, provide the searchpath as an argument (including the filename).
+`lip.InstallFromZip()`
+Install a package from a zip-file, displays a file dialog where you can point out the zip file.
 
 `lip.InstallFromPackageFile`
 All installed packages are kept tracked of inside the `packages.json`-file in the ActionPad folder. If you transfer this file to a new LIME Pro database you can use this file to conduct a brand new install by typing the command above.
