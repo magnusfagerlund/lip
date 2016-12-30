@@ -2082,9 +2082,10 @@ On Error GoTo ErrorHandler
     Dim oProc As LDE.Procedure
 
     Set oProc = Database.Procedures("csp_lip_endInstallation")
-    oProc.Timeout = 299
+    
 
     If Not oProc Is Nothing Then
+        oProc.Timeout = 299
         Call oProc.Execute(False)
     Else
         bOk = False
