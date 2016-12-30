@@ -13,10 +13,11 @@ Before you can start installing packages, you need to install LIP to your LIME P
 1. Add the SQL-procedures to your database by running the SQL-scripts (Important! Make sure you run the scripts on your database and NOT the master-database by selecting the correct database in the upper left corner)
 2. Run `exec lsp_setdatabasetimestamp` on your database
 3. Restart the Lime Server component service (LDC)
-4. Import the `vba/lip.bas`-file to your VBA.
-5. Type the command `lip.InstallLIP` in the Immediate-window of the VBA and press Enter to install all necessary modules.
-6. Compile and save the VBA
-7. Publish actionpads
+4. Import the `vba/lip.bas` file to your VBA.
+5. Import the `vba/FormProgress.frm` to your VBA.
+6. Type the command `lip.InstallLIP` in the Immediate-window of the VBA and press Enter to install all necessary modules.
+7. Compile and save the VBA
+8. Publish actionpads
 
 ###Install a package 
 To install a package, simply type your command in the Immediate-window of the VBA. There are three different installation methods:
@@ -24,8 +25,8 @@ To install a package, simply type your command in the Immediate-window of the VB
 `lip.Install("Packagename")`
 Standard installation of package. Searches for the package on the stores configured in your `packages.json`-file in the actionpad-folder.
 
-`lip.InstallFromZip("SearchPathToZipFile")`
-Install a package from a zip-file, provide the searchpath as an argument (including the filename).
+`lip.InstallFromZip()`
+Install a package from a zip-file, displays a file dialog where you can point out the zip file.
 
 `lip.InstallFromPackageFile`
 All installed packages are kept tracked of inside the `packages.json`-file in the ActionPad folder. If you transfer this file to a new LIME Pro database you can use this file to conduct a brand new install by typing the command above.

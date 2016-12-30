@@ -4,7 +4,9 @@ SET QUOTED_IDENTIFIER ON
 GO
 -- Written by: Jonny Springare
 -- Created: 2015-07-06
-
+IF EXISTS (SELECT name FROM sysobjects WHERE name = 'csp_lip_settableattributes' AND UPPER(type) = 'P')
+   DROP PROCEDURE [csp_lip_settableattributes]
+GO
 CREATE PROCEDURE [dbo].[csp_lip_settableattributes]
 	@@tablename NVARCHAR(64)
 	, @@idtable INT
