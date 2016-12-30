@@ -864,12 +864,13 @@ On Error GoTo ErrorHandler
     For Each Localize In oJSON
         If AddOrCheckLocalize( _
             Localize.Item("owner"), _
+            Localize.Item("code"), _
             Localize.Item("context"), _
-            "", _
             Localize.Item("en_us"), _
             Localize.Item("sv"), _
             Localize.Item("no"), _
             Localize.Item("fi"), _
+            Localize.Item("da"), _
             Simulate _
         ) = False Then
             bOk = False
@@ -1768,7 +1769,7 @@ ErrorHandler:
     Call UI.ShowError("lip.InstallLIP")
 End Sub
 
-Private Function AddOrCheckLocalize(sOwner As String, sCode As String, sDescription As String, sEN_US As String, sSV As String, sNO As String, sFI As String, Simulate As Boolean) As Boolean
+Private Function AddOrCheckLocalize(sOwner As String, sCode As String, sDescription As String, sEN_US As String, sSV As String, sNO As String, sFI As String, sDA As String, Simulate As Boolean) As Boolean
 On Error GoTo ErrorHandler
     Dim oFilter As New LDE.Filter
     Dim oRecs As New LDE.Records
@@ -1789,6 +1790,7 @@ On Error GoTo ErrorHandler
             oRec.Value("en_us") = sEN_US
             oRec.Value("no") = sNO
             oRec.Value("fi") = sFI
+            oRec.Value("da") = sDA
             Call oRec.Update
         End If
     ElseIf oFilter.HitCount(Database.Classes("localize")) = 1 Then
@@ -1803,6 +1805,7 @@ On Error GoTo ErrorHandler
             oRecs(1).Value("en_us") = sEN_US
             oRecs(1).Value("no") = sNO
             oRecs(1).Value("fi") = sFI
+            oRecs(1).Value("da") = sDA
             Call oRecs.Update
         End If
 
