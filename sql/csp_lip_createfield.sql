@@ -34,7 +34,7 @@ CREATE PROCEDURE [dbo].[csp_lip_createfield]
 	, @@type INT = 0
 	, @@label INT = NULL
 	, @@adlabel INT = NULL
-	, @@relationtab BIT = 0
+	, @@relationtab BIT = 0 -- relationtab = relationmaxcount, the name "relationtab" is misleading
 	, @@errorMessage NVARCHAR(MAX) OUTPUT
 	, @@warningMessage NVARCHAR(MAX) OUTPUT
 	, @@idfield INT OUTPUT --idfield is set to -1 if field already exists
@@ -386,7 +386,7 @@ BEGIN
 							SET @@errorMessage = @@errorMessage +  N'ERROR: couldn''t set attribute ''relationmincount'' for field ''' + @@fieldname + @linebreak
 							SET @return_value = 0
 						END
-						IF @@relationtab = 1
+						IF @@relationtab = 1 --relationtab=relationmaxcount, the name relationtab is misleading
 						BEGIN
 							EXEC lsp_setattributevalue @@owner = 'field', @@idrecord = @@idfield, @@name = 'relationmaxcount', @@value = 1
 							IF @return_value <> 0
