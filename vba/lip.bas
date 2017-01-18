@@ -77,7 +77,7 @@ On Error GoTo ErrorHandler
     Call showProgressbar("Installing " & PackageName, "Updating LIP if necessary", m_progressDouble)
     
     
-    'TODO Check if LIP has a new version
+    'Check if LIP has a new version
     Debug.Print Indent + "Updating LIP if necessary"
     Call UpdateLIPOnNewVersion
         
@@ -254,7 +254,6 @@ On Error GoTo ErrorHandler
     If bBrowse Then
         Dim fileDialog As LCO.FileOpenDialog
         
-        'sZipPath = fileDialog.show
         
         Set fileDialog = New LCO.FileOpenDialog
         fileDialog.Filter = "Zip-file (*.zip) | *.zip"
@@ -283,8 +282,7 @@ On Error GoTo ErrorHandler
                     
                     tempProgress = m_progressDouble
                     m_progressDouble = 0
-                    'Call showProgressbar("Installing LIP", "Installing LIP", m_progressDouble)
-                    
+                                        
                     Call InstallLIP
                     
                     m_progressDouble = tempProgress
@@ -306,7 +304,7 @@ On Error GoTo ErrorHandler
                 
                 Call showProgressbar("Installing " & PackageName, "Copying and unzipping file", m_progressDouble)
                 
-                'TODO If prefix = app_ then change installpath to /apps else /packages
+                'If prefix = app_ then change installpath to /apps else /packages
                 If VBA.Left(PackageName, 4) = "app_" Then
                     sInstallPath = Application.WebFolder & "apps\"
                 Else
@@ -314,12 +312,10 @@ On Error GoTo ErrorHandler
                 End If
                 
                 'Copy zip-file to the apps-folder if it's not already there
-                
                 If sZipPath <> sInstallPath & PackageName & ".zip" Then
                     Call VBA.FileCopy(sZipPath, sInstallPath & PackageName & ".zip")
                 End If
-                
-                
+                                
     '           Unzip file
                 Call Unzip(PackageName, sInstallPath)
     
@@ -354,8 +350,7 @@ On Error GoTo ErrorHandler
                 If Package.Exists("installPath") Then
                     sInstallPath = ThisApplication.WebFolder & Package.Item("installPath") & "\"
                 End If
-    
-    
+        
                 'Install dependencies
                 If Package.Exists("dependencies") Then
                     
@@ -553,7 +548,7 @@ On Error GoTo ErrorHandler
         Call RollbackFieldsAndTables(sCreatedTables, sCreatedFields)
         
     End If
-
+'SQL isn't installed automatically right now
 '    If Package.Item("install").Exists("sql") = True Then
 '        IncreaseIndent
 '        If InstallSQL(Package.Item("install").Item("sql"), PackageName, InstallPath, Simulate) = False Then
@@ -644,7 +639,7 @@ ErrorHandler:
     Call UI.ShowError("lip.SearchForPackageInStores")
 End Function
 
-'LJE Search for package in online stores
+'Search for package in online stores
 Public Function SearchForPackageInOnlineStores(PackageName As String) As Object
 On Error GoTo ErrorHandler
     Dim sJSON As String
@@ -652,13 +647,10 @@ On Error GoTo ErrorHandler
     Dim oStores As Object
     Dim Path As String
     Dim oStore As Variant
-    'LJE changed to onlinestores
-    'Set oPackages = ReadPackageFile.Item("stores")
     Set oStores = ReadPackageFile.Item("onlinestores")
 
     'Loop through packagestores from packages.json
     For Each oStore In oStores
-
 
         Path = oStores.Item(oStore)
         sLog = sLog + Indent + ("Looking for package at store '" & oStore & "'") + vbNewLine
@@ -698,9 +690,8 @@ ErrorHandler:
 End Function
 
 
-'LJE Search for package in local stores
+'Search for package in local stores
 'Should be a local path where folders are named after packages
-'LJE TEST
 Public Function SearchForPackageInLocalStores(PackageName As String) As Object
 On Error GoTo ErrorHandler
     Dim oStores As Object
@@ -710,8 +701,6 @@ On Error GoTo ErrorHandler
     Dim oJSON As Object
     
     Set oStores = ReadPackageFile.Item("localstores")
-    'TODO Test if the oStores is ok
-    'TODO Test with multiple local stores
     
     'Loop through localstores from packages.json
     For Each oStore In oStores
@@ -724,8 +713,7 @@ On Error GoTo ErrorHandler
         Dim fld As Object
         
         Set FileSystemObj = CreateObject("Scripting.FileSystemObject")
-        'LJE backslash needs to be handled - see trello item.
-        'LJE TODO Check if store path is ok
+        
         Set startFolder = FileSystemObj.GetFolder(Path)
         
         
@@ -929,6 +917,7 @@ ErrorHandler:
     DecreaseIndent
 End Function
 
+'This isn't used right now.
 'Private Function InstallSQL(oJSON As Object, PackageName As String, InstallPath As String) As Boolean
 'On Error GoTo ErrorHandler
 '    Dim bOk As Boolean
@@ -1666,8 +1655,7 @@ ErrorHandler:
     Set FindPackageLocally = Nothing
     Call UI.ShowError("lip.FindPackageLocally")
 End Function
-'LJE TODO Refactor with helper method to write json
-'TEST
+
 Public Sub CreateANewPackageFile()
 On Error GoTo ErrorHandler
     Dim fs As Object
@@ -1675,10 +1663,7 @@ On Error GoTo ErrorHandler
     Set fs = CreateObject("Scripting.FileSystemObject")
     Set a = fs.CreateTextFile(WebFolder + "packages.json", True)
     a.WriteLine ("{")
-    'LJE VersionHandling
-    'TODO write to GitHub
     a.WriteLine ("    ""lipversion"":0.1,")
-    'LJE Should perhaps have two different objects - one onlinestore and one localstore
     a.WriteLine ("    ""onlinestores"":{")
     a.WriteLine ("        ""PackageStore"":""http://api.lime-bootstrap.com/packages/"",")
     a.WriteLine ("        ""Bootstrap Appstore"":""http://api.lime-bootstrap.com/apps/""")
@@ -1963,7 +1948,7 @@ ErrorHandler:
     Call UI.ShowError("lip.RollbackFieldsAndTables")
 End Function
 
-'LJE 20160212 Check if a new version of LIP exists
+'Check if a new version of LIP exists
 Public Sub UpdateLIPOnNewVersion()
 On Error GoTo ErrorHandler
     Dim Package As Object
@@ -1988,19 +1973,14 @@ On Error GoTo ErrorHandler
     PackageVersion = findNewestVersion(Package.Item("versions"))
     If PackageVersion > CDbl(VBA.Replace(oPackageFile.Item("lipversion"), ".", ",")) Then
         Debug.Print Indent + "Newer version of lip found"
-        'LJE TODO Send in the versions
+        
         Dim VBComps As Object
         Dim Path As String
         Dim tempModuleName As String
         
         Set VBComps = Application.VBE.ActiveVBProject.VBComponents
-        'LJE TEST
-        'VBComps.Item("lip").Name = "lip_old"
-        'Call Application.VBE.ActiveVBProject.VBComponents.Import("C:\Temp\LocalStore\lip\Install\VBA\lip.bas")
         
-        'LJE TODO Update packages.json with new version
         oPackageFile.Item("lipversion") = VBA.Replace(PackageVersion, ",", ".")
-        'LJE TEST
         'Call lip.RemoveModule("lip_old")
         Debug.Print Indent + "LIP updated"
     End If
@@ -2037,7 +2017,7 @@ ErrorHandler:
     Call UI.ShowError("lip.UpdateLIP")
 End Sub
 
-'LJE Remove temporary lip.bas after update
+'Remove temporary lip.bas after update
 Private Sub RemoveModule(sModuleName As String)
 Dim VBComps As Object
 On Error GoTo ErrorHandler
@@ -2050,7 +2030,6 @@ ErrorHandler:
     Call UI.ShowError("lip.RemoveModule")
 End Sub
 
-'LJE TODO Refactor with helper method to write json
 Public Sub SetLipVersionInPackageFile(sVersion As String)
 On Error GoTo ErrorHandler
 '    Open ThisApplication.WebFolder & DefaultInstallPath & PackageName & "\" & "package.json" For Input As #1
