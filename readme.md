@@ -1,6 +1,6 @@
 #LIP - Package Management for LIME Pro
 
-LIP is a package management tool for LIME Pro. A package can currently contain declarations for fields and tables, VBA modules, localizations and LIME Bootstrap Apps. LIP downloads and installs packages from Package Stores. A Package Store is any valid source which serves correct JSON-files and package.zip files. You can configure which stores to use in the packages.json-file in your actionpad-folder.
+LIP is a package management tool for LIME Pro. A package can currently contain declarations for fields and tables, VBA modules, localizations and LIME Bootstrap Apps. LIP downloads and installs packages from Package and App Stores. A Package Store is any valid source which serves correct JSON-files and package.zip files. You can configure which stores to use in the packages.json-file in your actionpad-folder.
 
 LIP is inspired from Pythons PIP and Nodes NPM but adapted for LIME Pro.
 
@@ -8,7 +8,7 @@ LIP is inspired from Pythons PIP and Nodes NPM but adapted for LIME Pro.
 The current implementation is written in VBA and is used in the immediate window in LIME Pro's VBA-editor.
 
 ###Get started
-Before you can start installing packages, you need to install LIP to your LIME Pro database. Download the zip-file, which includes all necessary files to get started, and follow these steps:
+Before you can start installing packages, you need to install LIP to your Lime CRM database. Download the zip-file of the latest release under https://github.com/Lundalogik/lip/releases/, which includes all necessary files to get started, and follow these steps:
 
 1. Add the SQL-procedures to your database by running the SQL-scripts (Important! Make sure you run the scripts on your database and NOT the master-database by selecting the correct database in the upper left corner)
 2. Run `exec lsp_setdatabasetimestamp` on your database
