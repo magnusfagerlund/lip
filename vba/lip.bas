@@ -1206,7 +1206,8 @@ On Error GoTo ErrorHandler
             idcategory = oProc.Parameters("@@idcategory").OutputValue
             idstringlocalname = oProc.Parameters("@@idstringlocalname").OutputValue
             
-            sLog = sLog + Indent + ("Field """ & tableName & "." & field.Item("name") & """ added. Setting field attributes...") + vbNewLine
+            sLog = sLog + Indent + ("Field """ & tableName & "." & field.Item("name") & """ installed.") + vbNewLine
+            sLog = sLog + Indent + ("Adding attributes for field: " & tableName & "." & field.Item("name")) + vbNewLine
             
             ErrorMessage = ""
             warningmessage = ""
@@ -1311,7 +1312,7 @@ On Error GoTo ErrorHandler
                     DecreaseIndent
                     bOk = False
                 Else
-                    sLog = sLog + Indent + ("Attributes for field """ & tableName & "." & field.Item("name") & """ successfully set.") + vbNewLine
+                    sLog = sLog + Indent + ("Attributes for field """ & tableName & "." & field.Item("name") & """ set.") + vbNewLine
                 End If
             Else
                 bOk = False
@@ -2152,4 +2153,3 @@ ErrorHandler:
     End If
     Call UI.ShowError("lip.showProgressbar")
 End Sub
-
