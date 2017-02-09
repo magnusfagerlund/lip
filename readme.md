@@ -427,7 +427,7 @@ isnullable|No|0/1|0
 limereadonly|No|0/1|Default
 limerequiredforedit|No|0/1|Default
 type|No|**Timefields:** 0/1/2/3/4/5/6/7/8/9 ("Date" / "Date and Time" / "Time" / "Year" / "Half a Year" / "Four Months" / "Quarter" / "Month" / "Week" / "Date and Time (with Seconds)" **Optionlists:** 0/1 ("Color and Text"/"Only Color")|0
-relationtab|No|0/1 (relationfield / relationtab, only valid when creating a relation)|0 (relationfield)
+relationtab|No|0/1 (actually corresponds to relationmaxcount, the name is misleading. Only valid when creating a relation)|0
 syscomment (private comment)|No|text|<empty>
 formatsql|No|0/1 (False/True)|Default
 limevalidationrule|No|text|<empty>
@@ -435,7 +435,7 @@ label|No|Integer|No label
 adlabel|No|Integer|No AD-label
 
 #### relations
-Here you specify which relations to create. This section only contains information about which fields/tabs to create a relation between, the rest of the information about each field you specify in the field-section. There you also specify whether the field should be an actual field or a tab (attribute 'relationtab' set to 0 or 1). Example:
+Here you specify which relations to create. This section only contains information about which fields/tabs to create a relation between, the rest of the information about each field you specify in the field-section. There you also specify whether the field should be an actual field or a tab (attribute relationtab, which actually corresponds to attribute relationmaxcount). Example:
 ```
 	"relations": [
 	{
