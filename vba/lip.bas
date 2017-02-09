@@ -162,7 +162,7 @@ On Error GoTo ErrorHandler
     Dim strDownloadError As String
     strDownloadError = DownloadFile(PackageName, downloadURL, InstallPath)
     If strDownloadError = "" Then
-        Call Unzip(PackageName, InstallPath)
+        Call UnZip(PackageName, InstallPath)
         sLog = sLog + Indent + "Download complete!" + vbNewLine
         
                
@@ -317,7 +317,7 @@ On Error GoTo ErrorHandler
                 End If
                                 
     '           Unzip file
-                Call Unzip(PackageName, sInstallPath)
+                Call UnZip(PackageName, sInstallPath)
     
                 'Get package information from json-file
                 Dim Package As Object
@@ -911,9 +911,9 @@ On Error GoTo ErrorHandler
 
 ErrorHandler:
     InstallFiles = False
+    sLog = sLog + Indent + ("ERROR: " + Err.Description) + vbNewLine
     Call UI.ShowError("lip.InstallFiles")
     IncreaseIndent
-    sLog = sLog + Indent + ("ERROR: " + Err.Description) + vbNewLine
     DecreaseIndent
 End Function
 
@@ -1130,9 +1130,9 @@ On Error GoTo ErrorHandler
 ErrorHandler:
     Set oProc = Nothing
     InstallFieldsAndTables = False
+    sLog = sLog + Indent + ("ERROR: " + Err.Description) + vbNewLine
     Call UI.ShowError("lip.InstallFieldsAndTables")
     IncreaseIndent
-    sLog = sLog + Indent + ("ERROR: " + Err.Description) + vbNewLine
     DecreaseIndent
 End Function
 
@@ -1151,6 +1151,8 @@ On Error GoTo ErrorHandler
     Dim oItem As Variant
     Dim optionItems As Variant
     Dim idfield As Long
+    Dim idcategory As Long
+    Dim idstringlocalname As Long
     
     Application.MousePointer = 11
     
@@ -1163,6 +1165,8 @@ On Error GoTo ErrorHandler
     commentLocalnames = ""
     tooltipLocalnames = ""
     idfield = -1
+    idcategory = -1
+    idstringlocalname = -1
     
     Set oProc = Database.Procedures("csp_lip_createfield")
     oProc.Timeout = 299
@@ -1170,85 +1174,16 @@ On Error GoTo ErrorHandler
     If Not oProc Is Nothing Then
         oProc.Parameters("@@tablename").InputValue = tableName
         oProc.Parameters("@@fieldname").InputValue = field.Item("name")
-
-        'Add localnames
-        If field.Exists("localname") Then
-            For Each oItem In field.Item("localname")
-                If oItem <> "" Then
-                    fieldLocalnames = fieldLocalnames + VBA.Trim(oItem) + ":" + VBA.Trim(field.Item("localname").Item(oItem)) + ";"
-                End If
-            Next
-            oProc.Parameters("@@localname").InputValue = fieldLocalnames
-        End If
-
-        'Add attributes
-        If field.Exists("attributes") Then
-            For Each oItem In field.Item("attributes")
-                If oItem <> "" Then
-                    If Not oProc.Parameters.Lookup("@@" & oItem, lkLookupProcedureParameterByName) Is Nothing Then
-                        oProc.Parameters("@@" & oItem).InputValue = field.Item("attributes").Item(oItem)
-                    Else
-                        sLog = sLog + Indent + ("No support for setting field attribute " & oItem) + vbNewLine
-                    End If
-                End If
-            Next
-        End If
-
-        'Add separator
-        If field.Exists("separator") Then
-            For Each oItem In field.Item("separator")
-                separatorLocalnames = separatorLocalnames + VBA.Trim(oItem) + ":" + VBA.Trim(field.Item("separator").Item(oItem)) + ";"
-            Next
-            oProc.Parameters("@@separator").InputValue = separatorLocalnames
-        End If
+        oProc.Parameters("@@fieldtype").InputValue = field.Item("attributes").Item("fieldtype")
+        oProc.Parameters("@@defaultvalue").InputValue = field.Item("attributes").Item("defaultvalue")
+        oProc.Parameters("@@length").InputValue = field.Item("attributes").Item("length")
+        oProc.Parameters("@@isnullable").InputValue = field.Item("attributes").Item("isnullable")
         
-        'Add limevalidationtext
-        If field.Exists("limevalidationtext") Then
-            For Each oItem In field.Item("limevalidationtext")
-                limevalidationtextLocalnames = limevalidationtextLocalnames + VBA.Trim(oItem) + ":" + VBA.Trim(field.Item("limevalidationtext").Item(oItem)) + ";"
-            Next
-            oProc.Parameters("@@limevalidationtext").InputValue = limevalidationtextLocalnames
-        End If
-        
-        'Add comment
-        If field.Exists("comment") Then
-            For Each oItem In field.Item("comment")
-                commentLocalnames = commentLocalnames + VBA.Trim(oItem) + ":" + VBA.Trim(field.Item("comment").Item(oItem)) + ";"
-            Next
-            oProc.Parameters("@@comment").InputValue = commentLocalnames
-        End If
-        
-        'Add tooltip (description)
-        If field.Exists("description") Then
-            For Each oItem In field.Item("description")
-                tooltipLocalnames = tooltipLocalnames + VBA.Trim(oItem) + ":" + VBA.Trim(field.Item("description").Item(oItem)) + ";"
-            Next
-            oProc.Parameters("@@description").InputValue = tooltipLocalnames
-        End If
-
-        Dim strOptions As String
-        strOptions = ""
-        'Add options
-        If field.Exists("options") Then
-            For Each optionItems In field.Item("options")
-                strOptions = strOptions + "["
-                For Each oItem In optionItems
-                    strOptions = strOptions + VBA.Trim(oItem) + ":" + VBA.Trim(optionItems.Item(oItem)) + ";"
-                Next
-                strOptions = strOptions + "]"
-            Next
-            oProc.Parameters("@@optionlist").InputValue = strOptions
-        End If
-
         Call oProc.Execute(False)
         ErrorMessage = oProc.Parameters("@@errorMessage").OutputValue
         warningmessage = oProc.Parameters("@@warningMessage").OutputValue
         
         idfield = oProc.Parameters("@@idfield").OutputValue
-        
-        If idfield <> -1 Then
-            sCreatedFields = sCreatedFields + CStr(idfield) + ";"
-        End If
         
         'Log warnings
         If warningmessage <> "" Then
@@ -1263,12 +1198,129 @@ On Error GoTo ErrorHandler
             sLog = sLog + Indent + (ErrorMessage) + vbNewLine
             DecreaseIndent
             bOk = False
-        Else
-            sLog = sLog + Indent + ("Field """ & tableName & "." & field.Item("name") & """ installed.") + vbNewLine
+        End If
+        
+        If idfield > 0 Then
+            sCreatedFields = sCreatedFields + CStr(idfield) + ";"
+            
+            idcategory = oProc.Parameters("@@idcategory").OutputValue
+            idstringlocalname = oProc.Parameters("@@idstringlocalname").OutputValue
+            
+            sLog = sLog + Indent + ("Field """ & tableName & "." & field.Item("name") & """ added. Setting field attributes...") + vbNewLine
+            
+            ErrorMessage = ""
+            warningmessage = ""
+            
+            Set oProc = Database.Procedures("csp_lip_setfieldattributes")
+            oProc.Timeout = 299
+            
+            If Not oProc Is Nothing Then
+                oProc.Parameters("@@idfield").InputValue = idfield
+                oProc.Parameters("@@idcategory").InputValue = idcategory
+                oProc.Parameters("@@idstringlocalname").InputValue = idstringlocalname
+                oProc.Parameters("@@fieldname").InputValue = field.Item("name")
+                
+                'Add localnames
+                If field.Exists("localname") Then
+                    For Each oItem In field.Item("localname")
+                        If oItem <> "" Then
+                            fieldLocalnames = fieldLocalnames + VBA.Trim(oItem) + ":" + VBA.Trim(field.Item("localname").Item(oItem)) + ";"
+                        End If
+                    Next
+                    oProc.Parameters("@@localname").InputValue = fieldLocalnames
+                End If
+        
+                'Add attributes
+                If field.Exists("attributes") Then
+                    For Each oItem In field.Item("attributes")
+                        'Some of the attributes were already set when creating the field
+                        If oItem <> "" And oItem <> "defaultvalue" And oItem <> "length" And oItem <> "isnullable" Then
+                            If Not oProc.Parameters.Lookup("@@" & oItem, lkLookupProcedureParameterByName) Is Nothing Then
+                                oProc.Parameters("@@" & oItem).InputValue = field.Item("attributes").Item(oItem)
+                            Else
+                                IncreaseIndent
+                                sLog = sLog + Indent + ("No support for setting field attribute " & oItem) + vbNewLine
+                                DecreaseIndent
+                            End If
+                        End If
+                    Next
+                End If
+        
+                'Add separator
+                If field.Exists("separator") Then
+                    For Each oItem In field.Item("separator")
+                        separatorLocalnames = separatorLocalnames + VBA.Trim(oItem) + ":" + VBA.Trim(field.Item("separator").Item(oItem)) + ";"
+                    Next
+                    oProc.Parameters("@@separator").InputValue = separatorLocalnames
+                End If
+                
+                'Add limevalidationtext
+                If field.Exists("limevalidationtext") Then
+                    For Each oItem In field.Item("limevalidationtext")
+                        limevalidationtextLocalnames = limevalidationtextLocalnames + VBA.Trim(oItem) + ":" + VBA.Trim(field.Item("limevalidationtext").Item(oItem)) + ";"
+                    Next
+                    oProc.Parameters("@@limevalidationtext").InputValue = limevalidationtextLocalnames
+                End If
+                
+                'Add comment
+                If field.Exists("comment") Then
+                    For Each oItem In field.Item("comment")
+                        commentLocalnames = commentLocalnames + VBA.Trim(oItem) + ":" + VBA.Trim(field.Item("comment").Item(oItem)) + ";"
+                    Next
+                    oProc.Parameters("@@comment").InputValue = commentLocalnames
+                End If
+                
+                'Add tooltip (description)
+                If field.Exists("description") Then
+                    For Each oItem In field.Item("description")
+                        tooltipLocalnames = tooltipLocalnames + VBA.Trim(oItem) + ":" + VBA.Trim(field.Item("description").Item(oItem)) + ";"
+                    Next
+                    oProc.Parameters("@@description").InputValue = tooltipLocalnames
+                End If
+        
+                Dim strOptions As String
+                strOptions = ""
+                'Add options
+                If field.Exists("options") Then
+                    For Each optionItems In field.Item("options")
+                        strOptions = strOptions + "["
+                        For Each oItem In optionItems
+                            strOptions = strOptions + VBA.Trim(oItem) + ":" + VBA.Trim(optionItems.Item(oItem)) + ";"
+                        Next
+                        strOptions = strOptions + "]"
+                    Next
+                    oProc.Parameters("@@optionlist").InputValue = strOptions
+                End If
+                
+                Call oProc.Execute(False)
+                
+                ErrorMessage = oProc.Parameters("@@errorMessage").OutputValue
+                warningmessage = oProc.Parameters("@@warningMessage").OutputValue
+                
+                'Log warnings
+                If warningmessage <> "" Then
+                    IncreaseIndent
+                    sLog = sLog + Indent + (warningmessage) + vbNewLine
+                    DecreaseIndent
+                End If
+                
+                'If errormessage is set, something went wrong
+                If ErrorMessage <> "" Then
+                    IncreaseIndent
+                    sLog = sLog + Indent + (ErrorMessage) + vbNewLine
+                    DecreaseIndent
+                    bOk = False
+                Else
+                    sLog = sLog + Indent + ("Attributes for field """ & tableName & "." & field.Item("name") & """ successfully set.") + vbNewLine
+                End If
+            Else
+                bOk = False
+                Call Lime.MessageBox("Couldn't find SQL-procedure 'csp_lip_setfieldattributes'. Please make sure this procedure exists in the database, run lsp_setdatabasetimestamp and restart LDC.")
+            End If
         End If
     Else
         bOk = False
-        Call Lime.MessageBox("Couldn't find SQL-procedure 'csp_lip_createfield'. Please make sure this procedure exists in the database and restart LDC.")
+        Call Lime.MessageBox("Couldn't find SQL-procedure 'csp_lip_createfield'. Please make sure this procedure exists in the database, run lsp_setdatabasetimestamp and restart LDC.")
     End If
     Set oProc = Nothing
     AddField = bOk
@@ -1277,9 +1329,9 @@ On Error GoTo ErrorHandler
 ErrorHandler:
     Set oProc = Nothing
     AddField = False
+    sLog = sLog + Indent + ("ERROR: " + Err.Description) + vbNewLine
     Call UI.ShowError("lip.AddField")
     IncreaseIndent
-    sLog = sLog + Indent + ("ERROR: " + Err.Description) + vbNewLine
     DecreaseIndent
 End Function
 
@@ -1352,9 +1404,9 @@ On Error GoTo ErrorHandler
 ErrorHandler:
     Set oProcAttributes = Nothing
     SetTableAttributes = False
+    sLog = sLog + Indent + ("ERROR: " + Err.Description) + vbNewLine
     Call UI.ShowError("lip.SetTableAttributes")
     IncreaseIndent
-    sLog = sLog + Indent + ("ERROR: " + Err.Description) + vbNewLine
     DecreaseIndent
 End Function
 
@@ -1387,7 +1439,7 @@ ErrorHandler:
     DownloadFile = "Couldn't download file from " & downloadURL & vbCrLf & vbCrLf & Err.Description
 End Function
 
-Private Sub Unzip(PackageName As String, InstallPath As String)
+Private Sub UnZip(PackageName As String, InstallPath As String)
 On Error GoTo ErrorHandler
     Dim FSO As Object
     Dim oApp As Object
@@ -1499,9 +1551,9 @@ On Error GoTo ErrorHandler
     Exit Function
 ErrorHandler:
     addModule = False
+    sLog = sLog + Indent + ("ERROR: Couldn't add module " + ModuleName + ". " + Err.Description) + vbNewLine
     Call UI.ShowError("lip.addModule")
     IncreaseIndent
-    sLog = sLog + Indent + ("ERROR: Couldn't add module " + ModuleName + ". " + Err.Description) + vbNewLine
     DecreaseIndent
 End Function
 
@@ -1551,9 +1603,9 @@ On Error GoTo ErrorHandler
     Exit Function
 ErrorHandler:
     WriteToPackageFile = False
+    sLog = sLog + Indent + ("ERROR: " + Err.Description) + vbNewLine
     Call UI.ShowError("lip.WriteToPackageFile")
     IncreaseIndent
-    sLog = sLog + Indent + ("ERROR: " + Err.Description) + vbNewLine
     DecreaseIndent
 End Function
 
@@ -1726,7 +1778,7 @@ On Error GoTo ErrorHandler
     Dim strDownloadError
     strDownloadError = DownloadFile("vba_json", BaseURL + AppStoreApiURL, InstallPath)
     If strDownloadError = "" Then
-        Call Unzip("vba_json", InstallPath)
+        Call UnZip("vba_json", InstallPath)
     
         Call addModule("vba_json", "JSON", "JSON.bas", InstallPath, False)
         Call addModule("vba_json", "cStringBuilder", "cStringBuilder.cls", InstallPath, False)
@@ -1903,9 +1955,9 @@ On Error GoTo ErrorHandler
 ErrorHandler:
     Set oProc = Nothing
     InstallRelations = False
+    sLog = sLog + Indent + ("ERROR: " + Err.Description) + vbNewLine
     Call UI.ShowError("lip.InstallRelations")
     IncreaseIndent
-    sLog = sLog + Indent + ("ERROR: " + Err.Description) + vbNewLine
     DecreaseIndent
 End Function
 
