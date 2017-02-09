@@ -2121,7 +2121,7 @@ ErrorHandler:
 End Sub
 
 'Helper function to get LIP version from packages.json.
-Public Function GetInstalledLIPVersion()
+Public Function GetInstalledLIPVersion() As String
     Dim bOk As Boolean
     Dim oJSON As Object
     Dim fs As Object
