@@ -1,6 +1,7 @@
 Attribute VB_Name = "lip"
 Option Explicit
 
+'Last updated: 2017-03-23
 'Lundalogik Package Store, DO NOT CHANGE, used to download system files for LIP
 'Please add your own stores in packages.json
 Private Const BaseURL As String = "http://api.lime-bootstrap.com"
@@ -1817,6 +1818,8 @@ On Error GoTo ErrorHandler
     Application.Shell sLogfile
     
     Call AskIfInstallPackageBuilder
+    
+    Application.MousePointer = 0
     
     Exit Sub
 ErrorHandler:

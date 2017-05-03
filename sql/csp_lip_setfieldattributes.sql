@@ -3,7 +3,7 @@ IF EXISTS (SELECT name FROM sysobjects WHERE name = 'csp_lip_setfieldattributes'
 GO
 -- Written by: Jonny Springare
 -- Created: 2017-02-09
--- Last updated: 2017-02-09
+-- Last updated: 2017-03-23
 CREATE PROCEDURE [dbo].[csp_lip_setfieldattributes]	
 	@@idfield INT
 	, @@idcategory INT
@@ -660,7 +660,7 @@ BEGIN
 		END								
 	END
 	
-	IF @@fieldtype IN (N'time', N'option', N'decimal', N'document',N'integer',N'file')
+	IF @@fieldtype IN (N'time', N'option', N'decimal', N'document', N'integer', N'file', N'html')
 	BEGIN
 		--Set type for timefield or optionlist
 		EXEC @return_value = [dbo].[lsp_setfieldattributevalue] @@idfield = @@idfield, @@name = N'type', @@valueint = @@type
