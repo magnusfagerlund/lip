@@ -69,7 +69,7 @@ BEGIN
 	--Set idcategory for textfield or decimal-field, since this isn't done by lsp_addfield (only setfields and optionfields)
 	IF @@fieldtype = N'string' OR @@fieldtype = N'decimal'
 	BEGIN
-		SET @@idcategory = NULL
+		SET @@idcategory = -1
 		EXEC @return_value =  lsp_setfieldattributevalue @@idfield = @@idfield, 
 										 @@name = N'idcategory',
 										 @@valueint = @@idcategory OUTPUT
