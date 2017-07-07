@@ -226,6 +226,8 @@ On Error GoTo ErrorHandler
     
     Application.MousePointer = 0
 
+    Call Application.Shell(InstallPath + PackageName)
+
 Exit Sub
 ErrorHandler:
     If Not m_frmProgress Is Nothing Then
