@@ -1,6 +1,7 @@
 Attribute VB_Name = "lip"
 Option Explicit
 
+'Last updated: 2017-03-23
 'Lundalogik Package Store, DO NOT CHANGE, used to download system files for LIP
 'Please add your own stores in packages.json
 Private Const BaseURL As String = "http://api.lime-bootstrap.com"
@@ -864,8 +865,8 @@ On Error GoTo ErrorHandler
     For Each Localize In oJSON
         If AddOrCheckLocalize( _
             Localize.Item("owner"), _
+            Localize.Item("code"), _
             Localize.Item("context"), _
-            "", _
             Localize.Item("en_us"), _
             Localize.Item("sv"), _
             Localize.Item("no"), _
@@ -922,7 +923,7 @@ On Error GoTo ErrorHandler
 
 ErrorHandler:
     InstallFiles = False
-    sLog = sLog + Indent + ("ERROR: " + Err.Description) + vbNewLine
+    sLog = sLog + Indent + ("ERROR: " + err.Description) + vbNewLine
     Call UI.ShowError("lip.InstallFiles")
     IncreaseIndent
     DecreaseIndent
@@ -1140,7 +1141,7 @@ On Error GoTo ErrorHandler
 ErrorHandler:
     Set oProc = Nothing
     InstallFieldsAndTables = False
-    sLog = sLog + Indent + ("ERROR: " + Err.Description) + vbNewLine
+    sLog = sLog + Indent + ("ERROR: " + err.Description) + vbNewLine
     Call UI.ShowError("lip.InstallFieldsAndTables")
     IncreaseIndent
     DecreaseIndent
@@ -1340,7 +1341,7 @@ On Error GoTo ErrorHandler
 ErrorHandler:
     Set oProc = Nothing
     AddField = False
-    sLog = sLog + Indent + ("ERROR: " + Err.Description) + vbNewLine
+    sLog = sLog + Indent + ("ERROR: " + err.Description) + vbNewLine
     Call UI.ShowError("lip.AddField")
     IncreaseIndent
     DecreaseIndent
@@ -1415,7 +1416,7 @@ On Error GoTo ErrorHandler
 ErrorHandler:
     Set oProcAttributes = Nothing
     SetTableAttributes = False
-    sLog = sLog + Indent + ("ERROR: " + Err.Description) + vbNewLine
+    sLog = sLog + Indent + ("ERROR: " + err.Description) + vbNewLine
     Call UI.ShowError("lip.SetTableAttributes")
     IncreaseIndent
     DecreaseIndent
@@ -1447,7 +1448,7 @@ On Error GoTo ErrorHandler
     DownloadFile = ""
     Exit Function
 ErrorHandler:
-    DownloadFile = "Couldn't download file from " & downloadURL & vbCrLf & vbCrLf & Err.Description
+    DownloadFile = "Couldn't download file from " & downloadURL & vbCrLf & vbCrLf & err.Description
 End Function
 
 Private Sub UnZip(PackageName As String, InstallPath As String)
@@ -1562,7 +1563,7 @@ On Error GoTo ErrorHandler
     Exit Function
 ErrorHandler:
     addModule = False
-    sLog = sLog + Indent + ("ERROR: Couldn't add module " + ModuleName + ". " + Err.Description) + vbNewLine
+    sLog = sLog + Indent + ("ERROR: Couldn't add module " + ModuleName + ". " + err.Description) + vbNewLine
     Call UI.ShowError("lip.addModule")
     IncreaseIndent
     DecreaseIndent
@@ -1614,7 +1615,7 @@ On Error GoTo ErrorHandler
     Exit Function
 ErrorHandler:
     WriteToPackageFile = False
-    sLog = sLog + Indent + ("ERROR: " + Err.Description) + vbNewLine
+    sLog = sLog + Indent + ("ERROR: " + err.Description) + vbNewLine
     Call UI.ShowError("lip.WriteToPackageFile")
     IncreaseIndent
     DecreaseIndent
@@ -1818,6 +1819,8 @@ On Error GoTo ErrorHandler
     
     Call AskIfInstallPackageBuilder
     
+    Application.MousePointer = 0
+    
     Exit Sub
 ErrorHandler:
     Call UI.ShowError("lip.InstallLIP")
@@ -1970,7 +1973,7 @@ On Error GoTo ErrorHandler
 ErrorHandler:
     Set oProc = Nothing
     InstallRelations = False
-    sLog = sLog + Indent + ("ERROR: " + Err.Description) + vbNewLine
+    sLog = sLog + Indent + ("ERROR: " + err.Description) + vbNewLine
     Call UI.ShowError("lip.InstallRelations")
     IncreaseIndent
     DecreaseIndent
