@@ -3,12 +3,12 @@ IF EXISTS (SELECT name FROM sysobjects WHERE name = 'csp_lip_createfield' AND UP
 GO
 -- Written by: Fredrik Eriksson, Jonny Springare
 -- Created: 2015-04-16
--- Last updated: 2017-02-09
+-- Last updated: 2017-03-23
 CREATE PROCEDURE [dbo].[csp_lip_createfield]
 	@@tablename NVARCHAR(64)
 	, @@fieldname NVARCHAR(64)
 	, @@fieldtype NVARCHAR(64)
-	, @@defaultvalue NVARCHAR(64) = NULL
+	, @@defaultvalue NVARCHAR(125) = NULL --defaultvalue in lsp_addfield takes 128 chars, but only 125 can be set
 	, @@length INT = NULL
 	, @@isnullable INT = 0
 	, @@errorMessage NVARCHAR(MAX) OUTPUT

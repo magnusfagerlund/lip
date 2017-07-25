@@ -10,14 +10,15 @@ The current implementation is written in VBA and is used in the immediate window
 ###Get started
 Before you can start installing packages, you need to install LIP to your Lime CRM database. Download the zip-file of the latest release under https://github.com/Lundalogik/lip/releases/, which includes all necessary files to get started, and follow these steps:
 
-1. Add the SQL-procedures to your database by running the SQL-scripts (Important! Make sure you run the scripts on your database and NOT the master-database by selecting the correct database in the upper left corner)
-2. Run `exec lsp_setdatabasetimestamp` on your database
-3. Restart the Lime Server component service (LDC)
-4. Import the `vba/lip.bas` file to your VBA.
-5. Import the `vba/FormProgress.frm` to your VBA.
-6. Type the command `lip.InstallLIP` in the Immediate-window of the VBA and press Enter to install all necessary modules.
-7. Compile and save the VBA
-8. Publish actionpads
+1. Download the latest LIP release from the link above. 
+2. Add the SQL-procedures to your database by running the SQL-scripts (Important! Make sure you run the scripts on your database and NOT the master-database by selecting the correct database in the upper left corner)
+3. Run `exec lsp_setdatabasetimestamp` on your database
+4. Restart the Lime Server component service (LDC)
+5. Import the `vba/lip.bas` file to your VBA.
+6. Import the `vba/FormProgress.frm` to your VBA.
+7. Type the command `lip.InstallLIP` in the Immediate-window of the VBA and press Enter to install all necessary modules.
+8. Compile and save the VBA
+9. Publish actionpads
 
 ###Install a package 
 To install a package, simply type your command in the Immediate-window of the VBA. There are three different installation methods:
@@ -47,6 +48,21 @@ __Not yet implemented!__
 Compare to `pip freeze > requirement.txt`. Creates a package from a LIME Pro solution.
 
 `lip.Freeze`
+
+###List of things that LIP does not currently handle
+
+* Policies
+* Record access
+* Virtual tables
+* Filters
+* Views
+* Templates
+* Reports
+* Table icon (partly)
+* Set lists for fields
+* SQL-procedures/functions
+* SQL on update/new/expression (The code is still exported to a .txt for easy copy/paste, but not automatically installed.)
+
 
 ##Behind the scene
 
