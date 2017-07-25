@@ -329,7 +329,7 @@ On Error GoTo ErrorHandler
                 Dim sJSON As String
                 Dim sLine As String
         
-                'Look for package.json or app.json
+                'Look for packages.json or app.json
                 If VBA.Dir(sInstallPath & PackageName & "\" & "package.json") <> "" Then
                     Open sInstallPath & PackageName & "\" & "package.json" For Input As #1
                     
@@ -2108,13 +2108,13 @@ End Sub
 'LJE TODO Refactor with helper method to write json
 Public Sub SetLipVersionInPackageFile(sVersion As String)
 On Error GoTo ErrorHandler
-'    Open ThisApplication.WebFolder & DefaultInstallPath & PackageName & "\" & "package.json" For Input As #1
+'    Open ThisApplication.WebFolder & DefaultInstallPath & PackageName & "\" & "packages.json" For Input As #1
 '
 '            ElseIf VBA.Dir(ThisApplication.WebFolder & DefaultInstallPath & PackageName & "\" & "app.json") <> "" Then
 '                Open ThisApplication.WebFolder & DefaultInstallPath & PackageName & "\" & "app.json" For Input As #1
 '
 '            Else
-'                Debug.Print (Indent + "Installation failed: couldn't find any package.json or app.json in the zip-file")
+'                Debug.Print (Indent + "Installation failed: couldn't find any packages.json or app.json in the zip-file")
 '                Exit Sub
 '            End If
 '
