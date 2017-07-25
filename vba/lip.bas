@@ -227,6 +227,7 @@ On Error GoTo ErrorHandler
     Application.MousePointer = 0
 
     Call Application.Shell(InstallPath + PackageName)
+    Call Application.Shell(InstallPath + PackageName + "\README.md")
 
 Exit Sub
 ErrorHandler:
