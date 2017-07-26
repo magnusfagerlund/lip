@@ -4,7 +4,7 @@ LIP is a package management tool for LIME Pro. A package can currently contain d
 
 LIP is inspired from Pythons PIP and Nodes NPM but adapted for LIME Pro.
 
-##Using LIP
+##Using LIP 
 The current implementation is written in VBA and is used in the immediate window in LIME Pro's VBA-editor.
 
 ###Get started

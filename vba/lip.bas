@@ -332,7 +332,7 @@ On Error GoTo ErrorHandler
                 Dim sJSON As String
                 Dim sLine As String
         
-                'Look for package.json or app.json
+                'Look for packages.json or app.json
                 If VBA.Dir(sInstallPath & PackageName & "\" & "package.json") <> "" Then
                     Open sInstallPath & PackageName & "\" & "package.json" For Input As #1
                     
@@ -868,8 +868,8 @@ On Error GoTo ErrorHandler
     For Each Localize In oJSON
         If AddOrCheckLocalize( _
             Localize.Item("owner"), _
+            Localize.Item("code"), _
             Localize.Item("context"), _
-            "", _
             Localize.Item("en_us"), _
             Localize.Item("sv"), _
             Localize.Item("no"), _
@@ -926,7 +926,7 @@ On Error GoTo ErrorHandler
 
 ErrorHandler:
     InstallFiles = False
-    sLog = sLog + Indent + ("ERROR: " + Err.Description) + vbNewLine
+    sLog = sLog + Indent + ("ERROR: " + err.Description) + vbNewLine
     Call UI.ShowError("lip.InstallFiles")
     IncreaseIndent
     DecreaseIndent
@@ -1144,7 +1144,7 @@ On Error GoTo ErrorHandler
 ErrorHandler:
     Set oProc = Nothing
     InstallFieldsAndTables = False
-    sLog = sLog + Indent + ("ERROR: " + Err.Description) + vbNewLine
+    sLog = sLog + Indent + ("ERROR: " + err.Description) + vbNewLine
     Call UI.ShowError("lip.InstallFieldsAndTables")
     IncreaseIndent
     DecreaseIndent
@@ -1344,7 +1344,7 @@ On Error GoTo ErrorHandler
 ErrorHandler:
     Set oProc = Nothing
     AddField = False
-    sLog = sLog + Indent + ("ERROR: " + Err.Description) + vbNewLine
+    sLog = sLog + Indent + ("ERROR: " + err.Description) + vbNewLine
     Call UI.ShowError("lip.AddField")
     IncreaseIndent
     DecreaseIndent
@@ -1419,7 +1419,7 @@ On Error GoTo ErrorHandler
 ErrorHandler:
     Set oProcAttributes = Nothing
     SetTableAttributes = False
-    sLog = sLog + Indent + ("ERROR: " + Err.Description) + vbNewLine
+    sLog = sLog + Indent + ("ERROR: " + err.Description) + vbNewLine
     Call UI.ShowError("lip.SetTableAttributes")
     IncreaseIndent
     DecreaseIndent
@@ -1451,7 +1451,7 @@ On Error GoTo ErrorHandler
     DownloadFile = ""
     Exit Function
 ErrorHandler:
-    DownloadFile = "Couldn't download file from " & downloadURL & vbCrLf & vbCrLf & Err.Description
+    DownloadFile = "Couldn't download file from " & downloadURL & vbCrLf & vbCrLf & err.Description
 End Function
 
 Private Sub UnZip(PackageName As String, InstallPath As String)
@@ -1566,7 +1566,7 @@ On Error GoTo ErrorHandler
     Exit Function
 ErrorHandler:
     addModule = False
-    sLog = sLog + Indent + ("ERROR: Couldn't add module " + ModuleName + ". " + Err.Description) + vbNewLine
+    sLog = sLog + Indent + ("ERROR: Couldn't add module " + ModuleName + ". " + err.Description) + vbNewLine
     Call UI.ShowError("lip.addModule")
     IncreaseIndent
     DecreaseIndent
@@ -1618,7 +1618,7 @@ On Error GoTo ErrorHandler
     Exit Function
 ErrorHandler:
     WriteToPackageFile = False
-    sLog = sLog + Indent + ("ERROR: " + Err.Description) + vbNewLine
+    sLog = sLog + Indent + ("ERROR: " + err.Description) + vbNewLine
     Call UI.ShowError("lip.WriteToPackageFile")
     IncreaseIndent
     DecreaseIndent
@@ -1976,7 +1976,7 @@ On Error GoTo ErrorHandler
 ErrorHandler:
     Set oProc = Nothing
     InstallRelations = False
-    sLog = sLog + Indent + ("ERROR: " + Err.Description) + vbNewLine
+    sLog = sLog + Indent + ("ERROR: " + err.Description) + vbNewLine
     Call UI.ShowError("lip.InstallRelations")
     IncreaseIndent
     DecreaseIndent
@@ -2111,13 +2111,13 @@ End Sub
 'LJE TODO Refactor with helper method to write json
 Public Sub SetLipVersionInPackageFile(sVersion As String)
 On Error GoTo ErrorHandler
-'    Open ThisApplication.WebFolder & DefaultInstallPath & PackageName & "\" & "package.json" For Input As #1
+'    Open ThisApplication.WebFolder & DefaultInstallPath & PackageName & "\" & "packages.json" For Input As #1
 '
 '            ElseIf VBA.Dir(ThisApplication.WebFolder & DefaultInstallPath & PackageName & "\" & "app.json") <> "" Then
 '                Open ThisApplication.WebFolder & DefaultInstallPath & PackageName & "\" & "app.json" For Input As #1
 '
 '            Else
-'                Debug.Print (Indent + "Installation failed: couldn't find any package.json or app.json in the zip-file")
+'                Debug.Print (Indent + "Installation failed: couldn't find any packages.json or app.json in the zip-file")
 '                Exit Sub
 '            End If
 '
