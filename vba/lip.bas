@@ -870,13 +870,13 @@ On Error GoTo ErrorHandler
     
     For Each Localize In oJSON
         If AddOrCheckLocalize( _
-            Localize.item("owner"), _
-            Localize.item("code"), _
-            Localize.item("context"), _
-            Localize.item("en_us"), _
-            Localize.item("sv"), _
-            Localize.item("no"), _
-            Localize.item("fi"), _
+            Localize.Item("owner"), _
+            Localize.Item("code"), _
+            Localize.Item("context"), _
+            Localize.Item("en_us"), _
+            Localize.Item("sv"), _
+            Localize.Item("no"), _
+            Localize.Item("fi"), _
             Simulate _
         ) = False Then
             bOk = False
