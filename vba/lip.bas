@@ -345,6 +345,10 @@ On Error GoTo ErrorHandler
                     sLog = sLog + Indent + "Installation failed: couldn't find any package.json or app.json in the zip-file" + vbNewLine
                     Call Application.MessageBox("ERROR: Installation failed: couldn't find any package.json or app.json in the zip-file")
                     Application.Shell SaveLogFile(PackageName)
+                    If Not m_frmProgress Is Nothing Then
+                        m_frmProgress.Hide
+                        Set m_frmProgress = Nothing
+                    End If
                     Exit Sub
                 End If
     
@@ -445,6 +449,9 @@ On Error GoTo ErrorHandler
     sLog = ""
     
     Application.MousePointer = 0
+    
+    Call Application.Shell(sInstallPath + PackageName)
+    Call Application.Shell(sInstallPath + PackageName + "\README.md")
 
 Exit Sub
 ErrorHandler:
@@ -929,7 +936,7 @@ On Error GoTo ErrorHandler
 
 ErrorHandler:
     InstallFiles = False
-    sLog = sLog + Indent + ("ERROR: " + err.Description) + vbNewLine
+    sLog = sLog + Indent + ("ERROR: " + Err.Description) + vbNewLine
     Call UI.ShowError("lip.InstallFiles")
     IncreaseIndent
     DecreaseIndent
@@ -1147,7 +1154,7 @@ On Error GoTo ErrorHandler
 ErrorHandler:
     Set oProc = Nothing
     InstallFieldsAndTables = False
-    sLog = sLog + Indent + ("ERROR: " + err.Description) + vbNewLine
+    sLog = sLog + Indent + ("ERROR: " + Err.Description) + vbNewLine
     Call UI.ShowError("lip.InstallFieldsAndTables")
     IncreaseIndent
     DecreaseIndent
@@ -1347,7 +1354,7 @@ On Error GoTo ErrorHandler
 ErrorHandler:
     Set oProc = Nothing
     AddField = False
-    sLog = sLog + Indent + ("ERROR: " + err.Description) + vbNewLine
+    sLog = sLog + Indent + ("ERROR: " + Err.Description) + vbNewLine
     Call UI.ShowError("lip.AddField")
     IncreaseIndent
     DecreaseIndent
@@ -1422,7 +1429,7 @@ On Error GoTo ErrorHandler
 ErrorHandler:
     Set oProcAttributes = Nothing
     SetTableAttributes = False
-    sLog = sLog + Indent + ("ERROR: " + err.Description) + vbNewLine
+    sLog = sLog + Indent + ("ERROR: " + Err.Description) + vbNewLine
     Call UI.ShowError("lip.SetTableAttributes")
     IncreaseIndent
     DecreaseIndent
@@ -1454,7 +1461,7 @@ On Error GoTo ErrorHandler
     DownloadFile = ""
     Exit Function
 ErrorHandler:
-    DownloadFile = "Couldn't download file from " & downloadURL & vbCrLf & vbCrLf & err.Description
+    DownloadFile = "Couldn't download file from " & downloadURL & vbCrLf & vbCrLf & Err.Description
 End Function
 
 Private Sub UnZip(PackageName As String, InstallPath As String)
@@ -1569,7 +1576,7 @@ On Error GoTo ErrorHandler
     Exit Function
 ErrorHandler:
     addModule = False
-    sLog = sLog + Indent + ("ERROR: Couldn't add module " + ModuleName + ". " + err.Description) + vbNewLine
+    sLog = sLog + Indent + ("ERROR: Couldn't add module " + ModuleName + ". " + Err.Description) + vbNewLine
     Call UI.ShowError("lip.addModule")
     IncreaseIndent
     DecreaseIndent
@@ -1621,7 +1628,7 @@ On Error GoTo ErrorHandler
     Exit Function
 ErrorHandler:
     WriteToPackageFile = False
-    sLog = sLog + Indent + ("ERROR: " + err.Description) + vbNewLine
+    sLog = sLog + Indent + ("ERROR: " + Err.Description) + vbNewLine
     Call UI.ShowError("lip.WriteToPackageFile")
     IncreaseIndent
     DecreaseIndent
@@ -1735,7 +1742,7 @@ On Error GoTo ErrorHandler
     a.WriteLine ("{")
     'LJE VersionHandling
     'TODO write to GitHub
-    a.WriteLine ("    ""lipversion"":""1.0.0"",")
+    a.WriteLine ("    ""lipversion"":""1.2.0"",")
     'LJE Should perhaps have two different objects - one onlinestore and one localstore
     a.WriteLine ("    ""onlinestores"":{")
     a.WriteLine ("        ""PackageStore"":""http://api.lime-bootstrap.com/packages/"",")
@@ -1851,8 +1858,8 @@ On Error GoTo ErrorHandler
             oRec.Value("context") = sDescription
             oRec.Value("sv") = sSV
             oRec.Value("en_us") = sEN_US
-            oRec.Value("no") = sNO
-            oRec.Value("fi") = sFI
+            'oRec.Value("no") = sNO
+            'oRec.Value("fi") = sFI
             Call oRec.Update
         End If
     ElseIf oFilter.HitCount(Database.Classes("localize")) = 1 Then
@@ -1979,7 +1986,7 @@ On Error GoTo ErrorHandler
 ErrorHandler:
     Set oProc = Nothing
     InstallRelations = False
-    sLog = sLog + Indent + ("ERROR: " + err.Description) + vbNewLine
+    sLog = sLog + Indent + ("ERROR: " + Err.Description) + vbNewLine
     Call UI.ShowError("lip.InstallRelations")
     IncreaseIndent
     DecreaseIndent
