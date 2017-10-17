@@ -14,11 +14,12 @@ Before you can start installing packages, you need to install LIP to your Lime C
 2. Add the SQL-procedures to your database by running the SQL-scripts (Important! Make sure you run the scripts on your database and NOT the master-database by selecting the correct database in the upper left corner)
 3. Run `exec lsp_setdatabasetimestamp` on your database
 4. Restart the Lime Server component service (LDC)
-5. Import the `vba/lip.bas` file to your VBA.
-6. Import the `vba/FormProgress.frm` to your VBA.
-7. Type the command `lip.InstallLIP` in the Immediate-window of the VBA and press Enter to install all necessary modules.
-8. Compile and save the VBA
-9. Publish actionpads
+5. Restart the Lime CRM client.
+6. Import the `vba/lip.bas` file to your VBA.
+7. Import the `vba/FormProgress.frm` to your VBA.
+8. Type the command `lip.InstallLIP` in the Immediate-window of the VBA and press Enter to install all necessary modules.
+9. Compile and save the VBA
+10. Publish actionpads
 
 ###Install a package 
 To install a package, simply type your command in the Immediate-window of the VBA. There are three different installation methods:
