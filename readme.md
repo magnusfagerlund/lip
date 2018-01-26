@@ -1,13 +1,13 @@
-#LIP - Package Management for LIME Pro
+# LIP - Package Management for LIME Pro
 
 LIP is a package management tool for LIME Pro. A package can currently contain declarations for fields and tables, VBA modules, localizations and LIME Bootstrap Apps. LIP downloads and installs packages from Package and App Stores. A Package Store is any valid source which serves correct JSON-files and package.zip files. You can configure which stores to use in the packages.json-file in your actionpad-folder.
 
 LIP is inspired from Pythons PIP and Nodes NPM but adapted for LIME Pro.
 
-##Using LIP 
+## Using LIP 
 The current implementation is written in VBA and is used in the immediate window in LIME Pro's VBA-editor.
 
-###Get started
+### Get started
 Before you can start installing packages, you need to install LIP to your Lime CRM database. Download the zip-file of the latest release under https://github.com/Lundalogik/lip/releases/, which includes all necessary files to get started, and follow these steps:
 
 1. Download the latest LIP release from the link above. 
@@ -21,7 +21,7 @@ Before you can start installing packages, you need to install LIP to your Lime C
 9. Compile and save the VBA
 10. Publish actionpads
 
-###Install a package 
+### Install a package 
 To install a package, simply type your command in the Immediate-window of the VBA. There are three different installation methods:
 
 `lip.Install("Packagename")`
@@ -33,24 +33,24 @@ Install a package from a zip-file, displays a file dialog where you can point ou
 `lip.InstallFromPackageFile`
 All installed packages are kept tracked of inside the `packages.json`-file in the ActionPad folder. If you transfer this file to a new LIME Pro database you can use this file to conduct a brand new install by typing the command above.
 
-###Update a package
+### Update a package
 If a package already exist and should be updated or reinstalled you must explicitly use the update command 
 
 `lip.UpgradePackage("ExamplePackage")`
 
-###Remove a package
+### Remove a package
 __Not yet implemented!__
 Should remove a specified package
 
 `lip.Remove "ExamplePackage"`
 
-###Freeze a solution to a package
+### Freeze a solution to a package
 __Not yet implemented!__
 Compare to `pip freeze > requirement.txt`. Creates a package from a LIME Pro solution.
 
 `lip.Freeze`
 
-###List of things that LIP does not currently handle
+### List of things that LIP does not currently handle
 
 * Policies
 * Record access
@@ -65,7 +65,7 @@ Compare to `pip freeze > requirement.txt`. Creates a package from a LIME Pro sol
 * SQL on update/new/expression (The code is still exported to a .txt for easy copy/paste, but not automatically installed.)
 
 
-##Behind the scene
+## Behind the scene
 
 
 
